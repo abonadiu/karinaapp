@@ -1,257 +1,228 @@
 
-# Plano: Agendamento de Sessões de Feedback
+# Plano: Menu Dropdown no Nome do Usuário
 
 ## Resumo
 
-Implementar funcionalidade de agendamento de sessões de feedback pós-diagnóstico, integrando com Calendly (ou permitindo URL customizada), para que participantes possam agendar uma sessão com o facilitador diretamente da tela de resultados.
+Transformar a seção "Conta" da sidebar em um dropdown que aparece ao clicar no nome do usuário no footer, mostrando as opções: Perfil, Administração, Portal da Empresa (se gestor) e Sair.
 
 ---
 
-## Como Funcionará
+## Mudança Visual
 
-1. **Facilitador configura** sua URL do Calendly no perfil
-2. **Participante completa** o diagnóstico e vê os resultados
-3. **Botão "Agendar Sessão"** aparece na tela de resultados
-4. **Popup do Calendly** abre para agendamento
-5. **Opcional**: Registro do agendamento no banco de dados
-
----
-
-## Componentes a Implementar
-
-### 1. Campo de URL do Calendly no Perfil do Facilitador
-
-Adicionar novo campo no perfil para o facilitador configurar sua URL de agendamento.
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `calendly_url` | string | URL do Calendly ou similar |
-
-### 2. Componente de Agendamento
-
-Novo componente que exibe o botão e abre o widget do Calendly.
-
+### Antes (Atual)
 ```text
-+------------------------------------------+
-|  Agende sua Sessão de Feedback           |
-+------------------------------------------+
-|                                          |
-|  Quer aprofundar seus resultados?        |
-|  Agende uma sessão individual com seu    |
-|  facilitador.                            |
-|                                          |
-|     [ Agendar Sessão de Feedback ]       |
-|                                          |
-+------------------------------------------+
++---------------------------+
+| Menu                      |
+|   Dashboard               |
+|   Empresas                |
+|   Participantes           |
+|   Relatórios              |
++---------------------------+
+| Conta                     |
+|   Portal da Empresa       |
+|   Perfil                  |
+|   Administração           |
++---------------------------+
+| [Avatar] Nome do Usuário  |
+|          Facilitador  [X] |
++---------------------------+
 ```
 
-### 3. Integração com Calendly
+### Depois (Proposto)
+```text
++---------------------------+
+| Menu                      |
+|   Dashboard               |
+|   Empresas                |
+|   Participantes           |
+|   Relatórios              |
++---------------------------+
+|                           |
+|                           |
+|                           |
++---------------------------+
+| [Avatar] Nome do Usuário▼ |  <-- Clicável
+|          Facilitador      |
++---------------------------+
+         |
+         v  (ao clicar)
++---------------------------+
+| Portal da Empresa         |
+| Perfil                    |
+| Administração             |
+|---------------------------|
+| Sair                      |
++---------------------------+
+```
 
-Usar a biblioteca `react-calendly` para popup modal:
+---
+
+## Componentes Envolvidos
+
+### DropdownMenu (Radix UI)
+
+Usar o componente DropdownMenu já existente em `src/components/ui/dropdown-menu.tsx`:
 
 ```tsx
-import { PopupButton } from "react-calendly";
-
-<PopupButton
-  url={facilitatorProfile.calendly_url}
-  rootElement={document.getElementById("root")}
-  text="Agendar Sessão de Feedback"
-/>
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 ```
 
 ---
 
-## Arquivos a Modificar
+## Arquivo a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/Perfil.tsx` | Adicionar campo para URL do Calendly |
-| `src/components/diagnostic/DiagnosticResults.tsx` | Adicionar seção de agendamento |
-
-## Arquivos a Criar
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/components/diagnostic/ScheduleFeedbackCard.tsx` | Card com botão de agendamento |
+| `src/components/layout/Sidebar.tsx` | Remover seção "Conta", adicionar dropdown no footer |
 
 ---
 
-## Alterações no Banco de Dados
+## Implementação
 
-### Nova coluna na tabela `profiles`
+### 1. Remover Seção "Conta" do SidebarContent
 
-```sql
-ALTER TABLE public.profiles 
-ADD COLUMN calendly_url text NULL;
-```
+Remover o `SidebarGroup` com label "Conta" (linhas 92-136).
 
-### (Opcional) Tabela para registrar agendamentos
-
-```sql
-CREATE TABLE public.feedback_sessions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  participant_id uuid REFERENCES participants(id) ON DELETE CASCADE,
-  facilitator_id uuid NOT NULL,
-  scheduled_at timestamptz,
-  calendly_event_uri text,
-  status text DEFAULT 'scheduled',
-  created_at timestamptz DEFAULT now()
-);
-```
-
----
-
-## Interface do Facilitador (Perfil)
-
-Nova seção no perfil:
-
-```text
-+------------------------------------------+
-|  Agendamento de Sessões                  |
-+------------------------------------------+
-|                                          |
-|  URL do Calendly                         |
-|  [https://calendly.com/seu-link       ]  |
-|                                          |
-|  Esta URL será exibida para seus         |
-|  participantes após completarem o        |
-|  diagnóstico.                            |
-|                                          |
-+------------------------------------------+
-```
-
----
-
-## Fluxo do Participante
-
-```text
-1. Completa diagnóstico
-         |
-         v
-2. Vê tela de resultados
-         |
-         v
-3. Card "Agende sua Sessão" aparece
-   (se facilitador tiver URL configurada)
-         |
-         v
-4. Clica "Agendar Sessão de Feedback"
-         |
-         v
-5. Popup do Calendly abre
-         |
-         v
-6. Participante escolhe horário
-         |
-         v
-7. Confirmação enviada por email
-```
-
----
-
-## Design do Componente ScheduleFeedbackCard
+### 2. Substituir Footer por DropdownMenu
 
 ```tsx
-// Só exibe se facilitador tiver calendly_url configurada
-{facilitatorProfile?.calendly_url && (
-  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-    <CardHeader className="text-center">
-      <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
-      <CardTitle>Agende sua Sessão de Feedback</CardTitle>
-      <CardDescription>
-        Aprofunde seus resultados com uma sessão individual
-      </CardDescription>
-    </CardHeader>
-    <CardContent className="text-center">
-      <PopupButton
-        url={facilitatorProfile.calendly_url}
-        rootElement={document.getElementById("root")!}
-        text="Agendar Sessão"
-        className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-      />
-    </CardContent>
-  </Card>
-)}
+<SidebarFooter className="border-t border-sidebar-border">
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <button className="flex items-center gap-2 px-2 py-3 w-full hover:bg-sidebar-accent rounded-md transition-colors">
+        <Avatar className="h-8 w-8 shrink-0">
+          <AvatarImage src={profile?.avatar_url || undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+            {getInitials(profile?.full_name)}
+          </AvatarFallback>
+        </Avatar>
+        {!collapsed && (
+          <>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {profile?.full_name || user?.email}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {isManager ? "Gestor" : "Facilitador"}
+              </p>
+            </div>
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          </>
+        )}
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent 
+      side="top" 
+      align="start"
+      className="w-56 bg-popover"
+    >
+      {isManager && managerCompanyId && (
+        <DropdownMenuItem asChild>
+          <Link to="/empresa/portal">
+            <Building className="mr-2 h-4 w-4" />
+            Portal da Empresa
+          </Link>
+        </DropdownMenuItem>
+      )}
+      <DropdownMenuItem asChild>
+        <Link to="/perfil">
+          <User className="mr-2 h-4 w-4" />
+          Perfil
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link to="/admin">
+          <Shield className="mr-2 h-4 w-4" />
+          Administração
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
+        <LogOut className="mr-2 h-4 w-4" />
+        Sair
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
+</SidebarFooter>
 ```
 
 ---
 
-## Dependência a Instalar
+## Novos Imports Necessários
 
-```bash
-npm install react-calendly
+```tsx
+import { ChevronUp } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 ```
 
 ---
 
-## Atualização do Hook useDiagnostic
+## Detalhes de UX
 
-Adicionar `calendly_url` na interface `FacilitatorProfile`:
+| Aspecto | Comportamento |
+|---------|---------------|
+| Trigger | Clique no nome/avatar do usuário |
+| Direção | Abre para cima (`side="top"`) |
+| Indicador | Ícone ChevronUp ao lado do nome |
+| Separador | Linha antes do "Sair" para destacar ação destrutiva |
+| Cor "Sair" | Vermelho (`text-destructive`) para indicar ação irreversível |
+| Hover | Background muda ao passar mouse no footer |
 
-```typescript
-export interface FacilitatorProfile {
-  full_name: string | null;
-  logo_url: string | null;
-  primary_color: string | null;
-  secondary_color: string | null;
-  calendly_url: string | null;  // novo campo
-}
+---
+
+## Seção Técnica
+
+### Estrutura do DropdownMenuContent
+
+```tsx
+<DropdownMenuContent 
+  side="top"           // Abre para cima
+  align="start"        // Alinha à esquerda
+  sideOffset={8}       // Espaçamento do trigger
+  className="w-56 bg-popover"  // Largura fixa e fundo sólido
+>
+```
+
+### Links com DropdownMenuItem
+
+```tsx
+<DropdownMenuItem asChild>
+  <Link to="/perfil" className="flex items-center cursor-pointer">
+    <User className="mr-2 h-4 w-4" />
+    Perfil
+  </Link>
+</DropdownMenuItem>
+```
+
+### Ação de Logout
+
+```tsx
+<DropdownMenuItem 
+  onClick={() => signOut()} 
+  className="text-destructive focus:text-destructive cursor-pointer"
+>
+  <LogOut className="mr-2 h-4 w-4" />
+  Sair
+</DropdownMenuItem>
 ```
 
 ---
 
-## Seção Tecnica
+## Estimativa
 
-### Instalacao da Biblioteca
-
-```bash
-npm install react-calendly
-```
-
-### Tipos TypeScript
-
-```typescript
-// Interface atualizada
-interface FacilitatorProfile {
-  full_name: string | null;
-  logo_url: string | null;
-  primary_color: string | null;
-  secondary_color: string | null;
-  calendly_url: string | null;
-}
-
-// Props do componente
-interface ScheduleFeedbackCardProps {
-  calendlyUrl: string;
-  participantName: string;
-}
-```
-
-### Query Atualizada no useDiagnostic
-
-```typescript
-const { data: profileData } = await supabase
-  .from("profiles")
-  .select("full_name, logo_url, primary_color, secondary_color, calendly_url")
-  .eq("user_id", participantData.facilitator_id)
-  .single();
-```
-
-### Validacao de URL
-
-```typescript
-function isValidCalendlyUrl(url: string): boolean {
-  return url.startsWith("https://calendly.com/") || 
-         url.startsWith("https://cal.com/");
-}
-```
-
----
-
-## Estimativa de Implementacao
-
-| Etapa | Esforco |
+| Etapa | Esforço |
 |-------|---------|
-| Migracao do banco (nova coluna) | 1 mensagem |
-| Componentes + integracao | 1 mensagem |
-| **Total** | 2 mensagens |
+| Modificar Sidebar.tsx | 1 mensagem |
+| **Total** | 1 mensagem |
