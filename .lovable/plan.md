@@ -1,232 +1,215 @@
 
 
-# Fase 4: Sistema de Diagnostico IQ+IS
+# Visualizacao de Resultados para Facilitador
 
 ## Resumo
-Implementacao do sistema de diagnostico de inteligencia emocional (IQ) e espiritual (IS), permitindo que participantes acessem via link unico, respondam 40 perguntas em 5 dimensoes, realizem exercicios vivenciais e recebam um relatorio personalizado.
+Adicionar uma aba "Resultados" na pagina de detalhes da empresa (`EmpresaDetalhes.tsx`) que mostra os resultados do diagnostico dos participantes que completaram a avaliacao, incluindo grafico radar, scores por dimensao e estatisticas consolidadas.
 
 ---
 
 ## O que sera implementado
 
-### 1. Acesso via Link Unico
-- **Pagina de Acesso** (`/diagnostico/:token`) - Validacao do token do participante
-- **Tela de Boas-vindas** - Introducao ao diagnostico e instrucoes
-- **Progresso Salvo** - Participante pode pausar e retomar depois
+### 1. Sistema de Abas na Pagina da Empresa
+- Aba "Participantes" (atual) - Lista de todos os participantes
+- Aba "Resultados" (nova) - Visualizacao dos diagnosticos completos
 
-### 2. Questionario de 40 Perguntas
-- **5 Dimensoes** - 8 perguntas cada:
-  1. Consciencia Interior (Meta-cognicao)
-  2. Coerencia Emocional (Regulacao)
-  3. Conexao e Proposito (Valores)
-  4. Relacoes e Compaixao (Empatia)
-  5. Transformacao (Crescimento)
-- **Escala Likert** - 1 a 5 (Discordo totalmente a Concordo totalmente)
-- **Navegacao entre perguntas** - Uma por vez com barra de progresso
+### 2. Visualizacao de Resultados
+- Lista de participantes com status "completed"
+- Card expandivel para cada participante mostrando:
+  - Score total
+  - Grafico radar com as 5 dimensoes
+  - Pontos fortes e areas de desenvolvimento
+  - Data de conclusao
 
-### 3. Exercicios Vivenciais
-- **Exercicio de Respiracao** - Timer interativo com instrucoes
-- **Mapeamento Corporal** - Selecao de areas de tensao/conforto
-- **Reflexao Guiada** - Campo de texto para insights
-
-### 4. Resultados e Relatorio
-- **Calculo de Scores** - Media por dimensao
-- **Grafico Radar** - Visualizacao das 5 dimensoes
-- **Pontos Cegos** - Dimensoes com menor score
-- **Recomendacoes** - Praticas sugeridas por dimensao
-- **PDF/Compartilhamento** - Exportar resultado (futuro)
+### 3. Estatisticas Consolidadas da Empresa
+- Media geral de todos os participantes
+- Grafico radar agregado (media por dimensao)
+- Dimensoes mais fortes e mais fracas da equipe
+- Contadores de participantes por status
 
 ---
 
-## Estrutura do Banco de Dados
+## Estrutura do Codigo
 
-### Tabela: `diagnostic_questions`
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | ID unico (PK) |
-| dimension | text | Nome da dimensao |
-| dimension_order | integer | Ordem da dimensao (1-5) |
-| question_order | integer | Ordem dentro da dimensao (1-8) |
-| question_text | text | Texto da pergunta |
-| reverse_scored | boolean | Se a escala e invertida |
-| created_at | timestamp | Data de criacao |
+### Componente Principal
+`src/components/participants/ParticipantResults.tsx` - Lista de resultados dos participantes
 
-### Tabela: `diagnostic_responses`
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | ID unico (PK) |
-| participant_id | uuid | Referencia a participants.id |
-| question_id | uuid | Referencia a diagnostic_questions.id |
-| score | integer | Resposta (1-5) |
-| answered_at | timestamp | Data/hora da resposta |
-| created_at | timestamp | Data de criacao |
+### Componente de Resultado Individual
+`src/components/participants/ParticipantResultCard.tsx` - Card expandivel com resultado individual
 
-### Tabela: `diagnostic_results`
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| id | uuid | ID unico (PK) |
-| participant_id | uuid | Referencia a participants.id |
-| dimension_scores | jsonb | Scores por dimensao |
-| total_score | decimal | Score medio geral |
-| completed_at | timestamp | Data de conclusao |
-| exercises_data | jsonb | Dados dos exercicios vivenciais |
-| created_at | timestamp | Data de criacao |
+### Componente de Estatisticas
+`src/components/participants/TeamStats.tsx` - Estatisticas consolidadas da equipe
 
 ---
 
-## Fluxo do Participante
+## Arquivos a serem modificados/criados
+
+### Novos Componentes
+1. `src/components/participants/ParticipantResults.tsx`
+   - Busca resultados do banco de dados
+   - Lista participantes que completaram
+   - Mostra mensagem quando nao ha resultados
+
+2. `src/components/participants/ParticipantResultCard.tsx`
+   - Card com nome, data de conclusao, score total
+   - Expansivel para mostrar grafico radar e detalhes
+   - Reutiliza `ResultsRadarChart` e `DimensionCard`
+
+3. `src/components/participants/TeamStats.tsx`
+   - Cards com estatisticas agregadas
+   - Grafico radar com medias da equipe
+   - Top 2 pontos fortes e fracos coletivos
+
+### Modificacoes
+1. `src/pages/EmpresaDetalhes.tsx`
+   - Adicionar sistema de abas (Tabs do Radix)
+   - Tab "Participantes" com conteudo atual
+   - Tab "Resultados" com novos componentes
+   - Buscar dados de `diagnostic_results` junto com participantes
+
+---
+
+## Fluxo de Dados
 
 ```text
-Email com Link
+EmpresaDetalhes
      |
-     v
-/diagnostico/:token
+     +---> fetchParticipants() - ja existe
      |
-     +---> Validar Token
-     |          |
-     |          +--(invalido)--> Erro: Link invalido
-     |          |
-     |          +--(valido)--> Boas-vindas
-     |                              |
-     v                              v
-[Iniciar] ----------------------> Questionario
-                                      |
-     +--------------------------------+
-     |
-     v
-Pergunta 1/40 --> ... --> Pergunta 40/40
-     |
-     v
-Exercicio 1: Respiracao
-     |
-     v
-Exercicio 2: Mapeamento Corporal
-     |
-     v
-Exercicio 3: Reflexao
-     |
-     v
-Processando Resultados...
-     |
-     v
-Tela de Resultado (Grafico Radar + Recomendacoes)
+     +---> fetchResults() - NOVO
+             |
+             +---> SELECT * FROM diagnostic_results
+             |     WHERE participant_id IN (participantes da empresa)
+             |
+             v
+     Combinar participants + results
+             |
+             v
+     [Aba Participantes]        [Aba Resultados]
+          |                           |
+          v                           v
+     ParticipantList          ParticipantResults
+                                     |
+                                     +---> TeamStats (agregado)
+                                     |
+                                     +---> ParticipantResultCard (lista)
 ```
-
----
-
-## Arquivos a serem criados
-
-### Paginas do Diagnostico
-- `src/pages/Diagnostico.tsx` - Container principal do diagnostico
-- `src/pages/DiagnosticoResultado.tsx` - Pagina de resultados
-
-### Componentes do Diagnostico
-- `src/components/diagnostic/DiagnosticWelcome.tsx` - Tela inicial
-- `src/components/diagnostic/QuestionCard.tsx` - Card de pergunta individual
-- `src/components/diagnostic/LikertScale.tsx` - Componente de escala 1-5
-- `src/components/diagnostic/ProgressBar.tsx` - Barra de progresso
-- `src/components/diagnostic/ExerciseBreathing.tsx` - Exercicio de respiracao
-- `src/components/diagnostic/ExerciseBodyMap.tsx` - Mapeamento corporal
-- `src/components/diagnostic/ExerciseReflection.tsx` - Reflexao guiada
-- `src/components/diagnostic/ResultsRadarChart.tsx` - Grafico radar
-- `src/components/diagnostic/DimensionCard.tsx` - Card de resultado por dimensao
-- `src/components/diagnostic/RecommendationList.tsx` - Lista de recomendacoes
-
-### Hooks e Utils
-- `src/hooks/useDiagnostic.ts` - Hook para gerenciar estado do diagnostico
-- `src/lib/diagnostic-questions.ts` - Lista das 40 perguntas
-- `src/lib/diagnostic-scoring.ts` - Logica de calculo de scores
-- `src/lib/recommendations.ts` - Recomendacoes por dimensao
-
----
-
-## Politicas de Seguranca (RLS)
-
-### Tabela `diagnostic_questions`
-- SELECT: Todos podem ler (perguntas sao publicas)
-- INSERT/UPDATE/DELETE: Apenas admins (ou ninguem via cliente)
-
-### Tabela `diagnostic_responses`
-- SELECT: Facilitador pode ver respostas de seus participantes
-- INSERT: Via token do participante (validacao no backend)
-- UPDATE: Permitir atualizar resposta antes de finalizar
-- DELETE: Nao permitido
-
-### Tabela `diagnostic_results`
-- SELECT: Facilitador pode ver resultados de seus participantes
-- INSERT: Apenas apos completar todas as respostas
-- UPDATE: Nao permitido (resultado e final)
-- DELETE: Nao permitido
 
 ---
 
 ## Detalhes Tecnicos
 
-### Validacao de Token
-- Buscar participante por `access_token`
-- Verificar se status permite acesso (`pending`, `invited`, `in_progress`)
-- Atualizar status para `in_progress` ao iniciar
+### Query para buscar resultados
+A RLS policy `is_facilitator_of_participant` ja permite que facilitadores vejam resultados de seus participantes.
 
-### Persistencia de Progresso
-- Salvar cada resposta individualmente
-- Permitir retornar ao ponto onde parou
-- Marcar `started_at` na primeira resposta
+```typescript
+const { data: results } = await supabase
+  .from("diagnostic_results")
+  .select("*")
+  .in("participant_id", participantIds);
+```
 
-### Calculo de Scores
-- Cada dimensao: media das 8 respostas (1-5)
-- Perguntas com `reverse_scored`: inverter valor (6 - resposta)
-- Score total: media das 5 dimensoes
-- Armazenar em `diagnostic_results.dimension_scores` como JSON
+### Estrutura do resultado (diagnostic_results.dimension_scores)
+```json
+{
+  "Consciencia Interior": 3.5,
+  "Coerencia Emocional": 4.2,
+  "Conexao e Proposito": 3.8,
+  "Relacoes e Compaixao": 4.0,
+  "Transformacao": 3.2
+}
+```
 
-### Grafico Radar
-- Usar Recharts (ja instalado)
-- 5 eixos representando as dimensoes
-- Escala de 1 a 5
+### Conversao para DimensionScore[]
+```typescript
+const dimensionScores = Object.entries(result.dimension_scores).map(
+  ([dimension, score], index) => ({
+    dimension,
+    dimensionOrder: index + 1,
+    score: score as number,
+    maxScore: 5,
+    percentage: ((score as number) / 5) * 100
+  })
+);
+```
 
-### Exercicios Vivenciais
-- Respiracao: Timer de 4-7-8 segundos (inspirar-segurar-expirar)
-- Mapeamento: SVG interativo do corpo humano
-- Reflexao: Textarea com prompts guiados
+### Calculo de medias da equipe
+```typescript
+const teamAverages = dimensions.map(dim => {
+  const scores = results
+    .map(r => r.dimension_scores[dim.name])
+    .filter(Boolean);
+  return {
+    dimension: dim.name,
+    score: scores.reduce((a, b) => a + b, 0) / scores.length
+  };
+});
+```
 
 ---
 
-## As 5 Dimensoes e Exemplos de Perguntas
+## Interface Visual
 
-### 1. Consciencia Interior
-- "Consigo observar meus pensamentos sem me identificar com eles"
-- "Percebo quando estou no 'piloto automatico'"
+### Aba Resultados - Layout
+```text
++-------------------------------------------------------+
+| [Participantes] [Resultados]                          |  <- Tabs
++-------------------------------------------------------+
 
-### 2. Coerencia Emocional
-- "Consigo nomear minhas emocoes quando as sinto"
-- "Mantenho a calma em situacoes de pressao"
++-- Estatisticas da Equipe -----------------------------+
+|  +-------------+  +-------------+  +-------------+    |
+|  | Completados |  | Media Geral |  | Em Progresso|    |
+|  |     8       |  |    3.8/5    |  |      3      |    |
+|  +-------------+  +-------------+  +-------------+    |
+|                                                       |
+|  [Grafico Radar - Media da Equipe]                    |
+|                                                       |
+|  Dimensao mais forte: Coerencia Emocional (4.2)       |
+|  Dimensao a desenvolver: Transformacao (3.1)          |
++-------------------------------------------------------+
 
-### 3. Conexao e Proposito
-- "Minhas acoes estao alinhadas com meus valores"
-- "Sinto que minha vida tem um proposito claro"
-
-### 4. Relacoes e Compaixao
-- "Consigo me colocar no lugar dos outros"
-- "Ofereco apoio genuino sem esperar retorno"
-
-### 5. Transformacao
-- "Vejo os desafios como oportunidades de crescimento"
-- "Estou aberto a mudar de opiniao quando apresentado a novas informacoes"
++-- Resultados Individuais -----------------------------+
+|  +-- Maria Silva (click para expandir) ----+ 3.9/5   |
+|  |  Concluido em 28/01/2026                         |
+|  +----------------------------------------------+   |
+|                                                       |
+|  +-- Joao Santos [expandido] ---------------+ 4.1/5  |
+|  |  Concluido em 27/01/2026                         |
+|  |                                                   |
+|  |  [Grafico Radar Individual]                      |
+|  |                                                   |
+|  |  Pontos Fortes:                                  |
+|  |  - Relacoes e Compaixao (4.5)                    |
+|  |  - Coerencia Emocional (4.3)                     |
+|  |                                                   |
+|  |  Areas de Desenvolvimento:                       |
+|  |  - Consciencia Interior (3.2)                    |
+|  |  - Transformacao (3.4)                           |
+|  +----------------------------------------------+   |
++-------------------------------------------------------+
+```
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar tabelas `diagnostic_questions`, `diagnostic_responses`, `diagnostic_results`
-2. Configurar RLS policies para todas as tabelas
-3. Inserir as 40 perguntas no banco de dados
-4. Criar pagina de acesso com validacao de token
-5. Implementar componente de pergunta com escala Likert
-6. Criar fluxo de navegacao entre perguntas
-7. Implementar exercicio de respiracao
-8. Implementar mapeamento corporal
-9. Implementar reflexao guiada
-10. Criar tela de resultados com grafico radar
-11. Implementar recomendacoes por dimensao
-12. Atualizar status do participante ao finalizar
-13. Adicionar rotas no App.tsx
+1. Criar `TeamStats.tsx` - estatisticas agregadas
+2. Criar `ParticipantResultCard.tsx` - card expandivel individual
+3. Criar `ParticipantResults.tsx` - container com lista e stats
+4. Modificar `EmpresaDetalhes.tsx`:
+   - Adicionar imports de Tabs
+   - Adicionar estado para resultados
+   - Criar funcao `fetchResults()`
+   - Reorganizar layout com abas
+5. Testar fluxo completo
+
+---
+
+## Componentes Reutilizados
+
+- `ResultsRadarChart` - ja existe, sera reutilizado
+- `DimensionCard` - ja existe, sera reutilizado
+- `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` - do Radix UI
+- `Collapsible` - do Radix UI para cards expandiveis
+- `Card`, `Progress`, `Badge` - componentes UI existentes
 
