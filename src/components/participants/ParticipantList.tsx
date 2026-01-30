@@ -1,4 +1,4 @@
-import { Users, MoreHorizontal, Pencil, Trash2, Mail } from "lucide-react";
+import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2 } from "lucide-react";
 
 import {
   Table,
@@ -38,6 +38,7 @@ interface ParticipantListProps {
   onInvite: (participant: Participant) => void;
   isLoading?: boolean;
   showCompany?: boolean;
+  sendingInviteId?: string | null;
 }
 
 export function ParticipantList({ 
@@ -46,6 +47,7 @@ export function ParticipantList({
   onDelete,
   onInvite,
   isLoading,
+  sendingInviteId,
 }: ParticipantListProps) {
   if (isLoading) {
     return (
@@ -113,10 +115,22 @@ export function ParticipantList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {participant.status === "pending" && (
-                      <DropdownMenuItem onClick={() => onInvite(participant)}>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Enviar convite
+                    {(participant.status === "pending" || participant.status === "invited") && (
+                      <DropdownMenuItem 
+                        onClick={() => onInvite(participant)}
+                        disabled={sendingInviteId === participant.id}
+                      >
+                        {sendingInviteId === participant.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mail className="mr-2 h-4 w-4" />
+                        )}
+                        {sendingInviteId === participant.id 
+                          ? "Enviando..." 
+                          : participant.status === "invited" 
+                            ? "Reenviar convite"
+                            : "Enviar convite"
+                        }
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => onEdit(participant)}>

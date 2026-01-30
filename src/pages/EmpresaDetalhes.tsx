@@ -276,21 +276,59 @@ export default function EmpresaDetalhes() {
     setDeletingParticipant(null);
   };
 
-  const handleInviteParticipant = async (participant: Participant) => {
-    const { error } = await supabase
-      .from("participants")
-      .update({ 
-        status: "invited",
-        invited_at: new Date().toISOString(),
-      })
-      .eq("id", participant.id);
+  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
 
-    if (error) {
-      toast.error("Erro ao enviar convite");
-      console.error(error);
-    } else {
+  const handleInviteParticipant = async (participant: Participant) => {
+    setSendingInviteId(participant.id);
+    
+    try {
+      // 1. Fetch participant's access_token
+      const { data: participantData, error: fetchError } = await supabase
+        .from("participants")
+        .select("access_token")
+        .eq("id", participant.id)
+        .single();
+
+      if (fetchError || !participantData?.access_token) {
+        throw new Error("Não foi possível obter o token do participante");
+      }
+
+      // 2. Build diagnostic URL
+      const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
+
+      // 3. Call edge function to send email
+      const { error: invokeError } = await supabase.functions.invoke("send-invite", {
+        body: {
+          participantName: participant.name,
+          participantEmail: participant.email,
+          diagnosticUrl,
+        },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      // 4. Update participant status
+      const { error: updateError } = await supabase
+        .from("participants")
+        .update({ 
+          status: "invited",
+          invited_at: new Date().toISOString(),
+        })
+        .eq("id", participant.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
       toast.success(`Convite enviado para ${participant.name}!`);
       fetchParticipants();
+    } catch (error: any) {
+      console.error("Error sending invite:", error);
+      toast.error(error.message || "Erro ao enviar convite");
+    } finally {
+      setSendingInviteId(null);
     }
   };
 
@@ -511,6 +549,7 @@ export default function EmpresaDetalhes() {
             onDelete={(participant) => setDeletingParticipant(participant)}
             onInvite={handleInviteParticipant}
             isLoading={isLoadingParticipants}
+            sendingInviteId={sendingInviteId}
           />
         </TabsContent>
 
