@@ -17,6 +17,10 @@ interface ParticipantResultsProps {
   inProgressCount: number;
   pendingCount: number;
   isLoading: boolean;
+  companyName?: string;
+  facilitatorName?: string;
+  facilitatorLogoUrl?: string;
+  primaryColor?: string;
 }
 
 export function ParticipantResults({
@@ -24,7 +28,11 @@ export function ParticipantResults({
   completedCount,
   inProgressCount,
   pendingCount,
-  isLoading
+  isLoading,
+  companyName,
+  facilitatorName,
+  facilitatorLogoUrl,
+  primaryColor
 }: ParticipantResultsProps) {
   // Calculate team averages
   const teamDimensionScores: DimensionScore[] = [];
@@ -63,6 +71,13 @@ export function ParticipantResults({
     );
   }
 
+  // Convert results to simpler format for PDF
+  const participantResultsForPDF = results.map(r => ({
+    name: r.participantName,
+    score: r.totalScore,
+    completedAt: r.completedAt
+  }));
+
   return (
     <div className="space-y-8">
       {/* Team statistics */}
@@ -72,6 +87,11 @@ export function ParticipantResults({
         pendingCount={pendingCount}
         teamAverageScore={teamAverageScore}
         teamDimensionScores={teamDimensionScores}
+        companyName={companyName}
+        facilitatorName={facilitatorName}
+        facilitatorLogoUrl={facilitatorLogoUrl}
+        primaryColor={primaryColor}
+        participantResults={participantResultsForPDF}
       />
 
       {/* Individual results */}
