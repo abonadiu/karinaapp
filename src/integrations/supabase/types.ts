@@ -56,6 +56,122 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostic_questions: {
+        Row: {
+          created_at: string
+          dimension: string
+          dimension_order: number
+          id: string
+          question_order: number
+          question_text: string
+          reverse_scored: boolean
+        }
+        Insert: {
+          created_at?: string
+          dimension: string
+          dimension_order: number
+          id?: string
+          question_order: number
+          question_text: string
+          reverse_scored?: boolean
+        }
+        Update: {
+          created_at?: string
+          dimension?: string
+          dimension_order?: number
+          id?: string
+          question_order?: number
+          question_text?: string
+          reverse_scored?: boolean
+        }
+        Relationships: []
+      }
+      diagnostic_responses: {
+        Row: {
+          answered_at: string
+          created_at: string
+          id: string
+          inserted_by: string | null
+          participant_id: string
+          question_id: string
+          score: number
+        }
+        Insert: {
+          answered_at?: string
+          created_at?: string
+          id?: string
+          inserted_by?: string | null
+          participant_id: string
+          question_id: string
+          score: number
+        }
+        Update: {
+          answered_at?: string
+          created_at?: string
+          id?: string
+          inserted_by?: string | null
+          participant_id?: string
+          question_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_responses_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnostic_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "diagnostic_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnostic_results: {
+        Row: {
+          completed_at: string
+          created_at: string
+          dimension_scores: Json
+          exercises_data: Json
+          id: string
+          inserted_by: string | null
+          participant_id: string
+          total_score: number
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          dimension_scores?: Json
+          exercises_data?: Json
+          id?: string
+          inserted_by?: string | null
+          participant_id: string
+          total_score?: number
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          dimension_scores?: Json
+          exercises_data?: Json
+          id?: string
+          inserted_by?: string | null
+          participant_id?: string
+          total_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnostic_results_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           access_token: string
@@ -165,7 +281,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_participant_by_token: { Args: { p_token: string }; Returns: string }
+      is_facilitator_of_participant: {
+        Args: { p_participant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -17,6 +17,7 @@ import Perfil from "./pages/Perfil";
 import Empresas from "./pages/Empresas";
 import EmpresaDetalhes from "./pages/EmpresaDetalhes";
 import Participantes from "./pages/Participantes";
+import Diagnostico from "./pages/Diagnostico";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/diagnostico/:token" element={<Diagnostico />} />
             
             {/* Protected routes */}
             <Route
