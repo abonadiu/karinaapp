@@ -180,4 +180,28 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* PDF capture styles - ensure solid colors for html2canvas */
+  .pdf-capture {
+    background-color: #ffffff !important;
+  }
+
+  .pdf-capture * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide elements during PDF capture */
+  .pdf-capture .pdf-hide {
+    display: none !important;
+  }
+
+  /* Show elements only in PDF */
+  .pdf-only {
+    display: none;
+  }
+
+  .pdf-capture .pdf-only {
+    display: block !important;
+  }
 }

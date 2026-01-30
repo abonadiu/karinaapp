@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Share2, TrendingUp, TrendingDown } from "lucide-react";
+import { Award, Download, Share2, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 import { DiagnosticScores, getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
-import { RECOMMENDATIONS, getRecommendationsForWeakDimensions } from "@/lib/recommendations";
+import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
+import { generateDiagnosticPDF } from "@/lib/pdf-generator";
 import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
+import { toast } from "sonner";
 
 interface DiagnosticResultsProps {
   participantName: string;
@@ -15,6 +17,8 @@ interface DiagnosticResultsProps {
 }
 
 export function DiagnosticResults({ participantName, scores, existingResult }: DiagnosticResultsProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const firstName = participantName.split(" ")[0];
   
   // Se temos resultado existente, reconstruir scores dele
@@ -43,9 +47,30 @@ export function DiagnosticResults({ participantName, scores, existingResult }: D
     return "Em desenvolvimento. Este diagnóstico é o primeiro passo!";
   };
 
+  const handleDownloadPDF = async () => {
+    if (!contentRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      await generateDiagnosticPDF(contentRef.current, {
+        participantName,
+        totalScore: displayScores.totalScore,
+        dimensionScores: displayScores.dimensionScores,
+        recommendations,
+        completedAt: existingResult?.completed_at
+      });
+      toast.success("PDF gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF. Tente novamente.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div ref={contentRef} className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardHeader className="text-center">
@@ -134,12 +159,21 @@ export function DiagnosticResults({ participantName, scores, existingResult }: D
         <RecommendationList recommendations={recommendations} />
 
         {/* Ações */}
-        <Card>
+        <Card className="pdf-hide">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="outline" className="gap-2" disabled>
-                <Download className="h-4 w-4" />
-                Baixar PDF (em breve)
+              <Button 
+                variant="outline" 
+                className="gap-2" 
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF}
+              >
+                {isGeneratingPDF ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {isGeneratingPDF ? "Gerando PDF..." : "Baixar PDF"}
               </Button>
               <Button variant="outline" className="gap-2" disabled>
                 <Share2 className="h-4 w-4" />
