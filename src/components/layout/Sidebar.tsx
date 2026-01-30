@@ -6,7 +6,8 @@ import {
   User,
   LogOut,
   BarChart3,
-  Shield
+  Shield,
+  Building
 } from "lucide-react";
 
 import {
@@ -38,7 +39,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isManager, managerCompanyId } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -92,6 +93,20 @@ export function AppSidebar() {
           <SidebarGroupLabel>Conta</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isManager && managerCompanyId && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isActive("/empresa/portal")}
+                    tooltip="Portal da Empresa"
+                  >
+                    <Link to="/empresa/portal">
+                      <Building className="h-4 w-4" />
+                      <span>Portal da Empresa</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   asChild 
@@ -134,7 +149,9 @@ export function AppSidebar() {
               <p className="text-sm font-medium text-sidebar-foreground truncate">
                 {profile?.full_name || user?.email}
               </p>
-              <p className="text-xs text-muted-foreground truncate">Facilitador</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {isManager ? "Gestor" : "Facilitador"}
+              </p>
             </div>
           )}
           {!collapsed && (

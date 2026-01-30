@@ -21,6 +21,8 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isManager: boolean;
+  managerCompanyId: string | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -36,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isManager, setIsManager] = useState(false);
+  const [managerCompanyId, setManagerCompanyId] = useState<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -52,10 +56,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data as Profile;
   };
 
+  const checkManagerStatus = async (userId: string) => {
+    // Check if user has company_manager role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "company_manager")
+      .maybeSingle();
+
+    if (roleData) {
+      // Get the company ID for this manager
+      const { data: companyId } = await supabase.rpc("get_manager_company_id", {
+        _user_id: userId,
+      });
+      
+      setIsManager(true);
+      setManagerCompanyId(companyId || null);
+    } else {
+      setIsManager(false);
+      setManagerCompanyId(null);
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) {
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
+      await checkManagerStatus(user.id);
     }
   };
 
@@ -71,9 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setTimeout(async () => {
             const profileData = await fetchProfile(currentSession.user.id);
             setProfile(profileData);
+            await checkManagerStatus(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setIsManager(false);
+          setManagerCompanyId(null);
         }
 
         setLoading(false);
@@ -87,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (currentSession?.user) {
         fetchProfile(currentSession.user.id).then(setProfile);
+        checkManagerStatus(currentSession.user.id);
       }
 
       setLoading(false);
@@ -126,6 +158,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsManager(false);
+    setManagerCompanyId(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -149,6 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     profile,
     loading,
+    isManager,
+    managerCompanyId,
     signUp,
     signIn,
     signOut,
