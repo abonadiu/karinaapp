@@ -56,6 +56,53 @@ export type Database = {
         }
         Relationships: []
       }
+      company_managers: {
+        Row: {
+          activated_at: string | null
+          company_id: string
+          created_at: string
+          email: string
+          id: string
+          invite_token: string
+          invited_by: string
+          name: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          id?: string
+          invite_token?: string
+          invited_by: string
+          name: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          invite_token?: string
+          invited_by?: string
+          name?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_managers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diagnostic_questions: {
         Row: {
           created_at: string
@@ -276,19 +323,74 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      activate_manager_invite: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_company_activity_timeline: {
+        Args: { p_company_id: string; p_limit?: number }
+        Returns: Json
+      }
+      get_company_aggregate_stats: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_company_dimension_averages: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      get_manager_company_id: { Args: { _user_id: string }; Returns: string }
+      get_manager_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          company_id: string
+          company_name: string
+          email: string
+          id: string
+          name: string
+        }[]
+      }
       get_participant_by_token: { Args: { p_token: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_facilitator_of_participant: {
         Args: { p_participant_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "facilitator" | "company_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -415,6 +517,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["facilitator", "company_manager"],
+    },
   },
 } as const
