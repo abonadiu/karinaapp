@@ -1,219 +1,300 @@
 
-
-# Plano: Historico de Lembretes e Botao de Lembrete Manual
+# Plano: Comparativo com Benchmark e Percentil de Posicionamento
 
 ## Resumo
 
-Implementar duas funcionalidades complementares:
-1. **Secao no Dashboard**: Mostrar estatisticas de lembretes enviados e taxas de resposta
-2. **Botao de Lembrete Manual**: Permitir que facilitadores enviem lembretes individuais a qualquer momento
+Implementar funcionalidade de benchmark que permite comparar o desempenho de uma equipe/empresa com as médias gerais da plataforma, incluindo visualização de percentil para entender o posicionamento relativo.
 
 ---
 
-## Funcionalidade 1: Secao de Historico de Lembretes no Dashboard
+## Funcionalidades a Implementar
 
-### Dados a Exibir
+### 1. Radar Chart Comparativo (Equipe vs Benchmark)
 
-| Metrica | Descricao |
-|---------|-----------|
-| Total de lembretes enviados | Soma de todos os lembretes |
-| Lembretes esta semana | Lembretes enviados nos ultimos 7 dias |
-| Taxa de conversao | % de participantes que concluiram apos lembrete |
-| Lembretes com sucesso | % de emails enviados sem erro |
+Modificar o `AggregateRadarChart` para exibir duas camadas:
+- **Camada 1 (Primária)**: Médias da equipe atual
+- **Camada 2 (Referência)**: Médias globais de todos os diagnósticos
 
-### Componente: ReminderStatsCard
+| Cor | Representação |
+|-----|---------------|
+| Azul (primary) | Média da Equipe |
+| Cinza (muted) | Benchmark Global |
 
-Novo componente em `src/components/dashboard/ReminderStatsCard.tsx` que exibira:
-- Card com icone de sino/email
-- Metricas principais em destaque
-- Mini lista dos ultimos 5 lembretes enviados com status
+### 2. Card de Percentil de Posicionamento
 
-### Query de Dados
+Novo componente mostrando onde a equipe se posiciona em relação a todas as outras:
 
-```sql
--- Estatisticas agregadas
-SELECT 
-  COUNT(*) as total_reminders,
-  COUNT(*) FILTER (WHERE sent_at > now() - interval '7 days') as this_week,
-  COUNT(*) FILTER (WHERE success = true) as successful,
-  COUNT(*) FILTER (WHERE success = false) as failed
-FROM participant_reminders pr
-JOIN participants p ON p.id = pr.participant_id
-WHERE p.facilitator_id = :user_id
+```text
++------------------------------------------+
+|  Posicionamento da Equipe                |
++------------------------------------------+
+|                                          |
+|  Sua equipe está melhor que              |
+|                                          |
+|          [ 72% ]                         |
+|                                          |
+|  das outras equipes avaliadas            |
+|                                          |
+|  ======[====|====]======                 |
+|        25%  50%  75%                     |
++------------------------------------------+
 ```
 
-### Layout no Dashboard
+### 3. Tabela Comparativa por Dimensão
 
-Adicionar uma nova secao abaixo das "Acoes Rapidas":
-- Titulo: "Lembretes Automaticos"
-- Subtitulo: "Acompanhe o sistema de lembretes"
-- Cards com metricas
-- Tabela compacta com historico recente
+Mostrar cada dimensão com:
+- Score da equipe
+- Benchmark global
+- Diferença (positiva/negativa)
+- Indicador visual
 
----
-
-## Funcionalidade 2: Botao de Lembrete Manual
-
-### Alteracoes em ParticipantList.tsx
-
-Adicionar opcao "Enviar Lembrete" no menu dropdown para participantes com status `invited` ou `in_progress`.
-
-### Diferenca entre Convite e Lembrete
-
-| Acao | Status Elegivel | Funcao Edge | Template |
-|------|-----------------|-------------|----------|
-| Enviar Convite | `pending` | send-invite | Convite inicial |
-| Enviar Lembrete | `invited`, `in_progress` | send-reminder (nova) | Lembrete |
-
-### Nova Edge Function: send-reminder (individual)
-
-Criar `supabase/functions/send-reminder/index.ts` para envio manual de lembretes individuais:
-- Recebe: `participantId`, `participantName`, `participantEmail`, `diagnosticUrl`
-- Reutiliza template de lembrete do send-reminders
-- Registra na tabela `participant_reminders`
-- Atualiza `reminder_count` e `last_reminder_at`
-
-### Fluxo de Usuario
-
-1. Facilitador visualiza lista de participantes
-2. Clica no menu de acoes (...) de um participante
-3. Opcao "Enviar Lembrete" aparece para status `invited` ou `in_progress`
-4. Clique dispara envio do email
-5. Toast confirma sucesso/erro
-6. Contador de lembretes e atualizado
+```text
+| Dimensão           | Equipe | Benchmark | Diferença |
+|--------------------|--------|-----------|-----------|
+| Consciência        |  4.2   |   3.94    |   +0.26   |
+| Coerência          |  3.8   |   3.90    |   -0.10   |
+| ...                |  ...   |   ...     |   ...     |
+```
 
 ---
 
 ## Arquivos a Criar
 
-| Arquivo | Descricao |
+| Arquivo | Descrição |
 |---------|-----------|
-| `src/components/dashboard/ReminderStatsCard.tsx` | Card de estatisticas de lembretes |
-| `supabase/functions/send-reminder/index.ts` | Edge function para lembrete individual |
-| `supabase/functions/send-reminder/deno.json` | Configuracao Deno |
+| `src/components/empresa/BenchmarkComparisonCard.tsx` | Card com tabela comparativa por dimensão |
+| `src/components/empresa/PercentilePositionCard.tsx` | Card de percentil com barra visual |
+| `src/components/empresa/ComparisonRadarChart.tsx` | Radar chart com duas camadas |
 
 ## Arquivos a Modificar
 
-| Arquivo | Alteracao |
+| Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/Dashboard.tsx` | Adicionar secao de lembretes |
-| `src/components/participants/ParticipantList.tsx` | Adicionar opcao de lembrete no menu |
-| `src/pages/Participantes.tsx` | Handler para envio de lembrete manual |
-| `supabase/config.toml` | Registrar nova funcao |
+| `src/pages/empresa/PortalEmpresa.tsx` | Adicionar seção de benchmark |
 
 ---
 
-## Design do ReminderStatsCard
+## Nova Função no Banco de Dados
 
-```text
-+------------------------------------------+
-|  Lembretes Automaticos                   |
-|  Acompanhe o engajamento                 |
-+------------------------------------------+
-|  +--------+  +--------+  +--------+      |
-|  |   12   |  |    5   |  |   75%  |      |
-|  | Total  |  | Semana |  | Taxa   |      |
-|  +--------+  +--------+  +--------+      |
-+------------------------------------------+
-|  Ultimos lembretes:                      |
-|  - Maria Silva (hoje, sucesso)           |
-|  - Joao Costa (ontem, sucesso)           |
-|  - Ana Santos (2 dias, falha)            |
-+------------------------------------------+
-```
-
----
-
-## Interface do Menu de Participantes
-
-```text
-Menu Dropdown do Participante:
-+------------------------+
-| [Mail] Enviar Lembrete |  <- Novo (para invited/in_progress)
-|------------------------|
-| [Pencil] Editar        |
-| [Trash] Excluir        |
-+------------------------+
-```
-
----
-
-## Secao Tecnica
-
-### Edge Function send-reminder
-
-```typescript
-interface ManualReminderRequest {
-  participantId: string;
-  participantName: string;
-  participantEmail: string;
-  accessToken: string;
-}
-
-// Fluxo:
-// 1. Validar request
-// 2. Buscar perfil do facilitador (via JWT)
-// 3. Calcular dias desde convite
-// 4. Gerar HTML do lembrete
-// 5. Enviar via Resend
-// 6. Registrar em participant_reminders
-// 7. Atualizar participante
-```
-
-### Query para Estatisticas
-
-```typescript
-// Dashboard.tsx - nova query
-const { data: reminderStats } = await supabase
-  .from("participant_reminders")
-  .select(`
-    id,
-    sent_at,
-    success,
-    participants!inner (
-      id,
-      name,
-      facilitator_id
-    )
-  `)
-  .eq("participants.facilitator_id", user.id)
-  .order("sent_at", { ascending: false })
-  .limit(50);
-```
-
-### Calculo da Taxa de Conversao
+Criar função para calcular benchmark global:
 
 ```sql
-WITH reminded AS (
-  SELECT DISTINCT participant_id
-  FROM participant_reminders
-  WHERE participant_id IN (
-    SELECT id FROM participants WHERE facilitator_id = :user_id
+CREATE OR REPLACE FUNCTION get_global_benchmark()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  -- Médias globais por dimensão
+  WITH dimension_avgs AS (
+    SELECT 
+      key as dimension,
+      AVG((value->>'score')::numeric) as avg_score
+    FROM diagnostic_results,
+         jsonb_each(dimension_scores::jsonb)
+    GROUP BY key
+  ),
+  global_avg AS (
+    SELECT AVG(total_score) as global_score
+    FROM diagnostic_results
   )
-),
-completed_after AS (
-  SELECT COUNT(*) as count
-  FROM participants p
-  WHERE p.id IN (SELECT participant_id FROM reminded)
-    AND p.status = 'completed'
-)
-SELECT 
-  (SELECT count FROM completed_after)::float / 
-  NULLIF((SELECT COUNT(*) FROM reminded), 0) * 100 as conversion_rate
+  SELECT json_build_object(
+    'dimensions', (SELECT json_agg(json_build_object(
+      'dimension', dimension,
+      'average', ROUND(avg_score::numeric, 2)
+    )) FROM dimension_avgs),
+    'global_average', (SELECT ROUND(global_score::numeric, 2) FROM global_avg),
+    'total_completed', (SELECT COUNT(*) FROM diagnostic_results)
+  ) INTO result;
+
+  RETURN result;
+END;
+$$;
 ```
 
-### Reutilizacao de Codigo
+Função para calcular percentil da empresa:
 
-O template de email sera extraido de `send-reminders/index.ts` para uma funcao compartilhada, evitando duplicacao.
+```sql
+CREATE OR REPLACE FUNCTION get_company_percentile(p_company_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  company_avg numeric;
+  percentile integer;
+BEGIN
+  -- Média da empresa
+  SELECT AVG(dr.total_score) INTO company_avg
+  FROM diagnostic_results dr
+  JOIN participants p ON p.id = dr.participant_id
+  WHERE p.company_id = p_company_id;
+
+  IF company_avg IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  -- Calcular percentil
+  SELECT ROUND(
+    (COUNT(*) FILTER (WHERE avg_score <= company_avg)::numeric / 
+     NULLIF(COUNT(*), 0)) * 100
+  )::integer INTO percentile
+  FROM (
+    SELECT p.company_id, AVG(dr.total_score) as avg_score
+    FROM diagnostic_results dr
+    JOIN participants p ON p.id = dr.participant_id
+    GROUP BY p.company_id
+  ) company_scores;
+
+  RETURN percentile;
+END;
+$$;
+```
 
 ---
 
-## Estimativa de Implementacao
+## Design dos Componentes
 
-| Etapa | Esforco |
+### ComparisonRadarChart
+
+Gráfico radar com duas séries sobrepostas:
+
+```tsx
+<RadarChart>
+  <Radar 
+    name="Benchmark" 
+    dataKey="benchmark" 
+    stroke="hsl(var(--muted-foreground))"
+    fill="hsl(var(--muted-foreground))"
+    fillOpacity={0.1}
+  />
+  <Radar 
+    name="Sua Equipe" 
+    dataKey="team" 
+    stroke="hsl(var(--primary))"
+    fill="hsl(var(--primary))"
+    fillOpacity={0.3}
+  />
+  <Legend />
+</RadarChart>
+```
+
+### PercentilePositionCard
+
+Visualização com:
+- Número grande do percentil (ex: 72%)
+- Barra de progresso segmentada (quartis)
+- Texto explicativo
+
+### BenchmarkComparisonCard
+
+Tabela mostrando:
+- Cada dimensão como linha
+- Colunas: Equipe | Benchmark | Δ
+- Cores indicando performance (verde = acima, vermelho = abaixo)
+
+---
+
+## Layout no Portal da Empresa
+
+Nova seção "Comparativo com Benchmark":
+
+```text
++------------------------------------------+
+|  Comparativo com Benchmark               |
+|  Veja como sua equipe se posiciona       |
++------------------------------------------+
+
++-------------------+   +-------------------+
+|   Radar Chart     |   |    Percentil      |
+|   Comparativo     |   |    Position       |
+|   (2 camadas)     |   |    72%            |
++-------------------+   +-------------------+
+
++------------------------------------------+
+|  Detalhamento por Dimensão               |
+|  ----------------------------------------|
+|  Dimensão      | Equipe | Bench | Dif    |
+|  Consciência   |  4.2   | 3.94  | +0.26  |
+|  Coerência     |  3.8   | 3.90  | -0.10  |
+|  ...           |  ...   | ...   | ...    |
++------------------------------------------+
+```
+
+---
+
+## Fluxo de Dados
+
+1. Portal carrega dados da empresa (existente)
+2. Chamada adicional para `get_global_benchmark()` 
+3. Chamada para `get_company_percentile(company_id)`
+4. Componentes recebem ambos os conjuntos de dados
+5. Renderização comparativa
+
+---
+
+## Seção Técnica
+
+### Interface de Dados
+
+```typescript
+interface BenchmarkData {
+  dimensions: {
+    dimension: string;
+    average: number;
+  }[];
+  global_average: number;
+  total_completed: number;
+}
+
+interface ComparisonDimension {
+  dimension: string;
+  shortName: string;
+  teamScore: number;
+  benchmarkScore: number;
+  difference: number;
+  isAbove: boolean;
+}
+```
+
+### Query no Portal
+
+```typescript
+// Buscar benchmark global
+const { data: benchmarkData } = await supabase
+  .rpc('get_global_benchmark');
+
+// Buscar percentil da empresa
+const { data: percentile } = await supabase
+  .rpc('get_company_percentile', { p_company_id: companyId });
+```
+
+### Lógica do Percentil Visual
+
+```typescript
+function getPercentileColor(percentile: number): string {
+  if (percentile >= 75) return "text-green-500";
+  if (percentile >= 50) return "text-blue-500";
+  if (percentile >= 25) return "text-yellow-500";
+  return "text-orange-500";
+}
+
+function getPercentileLabel(percentile: number): string {
+  if (percentile >= 75) return "Excelente";
+  if (percentile >= 50) return "Acima da média";
+  if (percentile >= 25) return "Na média";
+  return "Abaixo da média";
+}
+```
+
+---
+
+## Estimativa de Implementação
+
+| Etapa | Esforço |
 |-------|---------|
-| Edge function send-reminder | 1 mensagem |
-| ReminderStatsCard + Dashboard | 1 mensagem |
-| Botao no ParticipantList | Junto com acima |
+| Funções do banco (benchmark + percentil) | 1 mensagem |
+| Componentes visuais + integração no Portal | 1 mensagem |
 | **Total** | 2 mensagens |
-
