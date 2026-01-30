@@ -14,6 +14,9 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import Dashboard from "./pages/Dashboard";
 import Perfil from "./pages/Perfil";
+import Empresas from "./pages/Empresas";
+import EmpresaDetalhes from "./pages/EmpresaDetalhes";
+import Participantes from "./pages/Participantes";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +49,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Perfil />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/empresas"
+              element={
+                <ProtectedRoute>
+                  <Empresas />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/empresas/:id"
+              element={
+                <ProtectedRoute>
+                  <EmpresaDetalhes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/participantes"
+              element={
+                <ProtectedRoute>
+                  <Participantes />
                 </ProtectedRoute>
               }
             />

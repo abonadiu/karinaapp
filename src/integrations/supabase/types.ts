@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          facilitator_id: string
+          id: string
+          name: string
+          notes: string | null
+          total_licenses: number
+          updated_at: string
+          used_licenses: number
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          facilitator_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          total_licenses?: number
+          updated_at?: string
+          used_licenses?: number
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          facilitator_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          total_licenses?: number
+          updated_at?: string
+          used_licenses?: number
+        }
+        Relationships: []
+      }
+      participants: {
+        Row: {
+          access_token: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          department: string | null
+          email: string
+          facilitator_id: string
+          id: string
+          invited_at: string | null
+          name: string
+          phone: string | null
+          position: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          department?: string | null
+          email: string
+          facilitator_id: string
+          id?: string
+          invited_at?: string | null
+          name: string
+          phone?: string | null
+          position?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string
+          facilitator_id?: string
+          id?: string
+          invited_at?: string | null
+          name?: string
+          phone?: string | null
+          position?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
