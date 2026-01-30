@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { format, parseISO, differenceInDays, startOfMonth } from "date-fns";
+import { useEffect, useState, useMemo } from "react";
+import { format, parseISO, differenceInDays, startOfMonth, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -8,6 +8,7 @@ import { MonthlyChart } from "@/components/analytics/MonthlyChart";
 import { StatusPieChart } from "@/components/analytics/StatusPieChart";
 import { CompanyComparisonChart } from "@/components/analytics/CompanyComparisonChart";
 import { GlobalRadarChart } from "@/components/analytics/GlobalRadarChart";
+import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -53,12 +54,23 @@ const DIMENSION_SHORT_NAMES: Record<string, string> = {
   "Transformação": "Transformação",
 };
 
+const PERIOD_DAYS_MAP: Record<string, number> = {
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+  "1y": 365,
+};
+
 export default function Relatorios() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [results, setResults] = useState<DiagnosticResult[]>([]);
+  
+  // Filter states
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
+  const [selectedCompany, setSelectedCompany] = useState<string>("all");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,13 +93,40 @@ export default function Relatorios() {
     fetchData();
   }, [user]);
 
+  // Filtered participants based on period and company
+  const filteredParticipants = useMemo(() => {
+    let filtered = participants;
+
+    // Period filter
+    if (selectedPeriod !== "all") {
+      const days = PERIOD_DAYS_MAP[selectedPeriod];
+      if (days) {
+        const cutoffDate = subDays(new Date(), days);
+        filtered = filtered.filter((p) => parseISO(p.created_at) >= cutoffDate);
+      }
+    }
+
+    // Company filter
+    if (selectedCompany !== "all") {
+      filtered = filtered.filter((p) => p.company_id === selectedCompany);
+    }
+
+    return filtered;
+  }, [participants, selectedPeriod, selectedCompany]);
+
+  // Filtered results based on filtered participants
+  const filteredResults = useMemo(() => {
+    const participantIds = new Set(filteredParticipants.map((p) => p.id));
+    return results.filter((r) => participantIds.has(r.participant_id));
+  }, [results, filteredParticipants]);
+
   // KPI calculations
-  const totalParticipants = participants.length;
-  const completedParticipants = participants.filter((p) => p.status === "completed").length;
+  const totalParticipants = filteredParticipants.length;
+  const completedParticipants = filteredParticipants.filter((p) => p.status === "completed").length;
   const completionRate = totalParticipants > 0 ? (completedParticipants / totalParticipants) * 100 : 0;
 
   // Average completion time (from invited_at to completed_at)
-  const completionTimes = participants
+  const completionTimes = filteredParticipants
     .filter((p) => p.invited_at && p.completed_at)
     .map((p) => differenceInDays(parseISO(p.completed_at!), parseISO(p.invited_at!)));
   const averageCompletionDays =
@@ -96,10 +135,10 @@ export default function Relatorios() {
       : null;
 
   // Monthly data
-  const monthlyData = (() => {
+  const monthlyData = useMemo(() => {
     const monthMap = new Map<string, { created: number; completed: number }>();
 
-    participants.forEach((p) => {
+    filteredParticipants.forEach((p) => {
       const createdMonth = format(startOfMonth(parseISO(p.created_at)), "MMM/yy", { locale: ptBR });
       const current = monthMap.get(createdMonth) || { created: 0, completed: 0 };
       current.created++;
@@ -116,17 +155,16 @@ export default function Relatorios() {
     return Array.from(monthMap.entries())
       .map(([month, data]) => ({ month, ...data }))
       .sort((a, b) => {
-        // Simple sort by parsing the month string
         const [aMonth, aYear] = a.month.split("/");
         const [bMonth, bYear] = b.month.split("/");
         return aYear.localeCompare(bYear) || aMonth.localeCompare(bMonth);
       });
-  })();
+  }, [filteredParticipants]);
 
   // Status distribution
-  const statusData = (() => {
+  const statusData = useMemo(() => {
     const statusMap = new Map<string, number>();
-    participants.forEach((p) => {
+    filteredParticipants.forEach((p) => {
       statusMap.set(p.status, (statusMap.get(p.status) || 0) + 1);
     });
 
@@ -135,18 +173,18 @@ export default function Relatorios() {
       value,
       color: STATUS_COLORS[status] || "hsl(var(--muted))",
     }));
-  })();
+  }, [filteredParticipants]);
 
   // Company comparison
-  const companyData = (() => {
+  const companyData = useMemo(() => {
     const companyMap = new Map<string, { scores: number[]; name: string }>();
 
     companies.forEach((c) => {
       companyMap.set(c.id, { scores: [], name: c.name });
     });
 
-    results.forEach((r) => {
-      const participant = participants.find((p) => p.id === r.participant_id);
+    filteredResults.forEach((r) => {
+      const participant = filteredParticipants.find((p) => p.id === r.participant_id);
       if (participant && companyMap.has(participant.company_id)) {
         companyMap.get(participant.company_id)!.scores.push(Number(r.total_score));
       }
@@ -159,13 +197,13 @@ export default function Relatorios() {
         average: data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length,
         participants: data.scores.length,
       }));
-  })();
+  }, [companies, filteredResults, filteredParticipants]);
 
   // Global dimension averages
-  const dimensionData = (() => {
+  const dimensionData = useMemo(() => {
     const dimensionMap = new Map<string, number[]>();
 
-    results.forEach((r) => {
+    filteredResults.forEach((r) => {
       if (r.dimension_scores && typeof r.dimension_scores === "object") {
         Object.entries(r.dimension_scores).forEach(([dim, score]) => {
           if (!dimensionMap.has(dim)) {
@@ -181,7 +219,7 @@ export default function Relatorios() {
       shortName: DIMENSION_SHORT_NAMES[dimension] || dimension,
       average: scores.reduce((sum, s) => sum + s, 0) / scores.length,
     }));
-  })();
+  }, [filteredResults]);
 
   return (
     <DashboardLayout
@@ -189,6 +227,15 @@ export default function Relatorios() {
       description="Análise de desempenho e métricas de engajamento"
     >
       <div className="space-y-6">
+        {/* Filters */}
+        <AnalyticsFilters
+          companies={companies}
+          selectedPeriod={selectedPeriod}
+          selectedCompany={selectedCompany}
+          onPeriodChange={setSelectedPeriod}
+          onCompanyChange={setSelectedCompany}
+        />
+
         {/* KPI Cards */}
         <KPICards
           totalParticipants={totalParticipants}
