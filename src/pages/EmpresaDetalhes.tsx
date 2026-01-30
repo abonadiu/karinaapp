@@ -89,6 +89,11 @@ export default function EmpresaDetalhes() {
   const [company, setCompany] = useState<Company | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [results, setResults] = useState<ParticipantResultData[]>([]);
+  const [facilitatorProfile, setFacilitatorProfile] = useState<{
+    full_name: string | null;
+    logo_url: string | null;
+    primary_color: string | null;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(true);
@@ -118,6 +123,20 @@ export default function EmpresaDetalhes() {
       setCompany(data);
     }
     setIsLoading(false);
+  };
+
+  const fetchFacilitatorProfile = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, logo_url, primary_color")
+      .eq("user_id", user.id)
+      .single();
+
+    if (data) {
+      setFacilitatorProfile(data);
+    }
   };
 
   const fetchParticipants = async () => {
@@ -200,6 +219,7 @@ export default function EmpresaDetalhes() {
   useEffect(() => {
     fetchCompany();
     fetchParticipants();
+    fetchFacilitatorProfile();
   }, [id, user]);
 
   // Fetch results when participants are loaded
@@ -568,6 +588,10 @@ export default function EmpresaDetalhes() {
             inProgressCount={participants.filter(p => p.status === "in_progress").length}
             pendingCount={participants.filter(p => p.status === "pending" || p.status === "invited").length}
             isLoading={isLoadingResults}
+            companyName={company?.name}
+            facilitatorName={facilitatorProfile?.full_name || undefined}
+            facilitatorLogoUrl={facilitatorProfile?.logo_url || undefined}
+            primaryColor={facilitatorProfile?.primary_color || undefined}
           />
         </TabsContent>
       </Tabs>

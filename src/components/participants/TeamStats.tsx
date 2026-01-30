@@ -1,7 +1,17 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ResultsRadarChart } from "@/components/diagnostic/ResultsRadarChart";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
-import { Users, Target, TrendingUp, TrendingDown } from "lucide-react";
+import { generateTeamPDF, TeamReportData } from "@/lib/team-pdf-generator";
+import { Users, Target, TrendingUp, TrendingDown, Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+interface ParticipantResult {
+  name: string;
+  score: number;
+  completedAt: string;
+}
 
 interface TeamStatsProps {
   completedCount: number;
@@ -9,6 +19,11 @@ interface TeamStatsProps {
   pendingCount: number;
   teamAverageScore: number;
   teamDimensionScores: DimensionScore[];
+  companyName?: string;
+  facilitatorName?: string;
+  facilitatorLogoUrl?: string;
+  primaryColor?: string;
+  participantResults?: ParticipantResult[];
 }
 
 export function TeamStats({
@@ -16,8 +31,15 @@ export function TeamStats({
   inProgressCount,
   pendingCount,
   teamAverageScore,
-  teamDimensionScores
+  teamDimensionScores,
+  companyName,
+  facilitatorName,
+  facilitatorLogoUrl,
+  primaryColor,
+  participantResults = []
 }: TeamStatsProps) {
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  
   // Find strongest and weakest dimensions
   const sortedScores = [...teamDimensionScores].sort((a, b) => b.score - a.score);
   const strongest = sortedScores[0];
@@ -25,8 +47,63 @@ export function TeamStats({
 
   const hasData = completedCount > 0 && teamDimensionScores.length > 0;
 
+  const handleDownloadReport = async () => {
+    if (!hasData || !companyName) {
+      toast.error("Não há dados suficientes para gerar o relatório");
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    try {
+      const reportData: TeamReportData = {
+        companyName,
+        facilitatorName,
+        facilitatorLogoUrl,
+        primaryColor,
+        totalParticipants: completedCount + inProgressCount + pendingCount,
+        completedCount,
+        inProgressCount,
+        pendingCount,
+        teamAverageScore,
+        teamDimensionScores,
+        participantResults
+      };
+
+      await generateTeamPDF(reportData);
+      toast.success("Relatório gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar relatório:", error);
+      toast.error("Erro ao gerar relatório. Tente novamente.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header with download button */}
+      {hasData && companyName && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Estatísticas da Equipe</h3>
+            <p className="text-sm text-muted-foreground">Visão consolidada do diagnóstico</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadReport}
+            disabled={isGeneratingPDF}
+            className="gap-2"
+          >
+            {isGeneratingPDF ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {isGeneratingPDF ? "Gerando..." : "Baixar Relatório"}
+          </Button>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="shadow-warm">
