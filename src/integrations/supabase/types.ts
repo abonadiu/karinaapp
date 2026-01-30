@@ -522,10 +522,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_facilitator_of_company: {
+        Args: { _company_id: string }
+        Returns: boolean
+      }
       is_facilitator_of_participant: {
         Args: { p_participant_id: string }
         Returns: boolean
       }
+      is_manager_of_company: { Args: { _company_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           p_action: string
