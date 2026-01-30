@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Search, Building2 } from "lucide-react";
-import { Link } from "react-router-dom";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
@@ -39,6 +38,8 @@ interface Participant {
   status: ParticipantStatus;
   company_id: string;
   created_at: string;
+  access_token?: string;
+  invited_at?: string | null;
   companies?: {
     name: string;
   };
@@ -62,6 +63,8 @@ export default function Participantes() {
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [deletingParticipant, setDeletingParticipant] = useState<Participant | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
 
   const fetchData = async () => {
     if (!user) return;
@@ -153,8 +156,6 @@ export default function Participantes() {
     setDeletingParticipant(null);
   };
 
-  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
-
   const handleInviteParticipant = async (participant: Participant) => {
     setSendingInviteId(participant.id);
     
@@ -206,6 +207,43 @@ export default function Participantes() {
       toast.error(error.message || "Erro ao enviar convite");
     } finally {
       setSendingInviteId(null);
+    }
+  };
+
+  const handleReminderParticipant = async (participant: Participant) => {
+    setSendingReminderId(participant.id);
+    
+    try {
+      // Calculate days since invite
+      let daysSinceInvite = 0;
+      if (participant.invited_at) {
+        const invitedDate = new Date(participant.invited_at);
+        const now = new Date();
+        daysSinceInvite = Math.floor((now.getTime() - invitedDate.getTime()) / (1000 * 60 * 60 * 24));
+      }
+
+      // Call edge function to send reminder
+      const { error: invokeError } = await supabase.functions.invoke("send-reminder", {
+        body: {
+          participantId: participant.id,
+          participantName: participant.name,
+          participantEmail: participant.email,
+          accessToken: participant.access_token,
+          daysSinceInvite,
+        },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      toast.success(`Lembrete enviado para ${participant.name}!`);
+      fetchData();
+    } catch (error: any) {
+      console.error("Error sending reminder:", error);
+      toast.error(error.message || "Erro ao enviar lembrete");
+    } finally {
+      setSendingReminderId(null);
     }
   };
 
@@ -299,8 +337,10 @@ export default function Participantes() {
         onEdit={(participant) => setEditingParticipant(participant)}
         onDelete={(participant) => setDeletingParticipant(participant)}
         onInvite={handleInviteParticipant}
+        onReminder={handleReminderParticipant}
         isLoading={isLoading}
         sendingInviteId={sendingInviteId}
+        sendingReminderId={sendingReminderId}
       />
 
       {/* Edit participant form */}
