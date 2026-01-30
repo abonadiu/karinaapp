@@ -1,286 +1,289 @@
 
 
-# Exportacao PDF do Relatorio de Diagnostico
+# Implementacao de Envio de Emails com Resend
 
 ## Resumo
-Implementar funcionalidade de download do relatorio de diagnostico em PDF, permitindo que participantes e facilitadores baixem um documento profissional com grafico radar, scores por dimensao e recomendacoes personalizadas.
+Criar uma edge function para enviar emails de convite reais usando Resend quando o facilitador clicar em "Enviar Convite". O email contera o link personalizado para o diagnostico do participante.
 
 ---
 
-## Abordagem Tecnica
+## Pre-requisitos
 
-### Biblioteca Escolhida: jsPDF + html2canvas
-- **jsPDF**: Biblioteca leve para geracao de PDF
-- **html2canvas**: Captura elementos HTML como imagem para incluir no PDF
-- **Vantagens**: Melhor compatibilidade com charts SVG (Recharts), mais simples de implementar, menor bundle size
-
-### Alternativa Considerada
-- `@react-pdf/renderer` com `react-pdf-charts` - Mais complexo, requer reescrever componentes
+### Configuracao do Resend
+1. O usuario precisa criar uma conta em https://resend.com
+2. Validar um dominio de email em https://resend.com/domains
+3. Criar uma API key em https://resend.com/api-keys
+4. Fornecer a API key `RESEND_API_KEY` que sera armazenada como secret
 
 ---
 
 ## O que sera implementado
 
-### 1. Funcao de Geracao de PDF
-- Capturar conteudo do relatorio como imagem
-- Gerar PDF multi-pagina se necessario
-- Adicionar cabecalho/rodape com logo e data
-- Nome do arquivo: `diagnostico-iq-is-{nome}-{data}.pdf`
+### 1. Edge Function: `send-invite`
+- Recebe: participantId, participantName, participantEmail, diagnosticUrl
+- Envia email profissional com o link do diagnostico
+- Retorna sucesso/erro
 
-### 2. Botao de Download Funcional
-- Substituir botao desabilitado no `DiagnosticResults.tsx`
-- Mostrar estado de loading durante geracao
-- Feedback de sucesso/erro com toast
-
-### 3. PDF para Facilitador (bonus)
-- Adicionar botao de download no `ParticipantResultCard.tsx`
-- Permitir baixar PDF de qualquer participante
+### 2. Atualizacao do Frontend
+- Modificar `handleInviteParticipant` em `EmpresaDetalhes.tsx`
+- Adicionar loading state durante envio
+- Buscar access_token do participante
+- Chamar edge function antes de atualizar status
+- Feedback visual de sucesso/erro
 
 ---
 
-## Estrutura do PDF
+## Fluxo de Envio
 
 ```text
-+--------------------------------------------------+
-|  [Logo]     DIAGNOSTICO IQ+IS                    |
-|             Data: 30/01/2026                      |
-+--------------------------------------------------+
-
-    Parabens, {Nome}!
-    Voce completou o Diagnostico IQ+IS
-    
-    Score Geral: 3.8/5
-    "Bom! Ha espaco para crescimento em algumas areas."
-
-+--------------------------------------------------+
-|                                                  |
-|            [GRAFICO RADAR - 5 DIMENSOES]         |
-|                                                  |
-+--------------------------------------------------+
-
---- PONTOS FORTES ---
-+-------------------------+  +-------------------------+
-| Coerencia Emocional     |  | Relacoes e Compaixao    |
-| 4.2/5                   |  | 4.0/5                   |
-+-------------------------+  +-------------------------+
-
---- AREAS DE DESENVOLVIMENTO ---
-+-------------------------+  +-------------------------+
-| Consciencia Interior    |  | Transformacao           |
-| 2.8/5                   |  | 3.0/5                   |
-+-------------------------+  +-------------------------+
-
---- DETALHAMENTO POR DIMENSAO ---
-[Cards de cada dimensao com barra de progresso]
-
---- RECOMENDACOES ---
-> Desenvolva sua Consciencia Interior
-  - Pratique 10 minutos de meditacao...
-  - Faca pausas conscientes...
-
-+--------------------------------------------------+
-|  Gerado em lovable.app | Pagina 1/2              |
-+--------------------------------------------------+
-```
-
----
-
-## Arquivos a serem modificados/criados
-
-### Novos Arquivos
-1. `src/lib/pdf-generator.ts`
-   - Funcao `generateDiagnosticPDF()`
-   - Configuracao de margens, fontes, cores
-   - Logica de paginacao
-   - Helper para adicionar secoes
-
-### Modificacoes
-1. `src/components/diagnostic/DiagnosticResults.tsx`
-   - Importar funcao de geracao
-   - Adicionar ref para area do conteudo
-   - Habilitar botao de download
-   - Estado de loading durante geracao
-
-2. `src/components/participants/ParticipantResultCard.tsx`
-   - Adicionar botao de download no card expandido
-   - Reutilizar mesma funcao de geracao
-
----
-
-## Fluxo de Geracao
-
-```text
-Usuario clica "Baixar PDF"
-        |
-        v
-Mostrar loading state
-        |
-        v
-Capturar elemento com html2canvas
-        |
-        +---> Converter SVG do radar para imagem
-        |
-        v
-Criar documento jsPDF
-        |
-        +---> Adicionar cabecalho
-        +---> Adicionar score geral
-        +---> Adicionar grafico radar
-        +---> Adicionar dimensoes
-        +---> Adicionar recomendacoes
-        +---> Adicionar rodape
-        |
-        v
-pdf.save("diagnostico-iq-is-nome-2026-01-30.pdf")
-        |
-        v
+Facilitador clica "Enviar Convite"
+           |
+           v
+Buscar access_token do participante
+           |
+           v
+Montar URL: {baseUrl}/diagnostico/{access_token}
+           |
+           v
+Chamar edge function send-invite
+           |
+           +---> Resend API
+           |           |
+           |           v
+           |     Email enviado para participante
+           |
+           v
+Atualizar status para "invited" + invited_at
+           |
+           v
 Toast de sucesso
 ```
 
 ---
 
+## Estrutura do Email
+
+```text
++--------------------------------------------------+
+|  Assunto: Voce foi convidado para o Diagnostico  |
+|           IQ+IS                                   |
++--------------------------------------------------+
+
+Ola {nome}!
+
+Voce foi convidado(a) para realizar o Diagnostico
+de Inteligencia Integral (IQ+IS).
+
+Este diagnostico avaliara 5 dimensoes do seu
+desenvolvimento:
+- Consciencia Interior
+- Coerencia Emocional
+- Conexao e Proposito
+- Relacoes e Compaixao
+- Transformacao
+
+O diagnostico leva aproximadamente 15-20 minutos.
+
+      [Iniciar Diagnostico]
+        (link do botao)
+
+Este link e pessoal e intransferivel.
+
+---
+Enviado via Diagnostico IQ+IS
+```
+
+---
+
+## Arquivos a serem criados/modificados
+
+### Novo Arquivo
+`supabase/functions/send-invite/index.ts`
+- Handler da edge function
+- Integracao com Resend
+- Template do email em HTML
+- Validacao de campos obrigatorios
+- CORS headers
+
+### Modificacoes
+
+1. `supabase/config.toml`
+   - Adicionar configuracao da funcao send-invite
+   - Desabilitar verify_jwt (validacao manual)
+
+2. `src/pages/EmpresaDetalhes.tsx`
+   - Modificar `handleInviteParticipant`:
+     - Buscar access_token do participante
+     - Chamar edge function
+     - Tratar erros
+     - Adicionar loading state
+
+3. `src/pages/Participantes.tsx`
+   - Mesma logica de envio de convite
+
+---
+
 ## Detalhes Tecnicos
 
-### Instalacao de Dependencias
-```bash
-npm install jspdf html2canvas
-```
-
-### Funcao Principal
+### Edge Function
 ```typescript
-// src/lib/pdf-generator.ts
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+// supabase/functions/send-invite/index.ts
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
-interface PDFData {
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, ...",
+};
+
+interface InviteRequest {
   participantName: string;
-  totalScore: number;
-  dimensionScores: DimensionScore[];
-  recommendations: Recommendation[];
+  participantEmail: string;
+  diagnosticUrl: string;
+  facilitatorName?: string;
 }
 
-export async function generateDiagnosticPDF(
-  contentRef: HTMLElement,
-  data: PDFData
-): Promise<void> {
-  // 1. Capturar conteudo como canvas
-  const canvas = await html2canvas(contentRef, {
-    scale: 2, // Maior qualidade
-    useCORS: true,
-    logging: false
-  });
-
-  // 2. Criar PDF
-  const pdf = new jsPDF("p", "mm", "a4");
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  
-  // 3. Adicionar imagem do canvas
-  const imgData = canvas.toDataURL("image/png");
-  const imgWidth = pageWidth - 20;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  
-  // 4. Multiplas paginas se necessario
-  let heightLeft = imgHeight;
-  let position = 10;
-  
-  pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-  
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // 5. Salvar
-  const fileName = `diagnostico-iq-is-${data.participantName.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
-  pdf.save(fileName);
-}
+  const { participantName, participantEmail, diagnosticUrl, facilitatorName } = await req.json();
+
+  // Validar campos
+  if (!participantName || !participantEmail || !diagnosticUrl) {
+    return new Response(
+      JSON.stringify({ error: "Campos obrigatorios ausentes" }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  // Enviar email via Resend
+  const emailResponse = await resend.emails.send({
+    from: "Diagnostico IQ+IS <noreply@SEU-DOMINIO.com>",
+    to: [participantEmail],
+    subject: "Voce foi convidado para o Diagnostico IQ+IS",
+    html: `... template HTML ...`
+  });
+
+  return new Response(JSON.stringify(emailResponse), {
+    status: 200,
+    headers: corsHeaders
+  });
+});
 ```
 
-### Uso no Componente
+### Chamada do Frontend
 ```typescript
-// DiagnosticResults.tsx
-const contentRef = useRef<HTMLDivElement>(null);
-const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-
-const handleDownloadPDF = async () => {
-  if (!contentRef.current) return;
+// EmpresaDetalhes.tsx
+const handleInviteParticipant = async (participant: Participant) => {
+  setIsSendingInvite(participant.id);
   
-  setIsGeneratingPDF(true);
   try {
-    await generateDiagnosticPDF(contentRef.current, {
-      participantName,
-      totalScore: displayScores.totalScore,
-      dimensionScores: displayScores.dimensionScores,
-      recommendations
+    // 1. Buscar access_token
+    const { data: participantData } = await supabase
+      .from("participants")
+      .select("access_token")
+      .eq("id", participant.id)
+      .single();
+    
+    // 2. Montar URL
+    const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
+    
+    // 3. Chamar edge function
+    const response = await supabase.functions.invoke("send-invite", {
+      body: {
+        participantName: participant.name,
+        participantEmail: participant.email,
+        diagnosticUrl,
+      }
     });
-    toast.success("PDF gerado com sucesso!");
+    
+    if (response.error) throw response.error;
+    
+    // 4. Atualizar status
+    await supabase
+      .from("participants")
+      .update({ status: "invited", invited_at: new Date().toISOString() })
+      .eq("id", participant.id);
+    
+    toast.success(`Convite enviado para ${participant.name}!`);
+    fetchParticipants();
+    
   } catch (error) {
-    toast.error("Erro ao gerar PDF");
+    toast.error("Erro ao enviar convite");
     console.error(error);
   } finally {
-    setIsGeneratingPDF(false);
+    setIsSendingInvite(null);
   }
 };
 ```
 
 ---
 
-## Estilizacao para PDF
+## Template HTML do Email
 
-Para garantir que o PDF tenha boa aparencia, precisamos:
+O email tera um design limpo e profissional com:
+- Cabecalho com titulo
+- Saudacao personalizada
+- Explicacao das 5 dimensoes
+- Botao CTA destacado
+- Rodape com informacoes
 
-1. **Ref no conteudo principal**
-   - Envolver o conteudo em div com ref
-   - Excluir botoes de acao da captura
+Cores usadas:
+- Primaria: #8b5cf6 (roxo)
+- Texto: #1f2937 (cinza escuro)
+- Fundo: #f9fafb (cinza claro)
 
-2. **Cores solidas**
-   - Usar cores fixas em vez de CSS variables para o PDF
-   - Aplicar classe especial durante captura
+---
 
-3. **Tamanho otimizado**
-   - Width fixo para consistencia
-   - Fontes legiveis em impressao
+## Configuracao de Secret
+
+Sera necessario adicionar a secret `RESEND_API_KEY` via ferramenta de secrets do Lovable. O usuario precisara:
+1. Criar conta no Resend
+2. Validar dominio
+3. Gerar API key
+4. Inserir a key quando solicitado
+
+---
+
+## Interface Atualizada
+
+### ParticipantList com Loading
+```text
++--------------------------------------------------+
+| Nome          | Depto    | Cargo   | Status | ... |
++--------------------------------------------------+
+| Maria Silva   | RH       | Analista| Pendente| [v]|
+|               |          |         |         |    |
+| [Enviando...] | <- Spinner durante envio         |
++--------------------------------------------------+
+```
+
+### Opcao de Reenvio
+Adicionar opcao de reenviar convite para participantes com status "invited" que ainda nao iniciaram.
 
 ---
 
 ## Ordem de Implementacao
 
-1. Instalar `jspdf` e `html2canvas`
-2. Criar `src/lib/pdf-generator.ts` com funcao principal
-3. Atualizar `DiagnosticResults.tsx`:
-   - Adicionar ref ao conteudo
-   - Implementar handler de download
-   - Habilitar botao
-4. Adicionar botao de download no `ParticipantResultCard.tsx`
-5. Testar geracao de PDF
-6. Ajustar estilos se necessario
+1. Solicitar RESEND_API_KEY do usuario
+2. Criar edge function `send-invite/index.ts`
+3. Atualizar `supabase/config.toml`
+4. Modificar `handleInviteParticipant` em `EmpresaDetalhes.tsx`
+5. Adicionar estados de loading
+6. Modificar `handleInviteParticipant` em `Participantes.tsx`
+7. Testar fluxo completo
 
 ---
 
-## Tipos TypeScript
+## Tratamento de Erros
 
-```typescript
-// src/lib/pdf-generator.ts
-
-export interface PDFGeneratorOptions {
-  participantName: string;
-  totalScore: number;
-  dimensionScores: DimensionScore[];
-  recommendations: Recommendation[];
-  companyName?: string;
-  completedAt?: string;
-}
-
-export interface PDFStyles {
-  primaryColor: string;
-  textColor: string;
-  backgroundColor: string;
-  headerHeight: number;
-  margin: number;
-}
-```
+1. **API key nao configurada**: Mensagem clara pedindo configuracao
+2. **Dominio nao verificado**: Erro do Resend sera exibido
+3. **Email invalido**: Validacao antes de enviar
+4. **Falha de rede**: Retry automatico ou manual
+5. **Rate limiting**: Feedback ao usuario
 
