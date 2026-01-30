@@ -255,6 +255,56 @@ export type Database = {
           },
         ]
       }
+      feedback_sessions: {
+        Row: {
+          calendly_event_uri: string | null
+          calendly_invitee_uri: string | null
+          created_at: string
+          event_name: string | null
+          facilitator_id: string
+          id: string
+          notes: string | null
+          participant_id: string
+          scheduled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          calendly_event_uri?: string | null
+          calendly_invitee_uri?: string | null
+          created_at?: string
+          event_name?: string | null
+          facilitator_id: string
+          id?: string
+          notes?: string | null
+          participant_id: string
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          calendly_event_uri?: string | null
+          calendly_invitee_uri?: string | null
+          created_at?: string
+          event_name?: string | null
+          facilitator_id?: string
+          id?: string
+          notes?: string | null
+          participant_id?: string
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_sessions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_reminders: {
         Row: {
           created_at: string
