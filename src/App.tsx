@@ -19,6 +19,7 @@ import EmpresaDetalhes from "./pages/EmpresaDetalhes";
 import Participantes from "./pages/Participantes";
 import Diagnostico from "./pages/Diagnostico";
 import Relatorios from "./pages/Relatorios";
+import Administracao from "./pages/Administracao";
 // Portal da Empresa (Company Manager)
 import LoginEmpresa from "./pages/empresa/LoginEmpresa";
 import CadastroGestor from "./pages/empresa/CadastroGestor";
@@ -94,6 +95,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Relatorios />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Administracao />
                 </ProtectedRoute>
               }
             />
