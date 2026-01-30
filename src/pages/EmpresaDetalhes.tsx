@@ -17,9 +17,11 @@ import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
 import { CsvImport } from "@/components/participants/CsvImport";
 import { CompanyForm, CompanyFormData } from "@/components/companies/CompanyForm";
+import { ParticipantResults } from "@/components/participants/ParticipantResults";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +35,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { DimensionScore } from "@/lib/diagnostic-scoring";
+import { Json } from "@/integrations/supabase/types";
 
 type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
 
@@ -60,14 +64,32 @@ interface Participant {
   created_at: string;
 }
 
+interface DiagnosticResult {
+  id: string;
+  participant_id: string;
+  total_score: number;
+  dimension_scores: Json;
+  completed_at: string;
+}
+
+interface ParticipantResultData {
+  participantId: string;
+  participantName: string;
+  completedAt: string;
+  totalScore: number;
+  dimensionScores: DimensionScore[];
+}
+
 export default function EmpresaDetalhes() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
 
   const [company, setCompany] = useState<Company | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [results, setResults] = useState<ParticipantResultData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
+  const [isLoadingResults, setIsLoadingResults] = useState(true);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
@@ -114,6 +136,53 @@ export default function EmpresaDetalhes() {
     setIsLoadingParticipants(false);
   };
 
+  const fetchResults = async () => {
+    if (!id || !user || participants.length === 0) {
+      setIsLoadingResults(false);
+      return;
+    }
+
+    setIsLoadingResults(true);
+    const participantIds = participants.map(p => p.id);
+    
+    const { data, error } = await supabase
+      .from("diagnostic_results")
+      .select("*")
+      .in("participant_id", participantIds);
+
+    if (error) {
+      toast.error("Erro ao carregar resultados");
+      console.error(error);
+    } else if (data) {
+      // Map results to participant names
+      const mappedResults: ParticipantResultData[] = (data as DiagnosticResult[]).map(result => {
+        const participant = participants.find(p => p.id === result.participant_id);
+        const dimScores = result.dimension_scores as Record<string, number>;
+        
+        const dimensionScores: DimensionScore[] = Object.entries(dimScores).map(
+          ([dimension, score], index) => ({
+            dimension,
+            dimensionOrder: index + 1,
+            score: score as number,
+            maxScore: 5,
+            percentage: ((score as number) / 5) * 100
+          })
+        );
+
+        return {
+          participantId: result.participant_id,
+          participantName: participant?.name || "Participante",
+          completedAt: result.completed_at,
+          totalScore: result.total_score,
+          dimensionScores
+        };
+      });
+
+      setResults(mappedResults);
+    }
+    setIsLoadingResults(false);
+  };
+
   const updateUsedLicenses = async (count: number) => {
     if (!id) return;
     
@@ -129,6 +198,13 @@ export default function EmpresaDetalhes() {
     fetchCompany();
     fetchParticipants();
   }, [id, user]);
+
+  // Fetch results when participants are loaded
+  useEffect(() => {
+    if (participants.length > 0) {
+      fetchResults();
+    }
+  }, [participants]);
 
   const handleCreateParticipant = async (data: ParticipantFormData) => {
     if (!user || !id) return;
@@ -410,21 +486,44 @@ export default function EmpresaDetalhes() {
         </Card>
       )}
 
-      {/* Participants section */}
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-foreground">Participantes</h2>
-        <p className="text-sm text-muted-foreground">
-          {participants.length} participante{participants.length !== 1 ? "s" : ""} cadastrado{participants.length !== 1 ? "s" : ""}
-        </p>
-      </div>
+      {/* Tabs for Participants and Results */}
+      <Tabs defaultValue="participants" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="participants">
+            Participantes ({participants.length})
+          </TabsTrigger>
+          <TabsTrigger value="results">
+            Resultados ({results.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <ParticipantList
-        participants={participants}
-        onEdit={(participant) => setEditingParticipant(participant)}
-        onDelete={(participant) => setDeletingParticipant(participant)}
-        onInvite={handleInviteParticipant}
-        isLoading={isLoadingParticipants}
-      />
+        <TabsContent value="participants">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Participantes</h2>
+            <p className="text-sm text-muted-foreground">
+              {participants.length} participante{participants.length !== 1 ? "s" : ""} cadastrado{participants.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <ParticipantList
+            participants={participants}
+            onEdit={(participant) => setEditingParticipant(participant)}
+            onDelete={(participant) => setDeletingParticipant(participant)}
+            onInvite={handleInviteParticipant}
+            isLoading={isLoadingParticipants}
+          />
+        </TabsContent>
+
+        <TabsContent value="results">
+          <ParticipantResults
+            results={results}
+            completedCount={participants.filter(p => p.status === "completed").length}
+            inProgressCount={participants.filter(p => p.status === "in_progress").length}
+            pendingCount={participants.filter(p => p.status === "pending" || p.status === "invited").length}
+            isLoading={isLoadingResults}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Create participant form */}
       <ParticipantForm
