@@ -10,7 +10,8 @@ import {
   Upload,
   Pencil,
   Calendar,
-  Send
+  Send,
+  UserPlus
 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -20,6 +21,7 @@ import { CsvImport } from "@/components/participants/CsvImport";
 import { CompanyForm, CompanyFormData } from "@/components/companies/CompanyForm";
 import { BulkInviteDialog } from "@/components/participants/BulkInviteDialog";
 import { ParticipantResults } from "@/components/participants/ParticipantResults";
+import { InviteManagerDialog } from "@/components/empresa/InviteManagerDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -102,6 +104,7 @@ export default function EmpresaDetalhes() {
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
+  const [isInviteManagerOpen, setIsInviteManagerOpen] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [deletingParticipant, setDeletingParticipant] = useState<Participant | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -443,6 +446,10 @@ export default function EmpresaDetalhes() {
       description="Detalhes da empresa e participantes"
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsInviteManagerOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Convidar Gestor
+          </Button>
           <Button variant="outline" onClick={() => setIsEditCompanyOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
@@ -653,6 +660,17 @@ export default function EmpresaDetalhes() {
         facilitatorId={user?.id}
         onComplete={fetchParticipants}
       />
+
+      {/* Invite Manager dialog */}
+      {company && user && (
+        <InviteManagerDialog
+          open={isInviteManagerOpen}
+          onOpenChange={setIsInviteManagerOpen}
+          companyId={company.id}
+          companyName={company.name}
+          facilitatorId={user.id}
+        />
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deletingParticipant} onOpenChange={(open) => !open && setDeletingParticipant(null)}>

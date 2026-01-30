@@ -19,6 +19,10 @@ import EmpresaDetalhes from "./pages/EmpresaDetalhes";
 import Participantes from "./pages/Participantes";
 import Diagnostico from "./pages/Diagnostico";
 import Relatorios from "./pages/Relatorios";
+// Portal da Empresa (Company Manager)
+import LoginEmpresa from "./pages/empresa/LoginEmpresa";
+import CadastroGestor from "./pages/empresa/CadastroGestor";
+import PortalEmpresa from "./pages/empresa/PortalEmpresa";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +42,12 @@ const App = () => (
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
             <Route path="/diagnostico/:token" element={<Diagnostico />} />
             
+            {/* Company Manager Portal (public routes) */}
+            <Route path="/empresa/login" element={<LoginEmpresa />} />
+            <Route path="/empresa/cadastro/:token" element={<CadastroGestor />} />
+            
+            {/* Company Manager Portal (protected) */}
+            <Route path="/empresa/dashboard" element={<PortalEmpresa />} />
             {/* Protected routes */}
             <Route
               path="/dashboard"
