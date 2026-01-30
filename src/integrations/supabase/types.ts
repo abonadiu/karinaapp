@@ -219,6 +219,44 @@ export type Database = {
           },
         ]
       }
+      participant_reminders: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          participant_id: string
+          reminder_number: number
+          sent_at: string
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          participant_id: string
+          reminder_number: number
+          sent_at?: string
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          participant_id?: string
+          reminder_number?: number
+          sent_at?: string
+          success?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_reminders_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           access_token: string
@@ -230,9 +268,11 @@ export type Database = {
           facilitator_id: string
           id: string
           invited_at: string | null
+          last_reminder_at: string | null
           name: string
           phone: string | null
           position: string | null
+          reminder_count: number
           started_at: string | null
           status: string
           updated_at: string
@@ -247,9 +287,11 @@ export type Database = {
           facilitator_id: string
           id?: string
           invited_at?: string | null
+          last_reminder_at?: string | null
           name: string
           phone?: string | null
           position?: string | null
+          reminder_count?: number
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -264,9 +306,11 @@ export type Database = {
           facilitator_id?: string
           id?: string
           invited_at?: string | null
+          last_reminder_at?: string | null
           name?: string
           phone?: string | null
           position?: string | null
+          reminder_count?: number
           started_at?: string | null
           status?: string
           updated_at?: string
@@ -377,6 +421,24 @@ export type Database = {
         }[]
       }
       get_participant_by_token: { Args: { p_token: string }; Returns: string }
+      get_pending_reminders: {
+        Args: {
+          p_batch_limit?: number
+          p_days_after_invite?: number
+          p_days_between_reminders?: number
+          p_max_reminders?: number
+        }
+        Returns: {
+          access_token: string
+          days_since_invite: number
+          facilitator_id: string
+          invited_at: string
+          participant_email: string
+          participant_id: string
+          participant_name: string
+          reminder_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -386,6 +448,14 @@ export type Database = {
       }
       is_facilitator_of_participant: {
         Args: { p_participant_id: string }
+        Returns: boolean
+      }
+      record_reminder_sent: {
+        Args: {
+          p_error_message?: string
+          p_participant_id: string
+          p_success?: boolean
+        }
         Returns: boolean
       }
     }
