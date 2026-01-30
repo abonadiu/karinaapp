@@ -8,6 +8,7 @@ import { generateDiagnosticPDF } from "@/lib/pdf-generator";
 import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
+import { ScheduleFeedbackCard } from "./ScheduleFeedbackCard";
 import { toast } from "sonner";
 import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
@@ -171,6 +172,16 @@ export function DiagnosticResults({ participantName, scores, existingResult, fac
 
         {/* Recomendações */}
         <RecommendationList recommendations={recommendations} />
+
+        {/* Agendamento de Sessão de Feedback */}
+        {facilitatorProfile?.calendly_url && (
+          <div className="pdf-hide">
+            <ScheduleFeedbackCard 
+              calendlyUrl={facilitatorProfile.calendly_url}
+              participantName={participantName}
+            />
+          </div>
+        )}
 
         {/* Ações */}
         <Card className="pdf-hide">
