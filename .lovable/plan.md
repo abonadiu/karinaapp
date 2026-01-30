@@ -1,215 +1,286 @@
 
 
-# Visualizacao de Resultados para Facilitador
+# Exportacao PDF do Relatorio de Diagnostico
 
 ## Resumo
-Adicionar uma aba "Resultados" na pagina de detalhes da empresa (`EmpresaDetalhes.tsx`) que mostra os resultados do diagnostico dos participantes que completaram a avaliacao, incluindo grafico radar, scores por dimensao e estatisticas consolidadas.
+Implementar funcionalidade de download do relatorio de diagnostico em PDF, permitindo que participantes e facilitadores baixem um documento profissional com grafico radar, scores por dimensao e recomendacoes personalizadas.
+
+---
+
+## Abordagem Tecnica
+
+### Biblioteca Escolhida: jsPDF + html2canvas
+- **jsPDF**: Biblioteca leve para geracao de PDF
+- **html2canvas**: Captura elementos HTML como imagem para incluir no PDF
+- **Vantagens**: Melhor compatibilidade com charts SVG (Recharts), mais simples de implementar, menor bundle size
+
+### Alternativa Considerada
+- `@react-pdf/renderer` com `react-pdf-charts` - Mais complexo, requer reescrever componentes
 
 ---
 
 ## O que sera implementado
 
-### 1. Sistema de Abas na Pagina da Empresa
-- Aba "Participantes" (atual) - Lista de todos os participantes
-- Aba "Resultados" (nova) - Visualizacao dos diagnosticos completos
+### 1. Funcao de Geracao de PDF
+- Capturar conteudo do relatorio como imagem
+- Gerar PDF multi-pagina se necessario
+- Adicionar cabecalho/rodape com logo e data
+- Nome do arquivo: `diagnostico-iq-is-{nome}-{data}.pdf`
 
-### 2. Visualizacao de Resultados
-- Lista de participantes com status "completed"
-- Card expandivel para cada participante mostrando:
-  - Score total
-  - Grafico radar com as 5 dimensoes
-  - Pontos fortes e areas de desenvolvimento
-  - Data de conclusao
+### 2. Botao de Download Funcional
+- Substituir botao desabilitado no `DiagnosticResults.tsx`
+- Mostrar estado de loading durante geracao
+- Feedback de sucesso/erro com toast
 
-### 3. Estatisticas Consolidadas da Empresa
-- Media geral de todos os participantes
-- Grafico radar agregado (media por dimensao)
-- Dimensoes mais fortes e mais fracas da equipe
-- Contadores de participantes por status
+### 3. PDF para Facilitador (bonus)
+- Adicionar botao de download no `ParticipantResultCard.tsx`
+- Permitir baixar PDF de qualquer participante
 
 ---
 
-## Estrutura do Codigo
+## Estrutura do PDF
 
-### Componente Principal
-`src/components/participants/ParticipantResults.tsx` - Lista de resultados dos participantes
+```text
++--------------------------------------------------+
+|  [Logo]     DIAGNOSTICO IQ+IS                    |
+|             Data: 30/01/2026                      |
++--------------------------------------------------+
 
-### Componente de Resultado Individual
-`src/components/participants/ParticipantResultCard.tsx` - Card expandivel com resultado individual
+    Parabens, {Nome}!
+    Voce completou o Diagnostico IQ+IS
+    
+    Score Geral: 3.8/5
+    "Bom! Ha espaco para crescimento em algumas areas."
 
-### Componente de Estatisticas
-`src/components/participants/TeamStats.tsx` - Estatisticas consolidadas da equipe
++--------------------------------------------------+
+|                                                  |
+|            [GRAFICO RADAR - 5 DIMENSOES]         |
+|                                                  |
++--------------------------------------------------+
+
+--- PONTOS FORTES ---
++-------------------------+  +-------------------------+
+| Coerencia Emocional     |  | Relacoes e Compaixao    |
+| 4.2/5                   |  | 4.0/5                   |
++-------------------------+  +-------------------------+
+
+--- AREAS DE DESENVOLVIMENTO ---
++-------------------------+  +-------------------------+
+| Consciencia Interior    |  | Transformacao           |
+| 2.8/5                   |  | 3.0/5                   |
++-------------------------+  +-------------------------+
+
+--- DETALHAMENTO POR DIMENSAO ---
+[Cards de cada dimensao com barra de progresso]
+
+--- RECOMENDACOES ---
+> Desenvolva sua Consciencia Interior
+  - Pratique 10 minutos de meditacao...
+  - Faca pausas conscientes...
+
++--------------------------------------------------+
+|  Gerado em lovable.app | Pagina 1/2              |
++--------------------------------------------------+
+```
 
 ---
 
 ## Arquivos a serem modificados/criados
 
-### Novos Componentes
-1. `src/components/participants/ParticipantResults.tsx`
-   - Busca resultados do banco de dados
-   - Lista participantes que completaram
-   - Mostra mensagem quando nao ha resultados
-
-2. `src/components/participants/ParticipantResultCard.tsx`
-   - Card com nome, data de conclusao, score total
-   - Expansivel para mostrar grafico radar e detalhes
-   - Reutiliza `ResultsRadarChart` e `DimensionCard`
-
-3. `src/components/participants/TeamStats.tsx`
-   - Cards com estatisticas agregadas
-   - Grafico radar com medias da equipe
-   - Top 2 pontos fortes e fracos coletivos
+### Novos Arquivos
+1. `src/lib/pdf-generator.ts`
+   - Funcao `generateDiagnosticPDF()`
+   - Configuracao de margens, fontes, cores
+   - Logica de paginacao
+   - Helper para adicionar secoes
 
 ### Modificacoes
-1. `src/pages/EmpresaDetalhes.tsx`
-   - Adicionar sistema de abas (Tabs do Radix)
-   - Tab "Participantes" com conteudo atual
-   - Tab "Resultados" com novos componentes
-   - Buscar dados de `diagnostic_results` junto com participantes
+1. `src/components/diagnostic/DiagnosticResults.tsx`
+   - Importar funcao de geracao
+   - Adicionar ref para area do conteudo
+   - Habilitar botao de download
+   - Estado de loading durante geracao
+
+2. `src/components/participants/ParticipantResultCard.tsx`
+   - Adicionar botao de download no card expandido
+   - Reutilizar mesma funcao de geracao
 
 ---
 
-## Fluxo de Dados
+## Fluxo de Geracao
 
 ```text
-EmpresaDetalhes
-     |
-     +---> fetchParticipants() - ja existe
-     |
-     +---> fetchResults() - NOVO
-             |
-             +---> SELECT * FROM diagnostic_results
-             |     WHERE participant_id IN (participantes da empresa)
-             |
-             v
-     Combinar participants + results
-             |
-             v
-     [Aba Participantes]        [Aba Resultados]
-          |                           |
-          v                           v
-     ParticipantList          ParticipantResults
-                                     |
-                                     +---> TeamStats (agregado)
-                                     |
-                                     +---> ParticipantResultCard (lista)
+Usuario clica "Baixar PDF"
+        |
+        v
+Mostrar loading state
+        |
+        v
+Capturar elemento com html2canvas
+        |
+        +---> Converter SVG do radar para imagem
+        |
+        v
+Criar documento jsPDF
+        |
+        +---> Adicionar cabecalho
+        +---> Adicionar score geral
+        +---> Adicionar grafico radar
+        +---> Adicionar dimensoes
+        +---> Adicionar recomendacoes
+        +---> Adicionar rodape
+        |
+        v
+pdf.save("diagnostico-iq-is-nome-2026-01-30.pdf")
+        |
+        v
+Toast de sucesso
 ```
 
 ---
 
 ## Detalhes Tecnicos
 
-### Query para buscar resultados
-A RLS policy `is_facilitator_of_participant` ja permite que facilitadores vejam resultados de seus participantes.
-
-```typescript
-const { data: results } = await supabase
-  .from("diagnostic_results")
-  .select("*")
-  .in("participant_id", participantIds);
+### Instalacao de Dependencias
+```bash
+npm install jspdf html2canvas
 ```
 
-### Estrutura do resultado (diagnostic_results.dimension_scores)
-```json
-{
-  "Consciencia Interior": 3.5,
-  "Coerencia Emocional": 4.2,
-  "Conexao e Proposito": 3.8,
-  "Relacoes e Compaixao": 4.0,
-  "Transformacao": 3.2
+### Funcao Principal
+```typescript
+// src/lib/pdf-generator.ts
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
+interface PDFData {
+  participantName: string;
+  totalScore: number;
+  dimensionScores: DimensionScore[];
+  recommendations: Recommendation[];
+}
+
+export async function generateDiagnosticPDF(
+  contentRef: HTMLElement,
+  data: PDFData
+): Promise<void> {
+  // 1. Capturar conteudo como canvas
+  const canvas = await html2canvas(contentRef, {
+    scale: 2, // Maior qualidade
+    useCORS: true,
+    logging: false
+  });
+
+  // 2. Criar PDF
+  const pdf = new jsPDF("p", "mm", "a4");
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  
+  // 3. Adicionar imagem do canvas
+  const imgData = canvas.toDataURL("image/png");
+  const imgWidth = pageWidth - 20;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+  // 4. Multiplas paginas se necessario
+  let heightLeft = imgHeight;
+  let position = 10;
+  
+  pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+  
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
+  // 5. Salvar
+  const fileName = `diagnostico-iq-is-${data.participantName.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.pdf`;
+  pdf.save(fileName);
 }
 ```
 
-### Conversao para DimensionScore[]
+### Uso no Componente
 ```typescript
-const dimensionScores = Object.entries(result.dimension_scores).map(
-  ([dimension, score], index) => ({
-    dimension,
-    dimensionOrder: index + 1,
-    score: score as number,
-    maxScore: 5,
-    percentage: ((score as number) / 5) * 100
-  })
-);
-```
+// DiagnosticResults.tsx
+const contentRef = useRef<HTMLDivElement>(null);
+const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-### Calculo de medias da equipe
-```typescript
-const teamAverages = dimensions.map(dim => {
-  const scores = results
-    .map(r => r.dimension_scores[dim.name])
-    .filter(Boolean);
-  return {
-    dimension: dim.name,
-    score: scores.reduce((a, b) => a + b, 0) / scores.length
-  };
-});
+const handleDownloadPDF = async () => {
+  if (!contentRef.current) return;
+  
+  setIsGeneratingPDF(true);
+  try {
+    await generateDiagnosticPDF(contentRef.current, {
+      participantName,
+      totalScore: displayScores.totalScore,
+      dimensionScores: displayScores.dimensionScores,
+      recommendations
+    });
+    toast.success("PDF gerado com sucesso!");
+  } catch (error) {
+    toast.error("Erro ao gerar PDF");
+    console.error(error);
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
 ```
 
 ---
 
-## Interface Visual
+## Estilizacao para PDF
 
-### Aba Resultados - Layout
-```text
-+-------------------------------------------------------+
-| [Participantes] [Resultados]                          |  <- Tabs
-+-------------------------------------------------------+
+Para garantir que o PDF tenha boa aparencia, precisamos:
 
-+-- Estatisticas da Equipe -----------------------------+
-|  +-------------+  +-------------+  +-------------+    |
-|  | Completados |  | Media Geral |  | Em Progresso|    |
-|  |     8       |  |    3.8/5    |  |      3      |    |
-|  +-------------+  +-------------+  +-------------+    |
-|                                                       |
-|  [Grafico Radar - Media da Equipe]                    |
-|                                                       |
-|  Dimensao mais forte: Coerencia Emocional (4.2)       |
-|  Dimensao a desenvolver: Transformacao (3.1)          |
-+-------------------------------------------------------+
+1. **Ref no conteudo principal**
+   - Envolver o conteudo em div com ref
+   - Excluir botoes de acao da captura
 
-+-- Resultados Individuais -----------------------------+
-|  +-- Maria Silva (click para expandir) ----+ 3.9/5   |
-|  |  Concluido em 28/01/2026                         |
-|  +----------------------------------------------+   |
-|                                                       |
-|  +-- Joao Santos [expandido] ---------------+ 4.1/5  |
-|  |  Concluido em 27/01/2026                         |
-|  |                                                   |
-|  |  [Grafico Radar Individual]                      |
-|  |                                                   |
-|  |  Pontos Fortes:                                  |
-|  |  - Relacoes e Compaixao (4.5)                    |
-|  |  - Coerencia Emocional (4.3)                     |
-|  |                                                   |
-|  |  Areas de Desenvolvimento:                       |
-|  |  - Consciencia Interior (3.2)                    |
-|  |  - Transformacao (3.4)                           |
-|  +----------------------------------------------+   |
-+-------------------------------------------------------+
-```
+2. **Cores solidas**
+   - Usar cores fixas em vez de CSS variables para o PDF
+   - Aplicar classe especial durante captura
+
+3. **Tamanho otimizado**
+   - Width fixo para consistencia
+   - Fontes legiveis em impressao
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar `TeamStats.tsx` - estatisticas agregadas
-2. Criar `ParticipantResultCard.tsx` - card expandivel individual
-3. Criar `ParticipantResults.tsx` - container com lista e stats
-4. Modificar `EmpresaDetalhes.tsx`:
-   - Adicionar imports de Tabs
-   - Adicionar estado para resultados
-   - Criar funcao `fetchResults()`
-   - Reorganizar layout com abas
-5. Testar fluxo completo
+1. Instalar `jspdf` e `html2canvas`
+2. Criar `src/lib/pdf-generator.ts` com funcao principal
+3. Atualizar `DiagnosticResults.tsx`:
+   - Adicionar ref ao conteudo
+   - Implementar handler de download
+   - Habilitar botao
+4. Adicionar botao de download no `ParticipantResultCard.tsx`
+5. Testar geracao de PDF
+6. Ajustar estilos se necessario
 
 ---
 
-## Componentes Reutilizados
+## Tipos TypeScript
 
-- `ResultsRadarChart` - ja existe, sera reutilizado
-- `DimensionCard` - ja existe, sera reutilizado
-- `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` - do Radix UI
-- `Collapsible` - do Radix UI para cards expandiveis
-- `Card`, `Progress`, `Badge` - componentes UI existentes
+```typescript
+// src/lib/pdf-generator.ts
+
+export interface PDFGeneratorOptions {
+  participantName: string;
+  totalScore: number;
+  dimensionScores: DimensionScore[];
+  recommendations: Recommendation[];
+  companyName?: string;
+  completedAt?: string;
+}
+
+export interface PDFStyles {
+  primaryColor: string;
+  textColor: string;
+  backgroundColor: string;
+  headerHeight: number;
+  margin: number;
+}
+```
 
