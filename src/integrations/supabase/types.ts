@@ -409,6 +409,11 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_company_percentile: {
+        Args: { p_company_id: string }
+        Returns: number
+      }
+      get_global_benchmark: { Args: never; Returns: Json }
       get_manager_company_id: { Args: { _user_id: string }; Returns: string }
       get_manager_invite_by_token: {
         Args: { p_token: string }
