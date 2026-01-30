@@ -4,7 +4,8 @@ import {
   Users, 
   LayoutDashboard,
   User,
-  LogOut
+  LogOut,
+  BarChart3
 } from "lucide-react";
 
 import {
@@ -28,6 +29,7 @@ const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Empresas", url: "/empresas", icon: Building2 },
   { title: "Participantes", url: "/participantes", icon: Users },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
