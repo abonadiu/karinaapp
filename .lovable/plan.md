@@ -1,300 +1,257 @@
 
-# Plano: Comparativo com Benchmark e Percentil de Posicionamento
+# Plano: Agendamento de Sessões de Feedback
 
 ## Resumo
 
-Implementar funcionalidade de benchmark que permite comparar o desempenho de uma equipe/empresa com as médias gerais da plataforma, incluindo visualização de percentil para entender o posicionamento relativo.
+Implementar funcionalidade de agendamento de sessões de feedback pós-diagnóstico, integrando com Calendly (ou permitindo URL customizada), para que participantes possam agendar uma sessão com o facilitador diretamente da tela de resultados.
 
 ---
 
-## Funcionalidades a Implementar
+## Como Funcionará
 
-### 1. Radar Chart Comparativo (Equipe vs Benchmark)
-
-Modificar o `AggregateRadarChart` para exibir duas camadas:
-- **Camada 1 (Primária)**: Médias da equipe atual
-- **Camada 2 (Referência)**: Médias globais de todos os diagnósticos
-
-| Cor | Representação |
-|-----|---------------|
-| Azul (primary) | Média da Equipe |
-| Cinza (muted) | Benchmark Global |
-
-### 2. Card de Percentil de Posicionamento
-
-Novo componente mostrando onde a equipe se posiciona em relação a todas as outras:
-
-```text
-+------------------------------------------+
-|  Posicionamento da Equipe                |
-+------------------------------------------+
-|                                          |
-|  Sua equipe está melhor que              |
-|                                          |
-|          [ 72% ]                         |
-|                                          |
-|  das outras equipes avaliadas            |
-|                                          |
-|  ======[====|====]======                 |
-|        25%  50%  75%                     |
-+------------------------------------------+
-```
-
-### 3. Tabela Comparativa por Dimensão
-
-Mostrar cada dimensão com:
-- Score da equipe
-- Benchmark global
-- Diferença (positiva/negativa)
-- Indicador visual
-
-```text
-| Dimensão           | Equipe | Benchmark | Diferença |
-|--------------------|--------|-----------|-----------|
-| Consciência        |  4.2   |   3.94    |   +0.26   |
-| Coerência          |  3.8   |   3.90    |   -0.10   |
-| ...                |  ...   |   ...     |   ...     |
-```
+1. **Facilitador configura** sua URL do Calendly no perfil
+2. **Participante completa** o diagnóstico e vê os resultados
+3. **Botão "Agendar Sessão"** aparece na tela de resultados
+4. **Popup do Calendly** abre para agendamento
+5. **Opcional**: Registro do agendamento no banco de dados
 
 ---
 
-## Arquivos a Criar
+## Componentes a Implementar
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/components/empresa/BenchmarkComparisonCard.tsx` | Card com tabela comparativa por dimensão |
-| `src/components/empresa/PercentilePositionCard.tsx` | Card de percentil com barra visual |
-| `src/components/empresa/ComparisonRadarChart.tsx` | Radar chart com duas camadas |
+### 1. Campo de URL do Calendly no Perfil do Facilitador
+
+Adicionar novo campo no perfil para o facilitador configurar sua URL de agendamento.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `calendly_url` | string | URL do Calendly ou similar |
+
+### 2. Componente de Agendamento
+
+Novo componente que exibe o botão e abre o widget do Calendly.
+
+```text
++------------------------------------------+
+|  Agende sua Sessão de Feedback           |
++------------------------------------------+
+|                                          |
+|  Quer aprofundar seus resultados?        |
+|  Agende uma sessão individual com seu    |
+|  facilitador.                            |
+|                                          |
+|     [ Agendar Sessão de Feedback ]       |
+|                                          |
++------------------------------------------+
+```
+
+### 3. Integração com Calendly
+
+Usar a biblioteca `react-calendly` para popup modal:
+
+```tsx
+import { PopupButton } from "react-calendly";
+
+<PopupButton
+  url={facilitatorProfile.calendly_url}
+  rootElement={document.getElementById("root")}
+  text="Agendar Sessão de Feedback"
+/>
+```
+
+---
 
 ## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/empresa/PortalEmpresa.tsx` | Adicionar seção de benchmark |
+| `src/pages/Perfil.tsx` | Adicionar campo para URL do Calendly |
+| `src/components/diagnostic/DiagnosticResults.tsx` | Adicionar seção de agendamento |
+
+## Arquivos a Criar
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/components/diagnostic/ScheduleFeedbackCard.tsx` | Card com botão de agendamento |
 
 ---
 
-## Nova Função no Banco de Dados
+## Alterações no Banco de Dados
 
-Criar função para calcular benchmark global:
+### Nova coluna na tabela `profiles`
 
 ```sql
-CREATE OR REPLACE FUNCTION get_global_benchmark()
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  result json;
-BEGIN
-  -- Médias globais por dimensão
-  WITH dimension_avgs AS (
-    SELECT 
-      key as dimension,
-      AVG((value->>'score')::numeric) as avg_score
-    FROM diagnostic_results,
-         jsonb_each(dimension_scores::jsonb)
-    GROUP BY key
-  ),
-  global_avg AS (
-    SELECT AVG(total_score) as global_score
-    FROM diagnostic_results
-  )
-  SELECT json_build_object(
-    'dimensions', (SELECT json_agg(json_build_object(
-      'dimension', dimension,
-      'average', ROUND(avg_score::numeric, 2)
-    )) FROM dimension_avgs),
-    'global_average', (SELECT ROUND(global_score::numeric, 2) FROM global_avg),
-    'total_completed', (SELECT COUNT(*) FROM diagnostic_results)
-  ) INTO result;
-
-  RETURN result;
-END;
-$$;
+ALTER TABLE public.profiles 
+ADD COLUMN calendly_url text NULL;
 ```
 
-Função para calcular percentil da empresa:
+### (Opcional) Tabela para registrar agendamentos
 
 ```sql
-CREATE OR REPLACE FUNCTION get_company_percentile(p_company_id uuid)
-RETURNS integer
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  company_avg numeric;
-  percentile integer;
-BEGIN
-  -- Média da empresa
-  SELECT AVG(dr.total_score) INTO company_avg
-  FROM diagnostic_results dr
-  JOIN participants p ON p.id = dr.participant_id
-  WHERE p.company_id = p_company_id;
-
-  IF company_avg IS NULL THEN
-    RETURN NULL;
-  END IF;
-
-  -- Calcular percentil
-  SELECT ROUND(
-    (COUNT(*) FILTER (WHERE avg_score <= company_avg)::numeric / 
-     NULLIF(COUNT(*), 0)) * 100
-  )::integer INTO percentile
-  FROM (
-    SELECT p.company_id, AVG(dr.total_score) as avg_score
-    FROM diagnostic_results dr
-    JOIN participants p ON p.id = dr.participant_id
-    GROUP BY p.company_id
-  ) company_scores;
-
-  RETURN percentile;
-END;
-$$;
+CREATE TABLE public.feedback_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_id uuid REFERENCES participants(id) ON DELETE CASCADE,
+  facilitator_id uuid NOT NULL,
+  scheduled_at timestamptz,
+  calendly_event_uri text,
+  status text DEFAULT 'scheduled',
+  created_at timestamptz DEFAULT now()
+);
 ```
 
 ---
 
-## Design dos Componentes
+## Interface do Facilitador (Perfil)
 
-### ComparisonRadarChart
-
-Gráfico radar com duas séries sobrepostas:
-
-```tsx
-<RadarChart>
-  <Radar 
-    name="Benchmark" 
-    dataKey="benchmark" 
-    stroke="hsl(var(--muted-foreground))"
-    fill="hsl(var(--muted-foreground))"
-    fillOpacity={0.1}
-  />
-  <Radar 
-    name="Sua Equipe" 
-    dataKey="team" 
-    stroke="hsl(var(--primary))"
-    fill="hsl(var(--primary))"
-    fillOpacity={0.3}
-  />
-  <Legend />
-</RadarChart>
-```
-
-### PercentilePositionCard
-
-Visualização com:
-- Número grande do percentil (ex: 72%)
-- Barra de progresso segmentada (quartis)
-- Texto explicativo
-
-### BenchmarkComparisonCard
-
-Tabela mostrando:
-- Cada dimensão como linha
-- Colunas: Equipe | Benchmark | Δ
-- Cores indicando performance (verde = acima, vermelho = abaixo)
-
----
-
-## Layout no Portal da Empresa
-
-Nova seção "Comparativo com Benchmark":
+Nova seção no perfil:
 
 ```text
 +------------------------------------------+
-|  Comparativo com Benchmark               |
-|  Veja como sua equipe se posiciona       |
+|  Agendamento de Sessões                  |
 +------------------------------------------+
-
-+-------------------+   +-------------------+
-|   Radar Chart     |   |    Percentil      |
-|   Comparativo     |   |    Position       |
-|   (2 camadas)     |   |    72%            |
-+-------------------+   +-------------------+
-
-+------------------------------------------+
-|  Detalhamento por Dimensão               |
-|  ----------------------------------------|
-|  Dimensão      | Equipe | Bench | Dif    |
-|  Consciência   |  4.2   | 3.94  | +0.26  |
-|  Coerência     |  3.8   | 3.90  | -0.10  |
-|  ...           |  ...   | ...   | ...    |
+|                                          |
+|  URL do Calendly                         |
+|  [https://calendly.com/seu-link       ]  |
+|                                          |
+|  Esta URL será exibida para seus         |
+|  participantes após completarem o        |
+|  diagnóstico.                            |
+|                                          |
 +------------------------------------------+
 ```
 
 ---
 
-## Fluxo de Dados
+## Fluxo do Participante
 
-1. Portal carrega dados da empresa (existente)
-2. Chamada adicional para `get_global_benchmark()` 
-3. Chamada para `get_company_percentile(company_id)`
-4. Componentes recebem ambos os conjuntos de dados
-5. Renderização comparativa
-
----
-
-## Seção Técnica
-
-### Interface de Dados
-
-```typescript
-interface BenchmarkData {
-  dimensions: {
-    dimension: string;
-    average: number;
-  }[];
-  global_average: number;
-  total_completed: number;
-}
-
-interface ComparisonDimension {
-  dimension: string;
-  shortName: string;
-  teamScore: number;
-  benchmarkScore: number;
-  difference: number;
-  isAbove: boolean;
-}
-```
-
-### Query no Portal
-
-```typescript
-// Buscar benchmark global
-const { data: benchmarkData } = await supabase
-  .rpc('get_global_benchmark');
-
-// Buscar percentil da empresa
-const { data: percentile } = await supabase
-  .rpc('get_company_percentile', { p_company_id: companyId });
-```
-
-### Lógica do Percentil Visual
-
-```typescript
-function getPercentileColor(percentile: number): string {
-  if (percentile >= 75) return "text-green-500";
-  if (percentile >= 50) return "text-blue-500";
-  if (percentile >= 25) return "text-yellow-500";
-  return "text-orange-500";
-}
-
-function getPercentileLabel(percentile: number): string {
-  if (percentile >= 75) return "Excelente";
-  if (percentile >= 50) return "Acima da média";
-  if (percentile >= 25) return "Na média";
-  return "Abaixo da média";
-}
+```text
+1. Completa diagnóstico
+         |
+         v
+2. Vê tela de resultados
+         |
+         v
+3. Card "Agende sua Sessão" aparece
+   (se facilitador tiver URL configurada)
+         |
+         v
+4. Clica "Agendar Sessão de Feedback"
+         |
+         v
+5. Popup do Calendly abre
+         |
+         v
+6. Participante escolhe horário
+         |
+         v
+7. Confirmação enviada por email
 ```
 
 ---
 
-## Estimativa de Implementação
+## Design do Componente ScheduleFeedbackCard
 
-| Etapa | Esforço |
+```tsx
+// Só exibe se facilitador tiver calendly_url configurada
+{facilitatorProfile?.calendly_url && (
+  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+    <CardHeader className="text-center">
+      <Calendar className="h-8 w-8 text-green-600 mx-auto mb-2" />
+      <CardTitle>Agende sua Sessão de Feedback</CardTitle>
+      <CardDescription>
+        Aprofunde seus resultados com uma sessão individual
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="text-center">
+      <PopupButton
+        url={facilitatorProfile.calendly_url}
+        rootElement={document.getElementById("root")!}
+        text="Agendar Sessão"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+      />
+    </CardContent>
+  </Card>
+)}
+```
+
+---
+
+## Dependência a Instalar
+
+```bash
+npm install react-calendly
+```
+
+---
+
+## Atualização do Hook useDiagnostic
+
+Adicionar `calendly_url` na interface `FacilitatorProfile`:
+
+```typescript
+export interface FacilitatorProfile {
+  full_name: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  calendly_url: string | null;  // novo campo
+}
+```
+
+---
+
+## Seção Tecnica
+
+### Instalacao da Biblioteca
+
+```bash
+npm install react-calendly
+```
+
+### Tipos TypeScript
+
+```typescript
+// Interface atualizada
+interface FacilitatorProfile {
+  full_name: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  calendly_url: string | null;
+}
+
+// Props do componente
+interface ScheduleFeedbackCardProps {
+  calendlyUrl: string;
+  participantName: string;
+}
+```
+
+### Query Atualizada no useDiagnostic
+
+```typescript
+const { data: profileData } = await supabase
+  .from("profiles")
+  .select("full_name, logo_url, primary_color, secondary_color, calendly_url")
+  .eq("user_id", participantData.facilitator_id)
+  .single();
+```
+
+### Validacao de URL
+
+```typescript
+function isValidCalendlyUrl(url: string): boolean {
+  return url.startsWith("https://calendly.com/") || 
+         url.startsWith("https://cal.com/");
+}
+```
+
+---
+
+## Estimativa de Implementacao
+
+| Etapa | Esforco |
 |-------|---------|
-| Funções do banco (benchmark + percentil) | 1 mensagem |
-| Componentes visuais + integração no Portal | 1 mensagem |
+| Migracao do banco (nova coluna) | 1 mensagem |
+| Componentes + integracao | 1 mensagem |
 | **Total** | 2 mensagens |
