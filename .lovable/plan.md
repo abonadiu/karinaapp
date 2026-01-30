@@ -1,168 +1,232 @@
 
 
-# Fase 3: Gestão de Empresas e Participantes
+# Fase 4: Sistema de Diagnostico IQ+IS
 
 ## Resumo
-Implementação completa do sistema de gestão de empresas clientes e participantes, permitindo ao facilitador cadastrar empresas, gerenciar licenças, adicionar participantes e acompanhar o status de cada um.
+Implementacao do sistema de diagnostico de inteligencia emocional (IQ) e espiritual (IS), permitindo que participantes acessem via link unico, respondam 40 perguntas em 5 dimensoes, realizem exercicios vivenciais e recebam um relatorio personalizado.
 
 ---
 
 ## O que sera implementado
 
-### 1. Gestao de Empresas
-- **Listagem de Empresas** - Tabela com todas as empresas cadastradas
-- **Cadastro de Empresa** - Modal/formulario para adicionar nova empresa
-- **Edicao de Empresa** - Atualizar dados da empresa
-- **Visualizacao de Detalhes** - Pagina com informacoes completas e participantes
-- **Controle de Licencas** - Numero de vagas disponiveis vs utilizadas
+### 1. Acesso via Link Unico
+- **Pagina de Acesso** (`/diagnostico/:token`) - Validacao do token do participante
+- **Tela de Boas-vindas** - Introducao ao diagnostico e instrucoes
+- **Progresso Salvo** - Participante pode pausar e retomar depois
 
-### 2. Gestao de Participantes
-- **Listagem por Empresa** - Ver todos os participantes de uma empresa
-- **Adicionar Participante** - Formulario individual
-- **Importacao via CSV** - Upload de planilha com multiplos participantes
-- **Status do Participante** - Convidado, Em andamento, Concluido
-- **Envio de Convite** - Gerar link unico e preparar para envio por email
+### 2. Questionario de 40 Perguntas
+- **5 Dimensoes** - 8 perguntas cada:
+  1. Consciencia Interior (Meta-cognicao)
+  2. Coerencia Emocional (Regulacao)
+  3. Conexao e Proposito (Valores)
+  4. Relacoes e Compaixao (Empatia)
+  5. Transformacao (Crescimento)
+- **Escala Likert** - 1 a 5 (Discordo totalmente a Concordo totalmente)
+- **Navegacao entre perguntas** - Uma por vez com barra de progresso
 
-### 3. Layout do Dashboard
-- **Sidebar de Navegacao** - Menu lateral com acesso rapido as secoes
-- **Contadores Dinamicos** - Stats reais de empresas, participantes e avaliacoes
+### 3. Exercicios Vivenciais
+- **Exercicio de Respiracao** - Timer interativo com instrucoes
+- **Mapeamento Corporal** - Selecao de areas de tensao/conforto
+- **Reflexao Guiada** - Campo de texto para insights
+
+### 4. Resultados e Relatorio
+- **Calculo de Scores** - Media por dimensao
+- **Grafico Radar** - Visualizacao das 5 dimensoes
+- **Pontos Cegos** - Dimensoes com menor score
+- **Recomendacoes** - Praticas sugeridas por dimensao
+- **PDF/Compartilhamento** - Exportar resultado (futuro)
 
 ---
 
 ## Estrutura do Banco de Dados
 
-### Tabela: `companies`
+### Tabela: `diagnostic_questions`
 | Campo | Tipo | Descricao |
 |-------|------|-----------|
-| id | uuid | ID unico da empresa (PK) |
-| facilitator_id | uuid | Referencia ao profiles.id |
-| name | text | Nome da empresa |
-| contact_name | text | Nome do contato principal |
-| contact_email | text | Email do contato |
-| contact_phone | text | Telefone do contato |
-| total_licenses | integer | Total de licencas contratadas |
-| used_licenses | integer | Licencas ja utilizadas |
-| notes | text | Observacoes |
+| id | uuid | ID unico (PK) |
+| dimension | text | Nome da dimensao |
+| dimension_order | integer | Ordem da dimensao (1-5) |
+| question_order | integer | Ordem dentro da dimensao (1-8) |
+| question_text | text | Texto da pergunta |
+| reverse_scored | boolean | Se a escala e invertida |
 | created_at | timestamp | Data de criacao |
-| updated_at | timestamp | Data de atualizacao |
 
-### Tabela: `participants`
+### Tabela: `diagnostic_responses`
 | Campo | Tipo | Descricao |
 |-------|------|-----------|
-| id | uuid | ID unico do participante (PK) |
-| company_id | uuid | Referencia a companies.id |
-| facilitator_id | uuid | Referencia ao profiles.id |
-| name | text | Nome completo |
-| email | text | Email do participante |
-| phone | text | Telefone (opcional) |
-| department | text | Departamento/area |
-| position | text | Cargo |
-| access_token | text | Token unico para acesso ao diagnostico |
-| status | text | 'pending', 'invited', 'in_progress', 'completed' |
-| invited_at | timestamp | Data do envio do convite |
-| started_at | timestamp | Data de inicio do diagnostico |
-| completed_at | timestamp | Data de conclusao |
+| id | uuid | ID unico (PK) |
+| participant_id | uuid | Referencia a participants.id |
+| question_id | uuid | Referencia a diagnostic_questions.id |
+| score | integer | Resposta (1-5) |
+| answered_at | timestamp | Data/hora da resposta |
 | created_at | timestamp | Data de criacao |
-| updated_at | timestamp | Data de atualizacao |
+
+### Tabela: `diagnostic_results`
+| Campo | Tipo | Descricao |
+|-------|------|-----------|
+| id | uuid | ID unico (PK) |
+| participant_id | uuid | Referencia a participants.id |
+| dimension_scores | jsonb | Scores por dimensao |
+| total_score | decimal | Score medio geral |
+| completed_at | timestamp | Data de conclusao |
+| exercises_data | jsonb | Dados dos exercicios vivenciais |
+| created_at | timestamp | Data de criacao |
 
 ---
 
-## Fluxo de Usuario
+## Fluxo do Participante
 
 ```text
-Dashboard
-    |
-    +---> [Empresas] ---> Lista de Empresas
-    |                         |
-    |                         +---> [+ Nova] ---> Formulario
-    |                         |
-    |                         +---> [Ver] ---> Detalhes da Empresa
-    |                                              |
-    |                                              +---> Lista de Participantes
-    |                                              |
-    |                                              +---> [+ Adicionar]
-    |                                              |
-    |                                              +---> [Importar CSV]
-    |
-    +---> [Participantes] ---> Lista Geral (todos)
+Email com Link
+     |
+     v
+/diagnostico/:token
+     |
+     +---> Validar Token
+     |          |
+     |          +--(invalido)--> Erro: Link invalido
+     |          |
+     |          +--(valido)--> Boas-vindas
+     |                              |
+     v                              v
+[Iniciar] ----------------------> Questionario
+                                      |
+     +--------------------------------+
+     |
+     v
+Pergunta 1/40 --> ... --> Pergunta 40/40
+     |
+     v
+Exercicio 1: Respiracao
+     |
+     v
+Exercicio 2: Mapeamento Corporal
+     |
+     v
+Exercicio 3: Reflexao
+     |
+     v
+Processando Resultados...
+     |
+     v
+Tela de Resultado (Grafico Radar + Recomendacoes)
 ```
 
 ---
 
 ## Arquivos a serem criados
 
-### Paginas
-- `src/pages/Empresas.tsx` - Listagem de empresas
-- `src/pages/EmpresaDetalhes.tsx` - Detalhes + participantes
-- `src/pages/Participantes.tsx` - Lista geral de participantes
+### Paginas do Diagnostico
+- `src/pages/Diagnostico.tsx` - Container principal do diagnostico
+- `src/pages/DiagnosticoResultado.tsx` - Pagina de resultados
 
-### Componentes de Empresa
-- `src/components/companies/CompanyList.tsx` - Tabela de empresas
-- `src/components/companies/CompanyForm.tsx` - Formulario de cadastro/edicao
-- `src/components/companies/CompanyCard.tsx` - Card resumido
+### Componentes do Diagnostico
+- `src/components/diagnostic/DiagnosticWelcome.tsx` - Tela inicial
+- `src/components/diagnostic/QuestionCard.tsx` - Card de pergunta individual
+- `src/components/diagnostic/LikertScale.tsx` - Componente de escala 1-5
+- `src/components/diagnostic/ProgressBar.tsx` - Barra de progresso
+- `src/components/diagnostic/ExerciseBreathing.tsx` - Exercicio de respiracao
+- `src/components/diagnostic/ExerciseBodyMap.tsx` - Mapeamento corporal
+- `src/components/diagnostic/ExerciseReflection.tsx` - Reflexao guiada
+- `src/components/diagnostic/ResultsRadarChart.tsx` - Grafico radar
+- `src/components/diagnostic/DimensionCard.tsx` - Card de resultado por dimensao
+- `src/components/diagnostic/RecommendationList.tsx` - Lista de recomendacoes
 
-### Componentes de Participante
-- `src/components/participants/ParticipantList.tsx` - Tabela de participantes
-- `src/components/participants/ParticipantForm.tsx` - Formulario individual
-- `src/components/participants/CsvImport.tsx` - Upload e parse de CSV
-- `src/components/participants/StatusBadge.tsx` - Badge de status visual
-
-### Layout
-- `src/components/layout/DashboardLayout.tsx` - Layout com sidebar
-- `src/components/layout/Sidebar.tsx` - Menu lateral de navegacao
+### Hooks e Utils
+- `src/hooks/useDiagnostic.ts` - Hook para gerenciar estado do diagnostico
+- `src/lib/diagnostic-questions.ts` - Lista das 40 perguntas
+- `src/lib/diagnostic-scoring.ts` - Logica de calculo de scores
+- `src/lib/recommendations.ts` - Recomendacoes por dimensao
 
 ---
 
 ## Politicas de Seguranca (RLS)
 
-### Tabela `companies`
-- SELECT: Apenas empresas do proprio facilitador
-- INSERT: Facilitador pode criar empresas vinculadas a si
-- UPDATE: Apenas suas proprias empresas
-- DELETE: Apenas suas proprias empresas
+### Tabela `diagnostic_questions`
+- SELECT: Todos podem ler (perguntas sao publicas)
+- INSERT/UPDATE/DELETE: Apenas admins (ou ninguem via cliente)
 
-### Tabela `participants`
-- SELECT: Apenas participantes de empresas do facilitador
-- INSERT: Facilitador pode adicionar a suas empresas
-- UPDATE: Apenas participantes de suas empresas
-- DELETE: Apenas participantes de suas empresas
+### Tabela `diagnostic_responses`
+- SELECT: Facilitador pode ver respostas de seus participantes
+- INSERT: Via token do participante (validacao no backend)
+- UPDATE: Permitir atualizar resposta antes de finalizar
+- DELETE: Nao permitido
+
+### Tabela `diagnostic_results`
+- SELECT: Facilitador pode ver resultados de seus participantes
+- INSERT: Apenas apos completar todas as respostas
+- UPDATE: Nao permitido (resultado e final)
+- DELETE: Nao permitido
 
 ---
 
 ## Detalhes Tecnicos
 
-### Validacao de Formularios
-- Nome da empresa obrigatorio
-- Email valido para contato e participantes
-- Numero de licencas >= 0
-- Token de acesso gerado automaticamente (UUID)
+### Validacao de Token
+- Buscar participante por `access_token`
+- Verificar se status permite acesso (`pending`, `invited`, `in_progress`)
+- Atualizar status para `in_progress` ao iniciar
 
-### Importacao CSV
-- Colunas aceitas: nome, email, departamento, cargo, telefone
-- Validacao de emails duplicados
-- Preview antes de confirmar importacao
-- Feedback de linhas com erro
+### Persistencia de Progresso
+- Salvar cada resposta individualmente
+- Permitir retornar ao ponto onde parou
+- Marcar `started_at` na primeira resposta
 
-### Status do Participante
-- `pending` - Cadastrado, aguardando convite
-- `invited` - Convite enviado
-- `in_progress` - Iniciou o diagnostico
-- `completed` - Finalizou todas as etapas
+### Calculo de Scores
+- Cada dimensao: media das 8 respostas (1-5)
+- Perguntas com `reverse_scored`: inverter valor (6 - resposta)
+- Score total: media das 5 dimensoes
+- Armazenar em `diagnostic_results.dimension_scores` como JSON
+
+### Grafico Radar
+- Usar Recharts (ja instalado)
+- 5 eixos representando as dimensoes
+- Escala de 1 a 5
+
+### Exercicios Vivenciais
+- Respiracao: Timer de 4-7-8 segundos (inspirar-segurar-expirar)
+- Mapeamento: SVG interativo do corpo humano
+- Reflexao: Textarea com prompts guiados
+
+---
+
+## As 5 Dimensoes e Exemplos de Perguntas
+
+### 1. Consciencia Interior
+- "Consigo observar meus pensamentos sem me identificar com eles"
+- "Percebo quando estou no 'piloto automatico'"
+
+### 2. Coerencia Emocional
+- "Consigo nomear minhas emocoes quando as sinto"
+- "Mantenho a calma em situacoes de pressao"
+
+### 3. Conexao e Proposito
+- "Minhas acoes estao alinhadas com meus valores"
+- "Sinto que minha vida tem um proposito claro"
+
+### 4. Relacoes e Compaixao
+- "Consigo me colocar no lugar dos outros"
+- "Ofereco apoio genuino sem esperar retorno"
+
+### 5. Transformacao
+- "Vejo os desafios como oportunidades de crescimento"
+- "Estou aberto a mudar de opiniao quando apresentado a novas informacoes"
 
 ---
 
 ## Ordem de Implementacao
 
-1. Criar tabelas `companies` e `participants` no banco
-2. Configurar RLS policies para ambas tabelas
-3. Criar DashboardLayout com Sidebar
-4. Refatorar Dashboard para usar novo layout
-5. Criar pagina de listagem de Empresas
-6. Criar formulario de cadastro de Empresa
-7. Criar pagina de detalhes da Empresa
-8. Criar listagem de Participantes por empresa
-9. Criar formulario de adicionar Participante
-10. Implementar importacao via CSV
-11. Atualizar contadores do Dashboard com dados reais
-12. Adicionar rotas no App.tsx
+1. Criar tabelas `diagnostic_questions`, `diagnostic_responses`, `diagnostic_results`
+2. Configurar RLS policies para todas as tabelas
+3. Inserir as 40 perguntas no banco de dados
+4. Criar pagina de acesso com validacao de token
+5. Implementar componente de pergunta com escala Likert
+6. Criar fluxo de navegacao entre perguntas
+7. Implementar exercicio de respiracao
+8. Implementar mapeamento corporal
+9. Implementar reflexao guiada
+10. Criar tela de resultados com grafico radar
+11. Implementar recomendacoes por dimensao
+12. Atualizar status do participante ao finalizar
+13. Adicionar rotas no App.tsx
 
