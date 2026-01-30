@@ -6,7 +6,8 @@ import {
   Mail,
   Bell,
   Palette,
-  RefreshCw
+  RefreshCw,
+  Link2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AdminCalendlyIntegration } from "./AdminCalendlyIntegration";
 
 interface SystemSetting {
   id: string;
@@ -281,6 +283,22 @@ export function AdminSettings() {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Integrações */}
+      <Card className="shadow-warm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            Integrações
+          </CardTitle>
+          <CardDescription>
+            Conexões com serviços externos
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminCalendlyIntegration />
         </CardContent>
       </Card>
     </div>
