@@ -1,246 +1,172 @@
 
-# Plano: Sistema de Lembretes Automaticos por Email
+
+# Plano: Sidebar Colapsavel e Redimensionavel
 
 ## Resumo
-Implementar um sistema de lembretes automaticos que envia emails para participantes que foram convidados mas nao concluiram o diagnostico dentro de um periodo configuravel. O sistema usara uma edge function disparada via cron job (pg_cron + pg_net).
+Implementar melhorias na sidebar para permitir:
+1. Colapso total (recolher completamente, nao apenas para icones)
+2. Redimensionamento por arraste (drag to resize)
 
 ---
 
-## Arquitetura do Sistema
+## Situacao Atual
 
-```text
-pg_cron (diario)
-      |
-      v
-pg_net HTTP POST
-      |
-      v
-Edge Function: send-reminders
-      |
-      v
-1. Busca participantes elegiveis
-2. Aplica regras (max lembretes, intervalo)
-3. Envia emails via Resend
-4. Registra lembrete enviado
-```
+A sidebar atual utiliza o componente Shadcn UI com as seguintes caracteristicas:
+- Colapsa para modo "icon" (3rem/48px) mantendo icones visiveis
+- Nao permite colapso total (0px)
+- Nao suporta redimensionamento por arraste
 
 ---
 
-## Regras de Lembrete
+## Solucao Proposta
 
-| Regra | Valor Padrao |
-|-------|--------------|
-| Dias apos convite para 1o lembrete | 3 dias |
-| Intervalo minimo entre lembretes | 3 dias |
-| Maximo de lembretes por participante | 3 |
-| Status elegiveis | `invited`, `in_progress` |
+### Opcao 1: Modificar Sidebar Shadcn (Recomendada)
 
----
+Modificar o comportamento da sidebar existente para suportar:
 
-## Estrutura do Banco de Dados
+1. **Colapso Total (offcanvas)**: Alterar `collapsible="icon"` para `collapsible="offcanvas"` permitindo colapso completo
+2. **Adicionar SidebarRail**: Componente ja existe no arquivo, permite toggle via clique na borda
 
-### Nova Tabela: participant_reminders
-Registra todos os lembretes enviados para controle e auditoria.
+**Vantagens**: Menor impacto no codigo existente, utiliza componentes ja disponiveis
 
-```sql
-CREATE TABLE public.participant_reminders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
-  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  reminder_number INTEGER NOT NULL,
-  success BOOLEAN NOT NULL DEFAULT true,
-  error_message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
+### Opcao 2: Usar Resizable Panels
 
-### Novas Colunas em participants
-```sql
-ALTER TABLE participants ADD COLUMN reminder_count INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE participants ADD COLUMN last_reminder_at TIMESTAMPTZ;
-```
+Envolver a sidebar com `react-resizable-panels` para permitir redimensionamento livre.
 
-### Funcao para Buscar Participantes Elegiveis
-```sql
-CREATE FUNCTION get_pending_reminders()
-RETURNS TABLE(
-  participant_id uuid,
-  participant_name text,
-  participant_email text,
-  access_token text,
-  facilitator_id uuid,
-  reminder_count integer,
-  invited_at timestamptz
-)
-```
+**Vantagens**: Redimensionamento continuo, mais flexibilidade
+**Desvantagens**: Mais complexo, pode conflitar com a logica atual
 
 ---
 
-## Edge Function: send-reminders
+## Implementacao Escolhida: Opcao 1 (Modificada)
 
-### Funcionamento
-1. Recebe chamada do cron (com secret para autenticacao)
-2. Busca participantes elegiveis via funcao SQL
-3. Para cada participante:
-   - Busca perfil do facilitador (branding)
-   - Envia email de lembrete personalizado
-   - Atualiza `reminder_count` e `last_reminder_at`
-   - Registra em `participant_reminders`
-4. Retorna relatorio de envios
-
-### Template do Email de Lembrete
-Email diferente do convite inicial, com tom mais amigavel:
-- Assunto: "Lembrete: Seu diagnostico IQ+IS esta aguardando"
-- Corpo: Menciona que o diagnostico foi iniciado/convidado, incentiva a conclusao
-- Mantem branding do facilitador
+Combinar as duas abordagens:
+- Usar `collapsible="offcanvas"` para colapso total
+- Adicionar `SidebarRail` para toggle visual na borda
+- Persistir estado no localStorage
 
 ---
 
-## Agendamento via pg_cron
+## Arquivos a Modificar
 
-### Habilitar Extensoes
-```sql
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-CREATE EXTENSION IF NOT EXISTS pg_net;
-```
+### 1. src/components/layout/Sidebar.tsx
 
-### Criar Job Diario
-```sql
-SELECT cron.schedule(
-  'send-diagnostic-reminders',
-  '0 9 * * *', -- Todos os dias as 9h (UTC)
-  $$
-  SELECT net.http_post(
-    url := 'https://dlsnflfqemavnhavtaxe.supabase.co/functions/v1/send-reminders',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer <ANON_KEY>'
-    ),
-    body := jsonb_build_object('source', 'cron')
+Alteracoes:
+- Mudar `collapsible="icon"` para `collapsible="offcanvas"`
+- Adicionar import e uso do `SidebarRail`
+- Adicionar botao de toggle dentro do footer quando colapsado
+
+### 2. src/components/layout/DashboardLayout.tsx
+
+Alteracoes:
+- Garantir que o `SidebarTrigger` esteja sempre visivel no header
+- Nenhuma mudanca significativa necessaria (ja possui trigger)
+
+---
+
+## Detalhes Tecnicos
+
+### Comportamento Esperado
+
+| Estado | Largura Desktop | Conteudo Visivel |
+|--------|-----------------|------------------|
+| Expandido | 256px (16rem) | Menu completo com icones e labels |
+| Colapsado | 0px | Nada (sidebar totalmente oculta) |
+
+### Interacoes
+- **Clique no SidebarTrigger (header)**: Toggle entre expandido/colapsado
+- **Clique no SidebarRail (borda)**: Toggle entre expandido/colapsado
+- **Atalho Ctrl/Cmd + B**: Toggle via teclado
+- **Cookie**: Estado persistido automaticamente
+
+### SidebarRail
+Componente que adiciona uma area clicavel na borda direita da sidebar:
+- Cursor muda para indicar acao possivel
+- Linha vertical aparece no hover
+- Clique alterna estado da sidebar
+
+---
+
+## Codigo Proposto
+
+### Sidebar.tsx (modificado)
+
+```typescript
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarRail, // Novo import
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  
+  return (
+    <Sidebar collapsible="offcanvas"> {/* Alterado de "icon" para "offcanvas" */}
+      <SidebarHeader>
+        {/* Header content */}
+      </SidebarHeader>
+
+      <SidebarContent>
+        {/* Menu content */}
+      </SidebarContent>
+
+      <SidebarFooter>
+        {/* Footer content */}
+      </SidebarFooter>
+      
+      <SidebarRail /> {/* Novo: permite toggle clicando na borda */}
+    </Sidebar>
   );
-  $$
-);
+}
 ```
 
 ---
 
-## Arquivos a Criar
+## Comportamento Mobile
 
-### Edge Function
-| Arquivo | Descricao |
-|---------|-----------|
-| `supabase/functions/send-reminders/index.ts` | Logica de envio de lembretes |
-| `supabase/functions/send-reminders/deno.json` | Configuracao Deno |
-
-### Migracao SQL
-- Tabela `participant_reminders`
-- Colunas novas em `participants`
-- Funcao `get_pending_reminders()`
-- RLS policies
-- Job pg_cron (via insert separado)
+No mobile, a sidebar ja usa Sheet (drawer) que desliza sobre o conteudo. Esse comportamento permanece inalterado.
 
 ---
 
-## Configuracao no config.toml
+## Consideracoes de UX
 
-```toml
-[functions.send-reminders]
-verify_jwt = false
-```
-
----
-
-## Interface do Facilitador (Opcional/Futuro)
-
-Possibilidades para controle manual:
-- Botao "Enviar Lembrete" individual por participante
-- Configuracao de frequencia de lembretes por empresa
-- Historico de lembretes enviados
-
-Para esta implementacao inicial, o sistema sera 100% automatico.
+1. **Trigger sempre visivel**: O botao no header garante que o usuario sempre pode reabrir a sidebar
+2. **Persistencia**: O estado e salvo em cookie, entao a preferencia do usuario e lembrada
+3. **Atalho de teclado**: Ctrl/Cmd+B continua funcionando
+4. **Animacao suave**: Transicoes CSS ja estao configuradas (200ms ease-linear)
 
 ---
 
-## Template do Email de Lembrete
+## Passos de Implementacao
 
-```text
-Assunto: Lembrete: Complete seu Diagnostico IQ+IS
+1. Modificar `Sidebar.tsx`:
+   - Adicionar import do `SidebarRail`
+   - Alterar `collapsible` para `"offcanvas"`
+   - Adicionar `<SidebarRail />` antes do fechamento do `</Sidebar>`
 
-Corpo:
-- Saudacao personalizada
-- Mencao de que o convite foi enviado ha X dias
-- Reforco dos beneficios do diagnostico
-- Botao CTA: "Continuar Diagnostico"
-- Nota: "Se ja concluiu, ignore este email"
-- Branding do facilitador
-```
+2. Verificar `DashboardLayout.tsx`:
+   - Confirmar que `SidebarTrigger` esta no header (ja esta)
+   - Nenhuma alteracao necessaria
 
----
-
-## Fluxo de Dados
-
-```text
-Participante convidado (status: invited, invited_at: data)
-                |
-                v
-        3 dias se passam
-                |
-                v
-    Cron dispara edge function
-                |
-                v
-    Query busca participantes elegiveis:
-    - status IN ('invited', 'in_progress')
-    - invited_at < now() - 3 days
-    - reminder_count < 3
-    - (last_reminder_at IS NULL OR last_reminder_at < now() - 3 days)
-                |
-                v
-    Para cada elegivel:
-    - Envia email
-    - Incrementa reminder_count
-    - Atualiza last_reminder_at
-    - Registra em participant_reminders
-```
+3. Testar comportamento:
+   - Toggle via botao do header
+   - Toggle via clique no rail
+   - Toggle via atalho Ctrl+B
+   - Persistencia apos refresh
 
 ---
 
-## Seguranca
+## Estimativa
+- 1 mensagem para implementar
 
-1. **Autenticacao do Cron**: O job usa a anon key, mas a funcao valida a origem
-2. **Rate Limiting**: Maximo 3 lembretes por participante
-3. **Intervalo Minimo**: 3 dias entre lembretes evita spam
-4. **Registro de Auditoria**: Todos os envios sao registrados
-
----
-
-## Secao Tecnica
-
-### Dependencias
-- Resend API (ja configurada: RESEND_API_KEY)
-- pg_cron e pg_net (extensoes Postgres)
-
-### Funcao SQL de Elegibilidade
-```sql
-SELECT p.id, p.name, p.email, p.access_token, p.facilitator_id, 
-       p.reminder_count, p.invited_at
-FROM participants p
-WHERE p.status IN ('invited', 'in_progress')
-  AND p.invited_at < now() - interval '3 days'
-  AND p.reminder_count < 3
-  AND (p.last_reminder_at IS NULL 
-       OR p.last_reminder_at < now() - interval '3 days')
-ORDER BY p.invited_at ASC
-LIMIT 100; -- Batch limit
-```
-
-### Reutilizacao de Codigo
-- Funcao `darkenColor()` do send-invite
-- Logica de busca de perfil do facilitador
-- Template de email base (adaptado)
-
-### Estimativa de Esforco
-- Migracao DB: 1 mensagem
-- Edge Function: 1 mensagem
-- Configuracao Cron: Junto com migracao
-- **Total**: 2-3 mensagens
