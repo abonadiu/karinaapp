@@ -9,7 +9,8 @@ import {
   Plus, 
   Upload,
   Pencil,
-  Calendar
+  Calendar,
+  Send
 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -17,6 +18,7 @@ import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
 import { CsvImport } from "@/components/participants/CsvImport";
 import { CompanyForm, CompanyFormData } from "@/components/companies/CompanyForm";
+import { BulkInviteDialog } from "@/components/participants/BulkInviteDialog";
 import { ParticipantResults } from "@/components/participants/ParticipantResults";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,6 +96,7 @@ export default function EmpresaDetalhes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
+  const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [deletingParticipant, setDeletingParticipant] = useState<Participant | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -423,6 +426,10 @@ export default function EmpresaDetalhes() {
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </Button>
+          <Button variant="outline" onClick={() => setIsBulkInviteOpen(true)}>
+            <Send className="mr-2 h-4 w-4" />
+            Enviar Convites
+          </Button>
           <Button variant="outline" onClick={() => setIsCsvOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Importar CSV
@@ -611,6 +618,14 @@ export default function EmpresaDetalhes() {
         }}
         isEditing
         isLoading={isSaving}
+      />
+
+      {/* Bulk invite dialog */}
+      <BulkInviteDialog
+        open={isBulkInviteOpen}
+        onOpenChange={setIsBulkInviteOpen}
+        participants={participants}
+        onComplete={fetchParticipants}
       />
 
       {/* Delete confirmation */}
