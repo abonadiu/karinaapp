@@ -19,6 +19,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,7 +52,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="offcanvas">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-3">
           <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center shrink-0">
@@ -135,6 +136,7 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
