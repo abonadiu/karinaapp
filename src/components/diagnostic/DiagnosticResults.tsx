@@ -9,14 +9,16 @@ import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
 import { toast } from "sonner";
+import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
 interface DiagnosticResultsProps {
   participantName: string;
   scores: DiagnosticScores;
   existingResult?: any;
+  facilitatorProfile?: FacilitatorProfile | null;
 }
 
-export function DiagnosticResults({ participantName, scores, existingResult }: DiagnosticResultsProps) {
+export function DiagnosticResults({ participantName, scores, existingResult, facilitatorProfile }: DiagnosticResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const firstName = participantName.split(" ")[0];
@@ -57,7 +59,8 @@ export function DiagnosticResults({ participantName, scores, existingResult }: D
         totalScore: displayScores.totalScore,
         dimensionScores: displayScores.dimensionScores,
         recommendations,
-        completedAt: existingResult?.completed_at
+        completedAt: existingResult?.completed_at,
+        facilitatorProfile: facilitatorProfile || undefined
       });
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
@@ -71,6 +74,17 @@ export function DiagnosticResults({ participantName, scores, existingResult }: D
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted py-8 px-4">
       <div ref={contentRef} className="max-w-4xl mx-auto space-y-8">
+        {/* Logo do facilitador no topo dos resultados */}
+        {facilitatorProfile?.logo_url && (
+          <div className="flex justify-center">
+            <img 
+              src={facilitatorProfile.logo_url} 
+              alt="Logo do facilitador" 
+              className="h-12 w-auto object-contain"
+            />
+          </div>
+        )}
+
         {/* Header */}
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
           <CardHeader className="text-center">

@@ -299,12 +299,13 @@ export default function EmpresaDetalhes() {
       // 2. Build diagnostic URL
       const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
 
-      // 3. Call edge function to send email
+      // 3. Call edge function to send email with facilitator branding
       const { error: invokeError } = await supabase.functions.invoke("send-invite", {
         body: {
           participantName: participant.name,
           participantEmail: participant.email,
           diagnosticUrl,
+          facilitatorId: user?.id,
         },
       });
 
@@ -625,6 +626,7 @@ export default function EmpresaDetalhes() {
         open={isBulkInviteOpen}
         onOpenChange={setIsBulkInviteOpen}
         participants={participants}
+        facilitatorId={user?.id}
         onComplete={fetchParticipants}
       />
 

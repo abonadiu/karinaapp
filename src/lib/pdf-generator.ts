@@ -3,12 +3,36 @@ import html2canvas from "html2canvas";
 import { DimensionScore } from "./diagnostic-scoring";
 import { Recommendation } from "./recommendations";
 
+export interface FacilitatorBranding {
+  full_name?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+}
+
 export interface PDFGeneratorOptions {
   participantName: string;
   totalScore: number;
   dimensionScores: DimensionScore[];
   recommendations: Recommendation[];
   completedAt?: string;
+  facilitatorProfile?: FacilitatorBranding;
+}
+
+/**
+ * Converts a hex color string to RGB values
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+  
+  // Parse the hex values
+  const bigint = parseInt(cleanHex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  
+  return { r, g, b };
 }
 
 /**
@@ -106,9 +130,14 @@ export async function generateDiagnosticPDF(
 function addHeader(pdf: jsPDF, pageWidth: number, data: PDFGeneratorOptions): void {
   const headerY = 8;
   
+  // Cor primária do facilitador ou padrão
+  const primaryColor = data.facilitatorProfile?.primary_color 
+    ? hexToRgb(data.facilitatorProfile.primary_color) 
+    : { r: 139, g: 92, b: 246 }; // Primary purple color
+  
   // Title
   pdf.setFontSize(12);
-  pdf.setTextColor(139, 92, 246); // Primary purple color
+  pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
   pdf.text("DIAGNÓSTICO IQ+IS", 10, headerY);
   
   // Date on the right

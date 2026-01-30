@@ -19,6 +19,14 @@ export interface Participant {
   email: string;
   status: string;
   company_id: string;
+  facilitator_id: string;
+}
+
+export interface FacilitatorProfile {
+  full_name: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
 }
 
 export interface ExercisesData {
@@ -41,6 +49,7 @@ export function useDiagnostic(token: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [participant, setParticipant] = useState<Participant | null>(null);
+  const [facilitatorProfile, setFacilitatorProfile] = useState<FacilitatorProfile | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [responses, setResponses] = useState<Map<string, number>>(new Map());
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -84,6 +93,19 @@ export function useDiagnostic(token: string) {
         }
 
         setParticipant(participantData);
+
+        // Buscar perfil do facilitador para white-label
+        if (participantData.facilitator_id) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("full_name, logo_url, primary_color, secondary_color")
+            .eq("user_id", participantData.facilitator_id)
+            .single();
+
+          if (profileData) {
+            setFacilitatorProfile(profileData);
+          }
+        }
 
         // Carregar perguntas
         const { data: questionsData, error: questionsError } = await supabase
@@ -301,6 +323,7 @@ export function useDiagnostic(token: string) {
     loading,
     error,
     participant,
+    facilitatorProfile,
     questions,
     responses,
     currentQuestionIndex,
