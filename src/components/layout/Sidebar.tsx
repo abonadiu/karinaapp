@@ -5,7 +5,8 @@ import {
   LayoutDashboard,
   User,
   LogOut,
-  BarChart3
+  BarChart3,
+  Shield
 } from "lucide-react";
 
 import {
@@ -100,6 +101,18 @@ export function AppSidebar() {
                   <Link to="/perfil">
                     <User className="h-4 w-4" />
                     <span>Perfil</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={isActive("/admin")}
+                  tooltip="Administração"
+                >
+                  <Link to="/admin">
+                    <Shield className="h-4 w-4" />
+                    <span>Administração</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
