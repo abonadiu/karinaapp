@@ -1,4 +1,4 @@
-import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2 } from "lucide-react";
+import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell } from "lucide-react";
 
 import {
   Table,
@@ -29,6 +29,8 @@ interface Participant {
   status: ParticipantStatus;
   company_id: string;
   created_at: string;
+  access_token?: string;
+  invited_at?: string | null;
 }
 
 interface ParticipantListProps {
@@ -36,9 +38,11 @@ interface ParticipantListProps {
   onEdit: (participant: Participant) => void;
   onDelete: (participant: Participant) => void;
   onInvite: (participant: Participant) => void;
+  onReminder?: (participant: Participant) => void;
   isLoading?: boolean;
   showCompany?: boolean;
   sendingInviteId?: string | null;
+  sendingReminderId?: string | null;
 }
 
 export function ParticipantList({ 
@@ -46,8 +50,10 @@ export function ParticipantList({
   onEdit, 
   onDelete,
   onInvite,
+  onReminder,
   isLoading,
   sendingInviteId,
+  sendingReminderId,
 }: ParticipantListProps) {
   if (isLoading) {
     return (
@@ -115,7 +121,7 @@ export function ParticipantList({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {(participant.status === "pending" || participant.status === "invited") && (
+                    {participant.status === "pending" && (
                       <DropdownMenuItem 
                         onClick={() => onInvite(participant)}
                         disabled={sendingInviteId === participant.id}
@@ -127,9 +133,23 @@ export function ParticipantList({
                         )}
                         {sendingInviteId === participant.id 
                           ? "Enviando..." 
-                          : participant.status === "invited" 
-                            ? "Reenviar convite"
-                            : "Enviar convite"
+                          : "Enviar convite"
+                        }
+                      </DropdownMenuItem>
+                    )}
+                    {(participant.status === "invited" || participant.status === "in_progress") && onReminder && (
+                      <DropdownMenuItem 
+                        onClick={() => onReminder(participant)}
+                        disabled={sendingReminderId === participant.id}
+                      >
+                        {sendingReminderId === participant.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Bell className="mr-2 h-4 w-4" />
+                        )}
+                        {sendingReminderId === participant.id 
+                          ? "Enviando..." 
+                          : "Enviar lembrete"
                         }
                       </DropdownMenuItem>
                     )}
