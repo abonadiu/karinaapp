@@ -18,6 +18,7 @@ import Empresas from "./pages/Empresas";
 import EmpresaDetalhes from "./pages/EmpresaDetalhes";
 import Participantes from "./pages/Participantes";
 import Diagnostico from "./pages/Diagnostico";
+import Relatorios from "./pages/Relatorios";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Participantes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/relatorios"
+              element={
+                <ProtectedRoute>
+                  <Relatorios />
                 </ProtectedRoute>
               }
             />
