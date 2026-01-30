@@ -8,12 +8,15 @@ import {
   Download, 
   TrendingUp, 
   TrendingDown,
-  Loader2
+  Loader2,
+  BarChart3
 } from "lucide-react";
 
 import { PortalLayout } from "@/components/empresa/PortalLayout";
 import { TeamProgressCard } from "@/components/empresa/TeamProgressCard";
-import { AggregateRadarChart } from "@/components/empresa/AggregateRadarChart";
+import { ComparisonRadarChart } from "@/components/empresa/ComparisonRadarChart";
+import { PercentilePositionCard } from "@/components/empresa/PercentilePositionCard";
+import { BenchmarkComparisonCard } from "@/components/empresa/BenchmarkComparisonCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +42,24 @@ interface ActivityItem {
   completed_at: string;
 }
 
+interface BenchmarkData {
+  dimensions: {
+    dimension: string;
+    average: number;
+  }[];
+  global_average: number;
+  total_completed: number;
+}
+
+interface ComparisonDimension {
+  dimension: string;
+  shortName: string;
+  teamScore: number;
+  benchmarkScore: number;
+  difference: number;
+  isAbove: boolean;
+}
+
 export default function PortalEmpresa() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -48,6 +69,8 @@ export default function PortalEmpresa() {
   const [stats, setStats] = useState<AggregateStats | null>(null);
   const [dimensionAverages, setDimensionAverages] = useState<DimensionAverage[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [benchmarkData, setBenchmarkData] = useState<BenchmarkData | null>(null);
+  const [percentile, setPercentile] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -109,6 +132,22 @@ export default function PortalEmpresa() {
         if (activityData && Array.isArray(activityData)) {
           setActivity(activityData as unknown as ActivityItem[]);
         }
+
+        // 6. Get global benchmark
+        const { data: benchData, error: benchError } = await supabase
+          .rpc('get_global_benchmark');
+
+        if (benchError) throw benchError;
+        if (benchData) {
+          setBenchmarkData(benchData as unknown as BenchmarkData);
+        }
+
+        // 7. Get company percentile
+        const { data: percData, error: percError } = await supabase
+          .rpc('get_company_percentile', { p_company_id: companyIdData });
+
+        if (percError) throw percError;
+        setPercentile(percData as number | null);
 
       } catch (error: any) {
         console.error("Error fetching portal data:", error);
@@ -176,6 +215,36 @@ export default function PortalEmpresa() {
     ? Math.round((stats.completed / Math.max(stats.total_participants, 1)) * 100)
     : 0;
 
+  // Prepare comparison data for radar chart
+  const comparisonChartData = dimensionAverages.map((d) => {
+    const benchmarkDim = benchmarkData?.dimensions?.find(
+      (bd) => bd.dimension === d.dimension
+    );
+    return {
+      dimension: d.dimension,
+      shortName: d.dimension.split(" ")[0],
+      team: d.average,
+      benchmark: benchmarkDim?.average || 0,
+    };
+  });
+
+  // Prepare data for comparison table
+  const comparisonTableData: ComparisonDimension[] = dimensionAverages.map((d) => {
+    const benchmarkDim = benchmarkData?.dimensions?.find(
+      (bd) => bd.dimension === d.dimension
+    );
+    const benchScore = benchmarkDim?.average || 0;
+    const diff = d.average - benchScore;
+    return {
+      dimension: d.dimension,
+      shortName: d.dimension.split(" ")[0],
+      teamScore: d.average,
+      benchmarkScore: benchScore,
+      difference: diff,
+      isAbove: diff > 0,
+    };
+  });
+
   if (authLoading || isLoading) {
     return (
       <PortalLayout companyName="Carregando...">
@@ -227,26 +296,53 @@ export default function PortalEmpresa() {
         />
       </div>
 
+      {/* Benchmark Comparison Section */}
+      {(dimensionAverages.length > 0 || benchmarkData) && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Comparativo com Benchmark
+            </h2>
+          </div>
+          <p className="text-muted-foreground mb-4">
+            Veja como sua equipe se posiciona em relação às outras equipes avaliadas
+          </p>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Comparison Radar Chart */}
+            <Card className="shadow-warm">
+              <CardHeader>
+                <CardTitle>Perfil Comparativo</CardTitle>
+                <CardDescription>
+                  Sua equipe vs benchmark global
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {comparisonChartData.length > 0 ? (
+                  <ComparisonRadarChart data={comparisonChartData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    <p>Nenhum diagnóstico concluído ainda</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Percentile Position */}
+            <PercentilePositionCard 
+              percentile={percentile} 
+              totalCompanies={benchmarkData?.total_completed}
+            />
+          </div>
+
+          {/* Dimension Comparison Table */}
+          <BenchmarkComparisonCard data={comparisonTableData} />
+        </div>
+      )}
+
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Radar Chart */}
-        <Card className="shadow-warm">
-          <CardHeader>
-            <CardTitle>Perfil da Equipe</CardTitle>
-            <CardDescription>
-              Médias agregadas por dimensão do diagnóstico
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {dimensionAverages.length > 0 ? (
-              <AggregateRadarChart data={dimensionAverages} />
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <p>Nenhum diagnóstico concluído ainda</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Highlights */}
         <Card className="shadow-warm">
