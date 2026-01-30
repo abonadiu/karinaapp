@@ -1,156 +1,143 @@
 
-# Plataforma IQ+IS - Diagnóstico de Inteligência Emocional e Espiritual
+# Fase 2: Sistema de Autenticação do Facilitador
 
-## Visão Geral
-Uma plataforma web que permite facilitadores (coaches e consultores) aplicarem diagnósticos de inteligência emocional e espiritual em colaboradores de empresas, gerando relatórios personalizados com identificação de pontos cegos e planos de desenvolvimento.
-
----
-
-## 🎨 Estilo Visual
-- **Design caloroso e acolhedor** com cores quentes (tons terrosos, alaranjados suaves)
-- Tipografia humanizada e legível
-- Espaçamentos generosos para criar sensação de calma
-- Elementos visuais orgânicos e sutis
-- Micro-interações suaves nas transições
+## Resumo
+Implementação completa do sistema de autenticação para facilitadores, incluindo páginas de login, cadastro, recuperação de senha, e perfil com upload de logo e cores da marca.
 
 ---
 
-## 👥 Perfis de Usuário
+## O que será implementado
 
-### 1. Facilitador (Admin)
-O coach ou consultor que gerencia tudo: empresas, participantes, diagnósticos e relatórios.
+### 1. Páginas de Autenticação
+- **Página de Login** (`/login`) - Formulário de email/senha com validação
+- **Página de Cadastro** (`/cadastro`) - Registro de novos facilitadores
+- **Página de Recuperação de Senha** (`/recuperar-senha`) - Envio de link por email
+- **Página de Redefinição de Senha** (`/redefinir-senha`) - Nova senha após link
 
-### 2. Empresa (RH/Gestor) 
-Acesso limitado para acompanhar o progresso da equipe e visualizar relatórios agregados.
+### 2. Página de Perfil do Facilitador
+- **Completar Perfil** (`/perfil`) - Após primeiro login
+  - Nome completo e bio profissional
+  - Upload de foto de perfil
+  - Upload de logo da marca
+  - Seleção de cores da marca (cor primária e secundária)
+  - Lista de certificações
 
-### 3. Facilitado (Participante)
-Colaborador que responde ao diagnóstico e recebe seu relatório pessoal.
+### 3. Dashboard Inicial
+- **Dashboard** (`/dashboard`) - Página protegida após login
+  - Visão geral com cards de resumo
+  - Atalhos para ações principais
+  - Preparado para receber dados de empresas/participantes
 
----
-
-## 🗂️ Funcionalidades do MVP
-
-### Área do Facilitador
-
-**1. Autenticação e Perfil**
-- Cadastro com email/senha
-- Completar perfil (nome, foto, bio, certificações)
-- Upload de logo e definição das cores da marca
-- Dashboard com visão geral das atividades
-
-**2. Gestão de Empresas**
-- Cadastrar novas empresas clientes
-- Definir número de licenças disponíveis
-- Acompanhar status das licenças utilizadas
-- Visualizar métricas agregadas por empresa
-
-**3. Gestão de Participantes**
-- Adicionar participantes individualmente
-- Importar participantes via CSV
-- Enviar convites por email com link único
-- Acompanhar status: convidado → em andamento → concluído
-
-**4. Visualização de Resultados**
-- Ver relatório individual de cada participante
-- Gráfico radar das 5 dimensões
-- Pontos cegos identificados
-- Download de relatório em PDF
-- Compartilhar relatório por email
+### 4. Infraestrutura de Autenticação
+- Contexto de autenticação (AuthContext)
+- Rotas protegidas (ProtectedRoute)
+- Hook useAuth para acesso ao usuário logado
 
 ---
 
-### Jornada do Participante (Facilitado)
+## Estrutura do Banco de Dados
 
-**1. Acesso via Link Único**
-- Receber email de convite personalizado
-- Acessar pelo link único (sem necessidade de criar conta)
-- Tela de boas-vindas explicando o processo
-- Aceitar termos de consentimento
+### Tabela: `profiles`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid | ID único do perfil (PK) |
+| user_id | uuid | Referência ao auth.users |
+| full_name | text | Nome completo |
+| bio | text | Biografia profissional |
+| avatar_url | text | URL da foto de perfil |
+| logo_url | text | URL do logo da marca |
+| primary_color | text | Cor primária (hex) |
+| secondary_color | text | Cor secundária (hex) |
+| certifications | text[] | Lista de certificações |
+| created_at | timestamp | Data de criação |
+| updated_at | timestamp | Data de atualização |
 
-**2. Parte 1: Questionário (40 perguntas)**
-- 8 perguntas por dimensão
-- Escala de 1-4 (Raramente → Quase sempre)
-- Barra de progresso visual
-- Salvamento automático a cada resposta
-- Possibilidade de pausar e retomar
-
-**3. Parte 2: Exercícios Vivenciais**
-- **Exercício A (Coerência)**: Timer para respiração + perguntas reflexivas
-- **Exercício B (Padrões)**: Identificar situação emocional + mapa corporal interativo
-- **Exercício C (Propósito)**: Completar 6 frases reflexivas
-
-**4. Parte 3: Reflexões Profundas**
-- 6 perguntas abertas para escrita reflexiva
-- Uma pergunta por tela
-- Campo de texto expansível
-
-**5. Relatório Pessoal**
-- Score geral em porcentagem
-- Gráfico radar das 5 dimensões
-- Nível de cada dimensão (Emergente → Integrado)
-- Top 3-5 pontos cegos prioritários
-- Insights personalizados
-- Plano de desenvolvimento com práticas recomendadas
-- Download em PDF
+### Storage Bucket: `avatars`
+- Bucket público para fotos de perfil e logos
+- Políticas RLS para upload apenas pelo próprio usuário
 
 ---
 
-### Área da Empresa (Fase posterior, mas preparada na estrutura)
+## Fluxo de Usuário
 
-- Acesso simplificado para RH/Gestores
-- Dashboard com status dos colaboradores
-- Relatório agregado da equipe
-- Visualização sem acesso individual
-
----
-
-## 📊 As 5 Dimensões Avaliadas
-
-1. **Consciência Interior** - Meta-cognição e auto-observação
-2. **Coerência Emocional** - Regulação e resiliência emocional
-3. **Conexão e Propósito** - Valores e significado
-4. **Relações e Compaixão** - Empatia e liderança servidora
-5. **Transformação e Crescimento** - Mentalidade de crescimento
+```text
+Landing Page
+     │
+     ├──► [Entrar] ──► Login ──► Dashboard
+     │                  │
+     │                  └──► Esqueci senha ──► Recuperar
+     │
+     └──► [Cadastrar] ──► Cadastro ──► Confirmar email ──► Completar Perfil ──► Dashboard
+```
 
 ---
 
-## 🔧 Estrutura Técnica
+## Arquivos a serem criados
 
-### Backend (Lovable Cloud com Supabase)
-- **Autenticação**: Email/senha para facilitadores, token único para participantes
-- **Banco de dados**: Tabelas para facilitadores, empresas, participantes, diagnósticos, respostas e relatórios
-- **Segurança**: Row Level Security para garantir que cada facilitador veja apenas seus dados
+### Páginas
+- `src/pages/Login.tsx`
+- `src/pages/Cadastro.tsx`
+- `src/pages/RecuperarSenha.tsx`
+- `src/pages/RedefinirSenha.tsx`
+- `src/pages/Perfil.tsx`
+- `src/pages/Dashboard.tsx`
 
-### Emails Transacionais
-- Integração com Resend para envio de convites
-- Templates de email personalizados com a marca do facilitador
+### Contexto e Hooks
+- `src/contexts/AuthContext.tsx`
+- `src/hooks/useAuth.ts`
 
-### Geração de PDF
-- Relatório formatado para download/impressão
-- Logo do facilitador na capa
-- Gráficos e visualizações integrados
-
----
-
-## 🚀 Ordem de Implementação
-
-1. **Estrutura base e design system** - Cores, tipografia, componentes base
-2. **Autenticação do facilitador** - Login, cadastro, perfil
-3. **Dashboard e gestão** - Empresas e participantes
-4. **Jornada do diagnóstico** - Questionário completo com 40 perguntas
-5. **Exercícios vivenciais** - Os 3 exercícios interativos
-6. **Perguntas reflexivas** - As 6 perguntas abertas
-7. **Cálculo de scores** - Algoritmo de pontuação e identificação de pontos cegos
-8. **Relatório visual** - Exibição dos resultados na tela
-9. **Envio de emails** - Integração para convites
-10. **Geração de PDF** - Relatório para download
+### Componentes
+- `src/components/auth/ProtectedRoute.tsx`
+- `src/components/auth/AuthLayout.tsx` (layout compartilhado para páginas de auth)
+- `src/components/profile/AvatarUpload.tsx`
+- `src/components/profile/LogoUpload.tsx`
+- `src/components/profile/ColorPicker.tsx`
 
 ---
 
-## 📈 Preparação para Escala
+## Configurações do Backend
 
-A estrutura será desenvolvida pensando em:
-- Suporte a múltiplos facilitadores (SaaS)
-- Customização de marca por facilitador
-- Sistema de planos/assinaturas (Fase 2)
-- Portal da empresa (Fase 2)
+### Autenticação
+- Habilitar auto-confirmação de email (para facilitar testes iniciais)
+- Configurar URL de redirecionamento para recuperação de senha
+
+### Políticas de Segurança (RLS)
+- `profiles`: SELECT/INSERT/UPDATE apenas para o próprio usuário
+- `storage.objects` (bucket avatars): Upload/Delete apenas pelo próprio usuário
+
+---
+
+## Detalhes Técnicos
+
+### Validação de Formulários
+- Usar `react-hook-form` com `zod` para validação
+- Email obrigatório e formato válido
+- Senha mínimo 6 caracteres
+- Nome completo obrigatório no perfil
+
+### Upload de Imagens
+- Usar Supabase Storage
+- Compressão/redimensionamento opcional no cliente
+- Tipos aceitos: PNG, JPG, WebP
+- Tamanho máximo: 2MB
+
+### Cores da Marca
+- Input de cor nativo do HTML5
+- Preview em tempo real das cores selecionadas
+- Valores salvos em formato hexadecimal
+
+---
+
+## Ordem de Implementação
+
+1. Criar tabela `profiles` no banco de dados
+2. Criar bucket de storage `avatars`
+3. Configurar RLS policies
+4. Implementar `AuthContext` e `ProtectedRoute`
+5. Criar página de Login
+6. Criar página de Cadastro
+7. Criar página de Recuperação de Senha
+8. Criar página de Dashboard (versão inicial)
+9. Criar página de Perfil com uploads
+10. Atualizar rotas no App.tsx
+11. Configurar auto-confirmação de email
