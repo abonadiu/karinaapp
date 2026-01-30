@@ -27,6 +27,7 @@ export interface FacilitatorProfile {
   logo_url: string | null;
   primary_color: string | null;
   secondary_color: string | null;
+  calendly_url: string | null;
 }
 
 export interface ExercisesData {
@@ -98,7 +99,7 @@ export function useDiagnostic(token: string) {
         if (participantData.facilitator_id) {
           const { data: profileData } = await supabase
             .from("profiles")
-            .select("full_name, logo_url, primary_color, secondary_color")
+            .select("full_name, logo_url, primary_color, secondary_color, calendly_url")
             .eq("user_id", participantData.facilitator_id)
             .single();
 

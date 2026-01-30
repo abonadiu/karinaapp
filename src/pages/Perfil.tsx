@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, Plus, X, Calendar, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import { ColorPicker } from "@/components/profile/ColorPicker";
 const perfilSchema = z.object({
   fullName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   bio: z.string().max(500, "Bio deve ter no máximo 500 caracteres").optional(),
+  calendlyUrl: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
 type PerfilFormValues = z.infer<typeof perfilSchema>;
@@ -50,23 +51,41 @@ export default function Perfil() {
     defaultValues: {
       fullName: "",
       bio: "",
+      calendlyUrl: "",
     },
   });
 
   // Load profile data
   useEffect(() => {
-    if (profile) {
-      form.reset({
-        fullName: profile.full_name || "",
-        bio: profile.bio || "",
-      });
-      setAvatarUrl(profile.avatar_url);
-      setLogoUrl(profile.logo_url);
-      setPrimaryColor(profile.primary_color || "#C4A484");
-      setSecondaryColor(profile.secondary_color || "#8B7355");
-      setCertifications(profile.certifications || []);
-    }
-  }, [profile, form]);
+    const loadProfileData = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (profileData) {
+          form.reset({
+            fullName: profileData.full_name || "",
+            bio: profileData.bio || "",
+            calendlyUrl: profileData.calendly_url || "",
+          });
+          setAvatarUrl(profileData.avatar_url);
+          setLogoUrl(profileData.logo_url);
+          setPrimaryColor(profileData.primary_color || "#C4A484");
+          setSecondaryColor(profileData.secondary_color || "#8B7355");
+          setCertifications(profileData.certifications || []);
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+      }
+    };
+    
+    loadProfileData();
+  }, [user, form]);
 
   const handleAddCertification = () => {
     if (newCertification.trim() && !certifications.includes(newCertification.trim())) {
@@ -95,6 +114,7 @@ export default function Perfil() {
           primary_color: primaryColor,
           secondary_color: secondaryColor,
           certifications: certifications,
+          calendly_url: data.calendlyUrl || null,
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id);
@@ -256,6 +276,52 @@ export default function Perfil() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Scheduling */}
+            <Card className="shadow-warm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Agendamento de Sessões
+                </CardTitle>
+                <CardDescription>
+                  Configure o link para seus participantes agendarem sessões de feedback
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="calendlyUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL do Calendly (ou similar)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="https://calendly.com/seu-usuario/sessao-feedback" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Esta URL será exibida para seus participantes após completarem o diagnóstico, 
+                  permitindo que agendem uma sessão de feedback individual com você.
+                </p>
+                {form.watch("calendlyUrl") && (
+                  <a 
+                    href={form.watch("calendlyUrl")} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Testar link
+                  </a>
+                )}
               </CardContent>
             </Card>
 
