@@ -25,6 +25,7 @@ interface BulkInviteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   participants: Participant[];
+  facilitatorId?: string;
   onComplete: () => void;
 }
 
@@ -42,6 +43,7 @@ export function BulkInviteDialog({
   open,
   onOpenChange,
   participants,
+  facilitatorId,
   onComplete,
 }: BulkInviteDialogProps) {
   const [state, setState] = useState<DialogState>("confirm");
@@ -93,12 +95,13 @@ export function BulkInviteDialog({
         // 2. Build diagnostic URL
         const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
 
-        // 3. Call edge function
+        // 3. Call edge function with facilitator branding
         const { error: invokeError } = await supabase.functions.invoke("send-invite", {
           body: {
             participantName: participant.name,
             participantEmail: participant.email,
             diagnosticUrl,
+            facilitatorId,
           },
         });
 

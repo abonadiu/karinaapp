@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "resend";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -13,7 +14,27 @@ interface InviteRequest {
   participantName: string;
   participantEmail: string;
   diagnosticUrl: string;
+  facilitatorId?: string;
   facilitatorName?: string;
+}
+
+interface FacilitatorProfile {
+  full_name: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+}
+
+/**
+ * Darkens a hex color by a percentage
+ */
+function darkenColor(hex: string, percent: number = 20): string {
+  const cleanHex = hex.replace('#', '');
+  const num = parseInt(cleanHex, 16);
+  const r = Math.max(0, (num >> 16) - Math.round(255 * percent / 100));
+  const g = Math.max(0, ((num >> 8) & 0x00FF) - Math.round(255 * percent / 100));
+  const b = Math.max(0, (num & 0x0000FF) - Math.round(255 * percent / 100));
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { participantName, participantEmail, diagnosticUrl, facilitatorName }: InviteRequest = 
+    const { participantName, participantEmail, diagnosticUrl, facilitatorId, facilitatorName }: InviteRequest = 
       await req.json();
 
     // Validate required fields
@@ -34,7 +55,43 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Professional HTML email template
+    // Default branding values
+    let primaryColor = "#8b5cf6";
+    let secondaryColor = "#7c3aed";
+    let logoUrl: string | null = null;
+    let displayFacilitatorName = facilitatorName || null;
+
+    // Fetch facilitator profile if facilitatorId is provided
+    if (facilitatorId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("full_name, logo_url, primary_color, secondary_color")
+            .eq("user_id", facilitatorId)
+            .single();
+
+          if (profileData) {
+            primaryColor = profileData.primary_color || primaryColor;
+            secondaryColor = profileData.secondary_color || darkenColor(primaryColor);
+            logoUrl = profileData.logo_url;
+            displayFacilitatorName = profileData.full_name || displayFacilitatorName;
+          }
+        }
+      } catch (fetchError) {
+        console.warn("Could not fetch facilitator profile:", fetchError);
+        // Continue with default branding
+      }
+    }
+
+    const darkenedPrimary = darkenColor(primaryColor);
+
+    // Professional HTML email template with dynamic branding
     const htmlTemplate = `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -51,7 +108,8 @@ const handler = async (req: Request): Promise<Response> => {
           
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px 12px 0 0;">
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, ${primaryColor} 0%, ${darkenedPrimary} 100%); border-radius: 12px 12px 0 0;">
+              ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height: 50px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto;" />` : ''}
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 Diagnóstico IQ+IS
               </h1>
@@ -93,7 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <tr>
                   <td align="center">
                     <a href="${diagnosticUrl}" 
-                       style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);">
+                       style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, ${primaryColor} 0%, ${darkenedPrimary} 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);">
                       Iniciar Diagnóstico →
                     </a>
                   </td>
@@ -111,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
             <td style="padding: 24px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; text-align: center;">
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
                 Este email foi enviado automaticamente pelo sistema de Diagnóstico IQ+IS.
-                ${facilitatorName ? `<br>Facilitador: ${facilitatorName}` : ''}
+                ${displayFacilitatorName ? `<br>Facilitador: <strong>${displayFacilitatorName}</strong>` : ''}
               </p>
             </td>
           </tr>
@@ -124,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `;
 
-    console.log(`Sending invite email to ${participantEmail}`);
+    console.log(`Sending invite email to ${participantEmail} with branding from facilitator ${facilitatorId || 'default'}`);
 
     const emailResponse = await resend.emails.send({
       from: "Diagnóstico IQ+IS <onboarding@resend.dev>",

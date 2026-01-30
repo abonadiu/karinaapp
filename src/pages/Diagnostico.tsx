@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
 import { DiagnosticWelcome } from "@/components/diagnostic/DiagnosticWelcome";
@@ -19,6 +19,7 @@ export default function Diagnostico() {
     loading,
     error,
     participant,
+    facilitatorProfile,
     questions,
     responses,
     currentQuestionIndex,
@@ -34,6 +35,28 @@ export default function Diagnostico() {
     completeReflectionExercise,
     skipExercise
   } = useDiagnostic(token || "");
+
+  // Aplicar branding do facilitador via CSS variables
+  useEffect(() => {
+    if (facilitatorProfile) {
+      const root = document.documentElement;
+      
+      if (facilitatorProfile.primary_color) {
+        // Convert hex to HSL for CSS variable
+        root.style.setProperty('--brand-primary', facilitatorProfile.primary_color);
+      }
+      if (facilitatorProfile.secondary_color) {
+        root.style.setProperty('--brand-secondary', facilitatorProfile.secondary_color);
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      const root = document.documentElement;
+      root.style.removeProperty('--brand-primary');
+      root.style.removeProperty('--brand-secondary');
+    };
+  }, [facilitatorProfile]);
 
   // Loading state
   if (loading) {
@@ -79,6 +102,7 @@ export default function Diagnostico() {
       return (
         <DiagnosticWelcome
           participantName={participant?.name || "Participante"}
+          facilitatorProfile={facilitatorProfile}
           onStart={startDiagnostic}
         />
       );
@@ -129,6 +153,7 @@ export default function Diagnostico() {
           participantName={participant?.name || "Participante"}
           scores={scores || { dimensionScores: [], totalScore: 0, totalPercentage: 0 }}
           existingResult={existingResult}
+          facilitatorProfile={facilitatorProfile}
         />
       );
 

@@ -2,9 +2,11 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, Heart, Compass, Users, Sparkles, Clock, CheckCircle } from "lucide-react";
+import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
 interface DiagnosticWelcomeProps {
   participantName: string;
+  facilitatorProfile?: FacilitatorProfile | null;
   onStart: () => void;
 }
 
@@ -16,12 +18,31 @@ const dimensions = [
   { icon: Sparkles, name: "Transformação", color: "text-amber-500" },
 ];
 
-export function DiagnosticWelcome({ participantName, onStart }: DiagnosticWelcomeProps) {
+export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart }: DiagnosticWelcomeProps) {
   const firstName = participantName.split(" ")[0];
 
+  // Estilos dinâmicos baseados no branding do facilitador
+  const brandStyle = facilitatorProfile?.primary_color 
+    ? { 
+        '--dynamic-primary': facilitatorProfile.primary_color,
+        '--dynamic-secondary': facilitatorProfile.secondary_color || facilitatorProfile.primary_color,
+      } as React.CSSProperties
+    : {};
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4" style={brandStyle}>
       <Card className="w-full max-w-2xl">
+        {/* Logo do facilitador */}
+        {facilitatorProfile?.logo_url && (
+          <div className="flex justify-center pt-6">
+            <img 
+              src={facilitatorProfile.logo_url} 
+              alt="Logo do facilitador" 
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+        )}
+        
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-3xl font-bold">
             Olá, {firstName}! 👋
@@ -29,6 +50,11 @@ export function DiagnosticWelcome({ participantName, onStart }: DiagnosticWelcom
           <CardDescription className="text-lg mt-2">
             Bem-vindo(a) ao Diagnóstico de Inteligência Emocional e Espiritual
           </CardDescription>
+          {facilitatorProfile?.full_name && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Facilitado por <span className="font-medium">{facilitatorProfile.full_name}</span>
+            </p>
+          )}
         </CardHeader>
         
         <CardContent className="space-y-6">
