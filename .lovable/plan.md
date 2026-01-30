@@ -1,172 +1,219 @@
 
 
-# Plano: Sidebar Colapsavel e Redimensionavel
+# Plano: Historico de Lembretes e Botao de Lembrete Manual
 
 ## Resumo
-Implementar melhorias na sidebar para permitir:
-1. Colapso total (recolher completamente, nao apenas para icones)
-2. Redimensionamento por arraste (drag to resize)
+
+Implementar duas funcionalidades complementares:
+1. **Secao no Dashboard**: Mostrar estatisticas de lembretes enviados e taxas de resposta
+2. **Botao de Lembrete Manual**: Permitir que facilitadores enviem lembretes individuais a qualquer momento
 
 ---
 
-## Situacao Atual
+## Funcionalidade 1: Secao de Historico de Lembretes no Dashboard
 
-A sidebar atual utiliza o componente Shadcn UI com as seguintes caracteristicas:
-- Colapsa para modo "icon" (3rem/48px) mantendo icones visiveis
-- Nao permite colapso total (0px)
-- Nao suporta redimensionamento por arraste
+### Dados a Exibir
+
+| Metrica | Descricao |
+|---------|-----------|
+| Total de lembretes enviados | Soma de todos os lembretes |
+| Lembretes esta semana | Lembretes enviados nos ultimos 7 dias |
+| Taxa de conversao | % de participantes que concluiram apos lembrete |
+| Lembretes com sucesso | % de emails enviados sem erro |
+
+### Componente: ReminderStatsCard
+
+Novo componente em `src/components/dashboard/ReminderStatsCard.tsx` que exibira:
+- Card com icone de sino/email
+- Metricas principais em destaque
+- Mini lista dos ultimos 5 lembretes enviados com status
+
+### Query de Dados
+
+```sql
+-- Estatisticas agregadas
+SELECT 
+  COUNT(*) as total_reminders,
+  COUNT(*) FILTER (WHERE sent_at > now() - interval '7 days') as this_week,
+  COUNT(*) FILTER (WHERE success = true) as successful,
+  COUNT(*) FILTER (WHERE success = false) as failed
+FROM participant_reminders pr
+JOIN participants p ON p.id = pr.participant_id
+WHERE p.facilitator_id = :user_id
+```
+
+### Layout no Dashboard
+
+Adicionar uma nova secao abaixo das "Acoes Rapidas":
+- Titulo: "Lembretes Automaticos"
+- Subtitulo: "Acompanhe o sistema de lembretes"
+- Cards com metricas
+- Tabela compacta com historico recente
 
 ---
 
-## Solucao Proposta
+## Funcionalidade 2: Botao de Lembrete Manual
 
-### Opcao 1: Modificar Sidebar Shadcn (Recomendada)
+### Alteracoes em ParticipantList.tsx
 
-Modificar o comportamento da sidebar existente para suportar:
+Adicionar opcao "Enviar Lembrete" no menu dropdown para participantes com status `invited` ou `in_progress`.
 
-1. **Colapso Total (offcanvas)**: Alterar `collapsible="icon"` para `collapsible="offcanvas"` permitindo colapso completo
-2. **Adicionar SidebarRail**: Componente ja existe no arquivo, permite toggle via clique na borda
+### Diferenca entre Convite e Lembrete
 
-**Vantagens**: Menor impacto no codigo existente, utiliza componentes ja disponiveis
+| Acao | Status Elegivel | Funcao Edge | Template |
+|------|-----------------|-------------|----------|
+| Enviar Convite | `pending` | send-invite | Convite inicial |
+| Enviar Lembrete | `invited`, `in_progress` | send-reminder (nova) | Lembrete |
 
-### Opcao 2: Usar Resizable Panels
+### Nova Edge Function: send-reminder (individual)
 
-Envolver a sidebar com `react-resizable-panels` para permitir redimensionamento livre.
+Criar `supabase/functions/send-reminder/index.ts` para envio manual de lembretes individuais:
+- Recebe: `participantId`, `participantName`, `participantEmail`, `diagnosticUrl`
+- Reutiliza template de lembrete do send-reminders
+- Registra na tabela `participant_reminders`
+- Atualiza `reminder_count` e `last_reminder_at`
 
-**Vantagens**: Redimensionamento continuo, mais flexibilidade
-**Desvantagens**: Mais complexo, pode conflitar com a logica atual
+### Fluxo de Usuario
+
+1. Facilitador visualiza lista de participantes
+2. Clica no menu de acoes (...) de um participante
+3. Opcao "Enviar Lembrete" aparece para status `invited` ou `in_progress`
+4. Clique dispara envio do email
+5. Toast confirma sucesso/erro
+6. Contador de lembretes e atualizado
 
 ---
 
-## Implementacao Escolhida: Opcao 1 (Modificada)
+## Arquivos a Criar
 
-Combinar as duas abordagens:
-- Usar `collapsible="offcanvas"` para colapso total
-- Adicionar `SidebarRail` para toggle visual na borda
-- Persistir estado no localStorage
-
----
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/dashboard/ReminderStatsCard.tsx` | Card de estatisticas de lembretes |
+| `supabase/functions/send-reminder/index.ts` | Edge function para lembrete individual |
+| `supabase/functions/send-reminder/deno.json` | Configuracao Deno |
 
 ## Arquivos a Modificar
 
-### 1. src/components/layout/Sidebar.tsx
-
-Alteracoes:
-- Mudar `collapsible="icon"` para `collapsible="offcanvas"`
-- Adicionar import e uso do `SidebarRail`
-- Adicionar botao de toggle dentro do footer quando colapsado
-
-### 2. src/components/layout/DashboardLayout.tsx
-
-Alteracoes:
-- Garantir que o `SidebarTrigger` esteja sempre visivel no header
-- Nenhuma mudanca significativa necessaria (ja possui trigger)
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/Dashboard.tsx` | Adicionar secao de lembretes |
+| `src/components/participants/ParticipantList.tsx` | Adicionar opcao de lembrete no menu |
+| `src/pages/Participantes.tsx` | Handler para envio de lembrete manual |
+| `supabase/config.toml` | Registrar nova funcao |
 
 ---
 
-## Detalhes Tecnicos
+## Design do ReminderStatsCard
 
-### Comportamento Esperado
-
-| Estado | Largura Desktop | Conteudo Visivel |
-|--------|-----------------|------------------|
-| Expandido | 256px (16rem) | Menu completo com icones e labels |
-| Colapsado | 0px | Nada (sidebar totalmente oculta) |
-
-### Interacoes
-- **Clique no SidebarTrigger (header)**: Toggle entre expandido/colapsado
-- **Clique no SidebarRail (borda)**: Toggle entre expandido/colapsado
-- **Atalho Ctrl/Cmd + B**: Toggle via teclado
-- **Cookie**: Estado persistido automaticamente
-
-### SidebarRail
-Componente que adiciona uma area clicavel na borda direita da sidebar:
-- Cursor muda para indicar acao possivel
-- Linha vertical aparece no hover
-- Clique alterna estado da sidebar
-
----
-
-## Codigo Proposto
-
-### Sidebar.tsx (modificado)
-
-```typescript
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarRail, // Novo import
-  useSidebar,
-} from "@/components/ui/sidebar";
-
-export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  
-  return (
-    <Sidebar collapsible="offcanvas"> {/* Alterado de "icon" para "offcanvas" */}
-      <SidebarHeader>
-        {/* Header content */}
-      </SidebarHeader>
-
-      <SidebarContent>
-        {/* Menu content */}
-      </SidebarContent>
-
-      <SidebarFooter>
-        {/* Footer content */}
-      </SidebarFooter>
-      
-      <SidebarRail /> {/* Novo: permite toggle clicando na borda */}
-    </Sidebar>
-  );
-}
+```text
++------------------------------------------+
+|  Lembretes Automaticos                   |
+|  Acompanhe o engajamento                 |
++------------------------------------------+
+|  +--------+  +--------+  +--------+      |
+|  |   12   |  |    5   |  |   75%  |      |
+|  | Total  |  | Semana |  | Taxa   |      |
+|  +--------+  +--------+  +--------+      |
++------------------------------------------+
+|  Ultimos lembretes:                      |
+|  - Maria Silva (hoje, sucesso)           |
+|  - Joao Costa (ontem, sucesso)           |
+|  - Ana Santos (2 dias, falha)            |
++------------------------------------------+
 ```
 
 ---
 
-## Comportamento Mobile
+## Interface do Menu de Participantes
 
-No mobile, a sidebar ja usa Sheet (drawer) que desliza sobre o conteudo. Esse comportamento permanece inalterado.
-
----
-
-## Consideracoes de UX
-
-1. **Trigger sempre visivel**: O botao no header garante que o usuario sempre pode reabrir a sidebar
-2. **Persistencia**: O estado e salvo em cookie, entao a preferencia do usuario e lembrada
-3. **Atalho de teclado**: Ctrl/Cmd+B continua funcionando
-4. **Animacao suave**: Transicoes CSS ja estao configuradas (200ms ease-linear)
-
----
-
-## Passos de Implementacao
-
-1. Modificar `Sidebar.tsx`:
-   - Adicionar import do `SidebarRail`
-   - Alterar `collapsible` para `"offcanvas"`
-   - Adicionar `<SidebarRail />` antes do fechamento do `</Sidebar>`
-
-2. Verificar `DashboardLayout.tsx`:
-   - Confirmar que `SidebarTrigger` esta no header (ja esta)
-   - Nenhuma alteracao necessaria
-
-3. Testar comportamento:
-   - Toggle via botao do header
-   - Toggle via clique no rail
-   - Toggle via atalho Ctrl+B
-   - Persistencia apos refresh
+```text
+Menu Dropdown do Participante:
++------------------------+
+| [Mail] Enviar Lembrete |  <- Novo (para invited/in_progress)
+|------------------------|
+| [Pencil] Editar        |
+| [Trash] Excluir        |
++------------------------+
+```
 
 ---
 
-## Estimativa
-- 1 mensagem para implementar
+## Secao Tecnica
+
+### Edge Function send-reminder
+
+```typescript
+interface ManualReminderRequest {
+  participantId: string;
+  participantName: string;
+  participantEmail: string;
+  accessToken: string;
+}
+
+// Fluxo:
+// 1. Validar request
+// 2. Buscar perfil do facilitador (via JWT)
+// 3. Calcular dias desde convite
+// 4. Gerar HTML do lembrete
+// 5. Enviar via Resend
+// 6. Registrar em participant_reminders
+// 7. Atualizar participante
+```
+
+### Query para Estatisticas
+
+```typescript
+// Dashboard.tsx - nova query
+const { data: reminderStats } = await supabase
+  .from("participant_reminders")
+  .select(`
+    id,
+    sent_at,
+    success,
+    participants!inner (
+      id,
+      name,
+      facilitator_id
+    )
+  `)
+  .eq("participants.facilitator_id", user.id)
+  .order("sent_at", { ascending: false })
+  .limit(50);
+```
+
+### Calculo da Taxa de Conversao
+
+```sql
+WITH reminded AS (
+  SELECT DISTINCT participant_id
+  FROM participant_reminders
+  WHERE participant_id IN (
+    SELECT id FROM participants WHERE facilitator_id = :user_id
+  )
+),
+completed_after AS (
+  SELECT COUNT(*) as count
+  FROM participants p
+  WHERE p.id IN (SELECT participant_id FROM reminded)
+    AND p.status = 'completed'
+)
+SELECT 
+  (SELECT count FROM completed_after)::float / 
+  NULLIF((SELECT COUNT(*) FROM reminded), 0) * 100 as conversion_rate
+```
+
+### Reutilizacao de Codigo
+
+O template de email sera extraido de `send-reminders/index.ts` para uma funcao compartilhada, evitando duplicacao.
+
+---
+
+## Estimativa de Implementacao
+
+| Etapa | Esforco |
+|-------|---------|
+| Edge function send-reminder | 1 mensagem |
+| ReminderStatsCard + Dashboard | 1 mensagem |
+| Botao no ParticipantList | Junto com acima |
+| **Total** | 2 mensagens |
 
