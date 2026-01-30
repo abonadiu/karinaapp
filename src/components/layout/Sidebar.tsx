@@ -7,8 +7,17 @@ import {
   LogOut,
   BarChart3,
   Shield,
-  Building
+  Building,
+  ChevronUp
 } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import {
   Sidebar,
@@ -89,82 +98,69 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Conta</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {isManager && managerCompanyId && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive("/empresa/portal")}
-                    tooltip="Portal da Empresa"
-                  >
-                    <Link to="/empresa/portal">
-                      <Building className="h-4 w-4" />
-                      <span>Portal da Empresa</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={isActive("/perfil")}
-                  tooltip="Perfil"
-                >
-                  <Link to="/perfil">
-                    <User className="h-4 w-4" />
-                    <span>Perfil</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={isActive("/admin")}
-                  tooltip="Administração"
-                >
-                  <Link to="/admin">
-                    <Shield className="h-4 w-4" />
-                    <span>Administração</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarImage src={profile?.avatar_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-              {getInitials(profile?.full_name)}
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {profile?.full_name || user?.email}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {isManager ? "Gestor" : "Facilitador"}
-              </p>
-            </div>
-          )}
-          {!collapsed && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="shrink-0 h-8 w-8"
-              onClick={() => signOut()}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-2 py-3 w-full hover:bg-sidebar-accent rounded-md transition-colors">
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {getInitials(profile?.full_name)}
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      {profile?.full_name || user?.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {isManager ? "Gestor" : "Facilitador"}
+                    </p>
+                  </div>
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            side="top" 
+            align="start"
+            sideOffset={8}
+            className="w-56"
+          >
+            {isManager && managerCompanyId && (
+              <DropdownMenuItem asChild>
+                <Link to="/empresa/portal" className="cursor-pointer">
+                  <Building className="mr-2 h-4 w-4" />
+                  Portal da Empresa
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+              <Link to="/perfil" className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Perfil
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/admin" className="cursor-pointer">
+                <Shield className="mr-2 h-4 w-4" />
+                Administração
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => signOut()} 
+              className="text-destructive focus:text-destructive cursor-pointer"
             >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
