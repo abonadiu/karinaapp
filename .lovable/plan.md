@@ -1,352 +1,246 @@
 
-# Plano: Portal da Empresa (Visao RH/Gestor)
+# Plano: Sistema de Lembretes Automaticos por Email
 
 ## Resumo
-Implementar um portal dedicado para gestores de RH e lideres de empresas, permitindo que eles acessem dados agregados de sua equipe, acompanhem o progresso dos diagnosticos e visualizem relatorios consolidados - sem acesso a dados individuais dos participantes.
+Implementar um sistema de lembretes automaticos que envia emails para participantes que foram convidados mas nao concluiram o diagnostico dentro de um periodo configuravel. O sistema usara uma edge function disparada via cron job (pg_cron + pg_net).
 
 ---
 
-## Arquitetura de Roles
-
-### Sistema de Permissoes
-O sistema tera tres tipos de usuarios autenticados:
-
-| Role | Descricao | Acesso |
-|------|-----------|--------|
-| `facilitator` | Consultor que aplica diagnosticos | Acesso completo a empresas e participantes |
-| `company_manager` | RH/Gestor de uma empresa | Dados agregados de sua empresa apenas |
-| `participant` | Colaborador (acesso via token) | Seu proprio diagnostico |
-
-### Tabela de Roles (Nova)
-```sql
-CREATE TYPE public.app_role AS ENUM ('facilitator', 'company_manager');
-
-CREATE TABLE public.user_roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role app_role NOT NULL,
-  UNIQUE (user_id, role)
-);
-```
-
-### Tabela de Associacao Gestor-Empresa (Nova)
-```sql
-CREATE TABLE public.company_managers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
-  invited_by UUID NOT NULL, -- facilitator_id
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE (user_id, company_id)
-);
-```
-
----
-
-## Fluxo de Convite do Gestor
+## Arquitetura do Sistema
 
 ```text
-Facilitador acessa detalhes da empresa
-         |
-         v
-Clica em "Adicionar Gestor"
-         |
-         v
-Preenche nome e email do gestor
-         |
-         v
-Sistema cria registro em company_managers (pendente)
-         |
-         v
-Edge function envia email com link de cadastro
-         |
-         v
-Gestor clica no link e cria conta
-         |
-         v
-Trigger associa role "company_manager" ao usuario
-         |
-         v
-Gestor e redirecionado para portal da empresa
+pg_cron (diario)
+      |
+      v
+pg_net HTTP POST
+      |
+      v
+Edge Function: send-reminders
+      |
+      v
+1. Busca participantes elegiveis
+2. Aplica regras (max lembretes, intervalo)
+3. Envia emails via Resend
+4. Registra lembrete enviado
 ```
 
 ---
 
-## Componentes do Portal da Empresa
+## Regras de Lembrete
 
-### Dashboard do Gestor
-O gestor vera:
-
-1. **Resumo de Participacao**
-   - Total de colaboradores cadastrados
-   - Quantos concluiram / em andamento / pendentes
-   - Taxa de conclusao percentual
-
-2. **Grafico Radar Agregado**
-   - Medias por dimensao de toda a equipe
-   - Sem identificacao individual
-
-3. **Pontos Fortes e Desenvolvimento**
-   - Top 2 dimensoes com maior score
-   - Top 2 dimensoes com menor score
-
-4. **Timeline de Atividade**
-   - Ultimas conclusoes (sem nomes, apenas "1 colaborador concluiu em...")
-
-5. **Download do Relatorio de Equipe**
-   - PDF consolidado (reutilizando team-pdf-generator.ts)
+| Regra | Valor Padrao |
+|-------|--------------|
+| Dias apos convite para 1o lembrete | 3 dias |
+| Intervalo minimo entre lembretes | 3 dias |
+| Maximo de lembretes por participante | 3 |
+| Status elegiveis | `invited`, `in_progress` |
 
 ---
 
-## Rotas e Navegacao
+## Estrutura do Banco de Dados
 
-### Novas Rotas
-| Rota | Componente | Acesso |
-|------|------------|--------|
-| `/empresa/login` | LoginEmpresa.tsx | Publico |
-| `/empresa/cadastro/:token` | CadastroGestor.tsx | Publico (com token) |
-| `/empresa/dashboard` | PortalEmpresa.tsx | company_manager |
-
-### Layout Especifico
-- Sidebar simplificada (sem menu de empresas/participantes)
-- Header com logo da empresa (se disponivel)
-- Navegacao entre Dashboard e Relatorios
-
----
-
-## Politicas RLS
-
-### Regras de Acesso para Gestores
+### Nova Tabela: participant_reminders
+Registra todos os lembretes enviados para controle e auditoria.
 
 ```sql
--- Gestores podem ver sua empresa associada
-CREATE POLICY "Managers can view their company"
-ON public.companies FOR SELECT
-USING (
-  id IN (
-    SELECT company_id FROM public.company_managers
-    WHERE user_id = auth.uid()
-  )
+CREATE TABLE public.participant_reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  participant_id UUID NOT NULL REFERENCES participants(id) ON DELETE CASCADE,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reminder_number INTEGER NOT NULL,
+  success BOOLEAN NOT NULL DEFAULT true,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- Gestores podem ver contagem de participantes (sem dados pessoais)
--- Implementado via view ou funcao security definer
 ```
 
-### Funcao Security Definer para Verificar Role
+### Novas Colunas em participants
 ```sql
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = _user_id AND role = _role
-  )
-$$;
+ALTER TABLE participants ADD COLUMN reminder_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE participants ADD COLUMN last_reminder_at TIMESTAMPTZ;
 ```
 
-### Funcao para Buscar Empresa do Gestor
+### Funcao para Buscar Participantes Elegiveis
 ```sql
-CREATE OR REPLACE FUNCTION public.get_manager_company_id(_user_id uuid)
-RETURNS uuid
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT company_id FROM public.company_managers
-  WHERE user_id = _user_id
-  LIMIT 1
-$$;
+CREATE FUNCTION get_pending_reminders()
+RETURNS TABLE(
+  participant_id uuid,
+  participant_name text,
+  participant_email text,
+  access_token text,
+  facilitator_id uuid,
+  reminder_count integer,
+  invited_at timestamptz
+)
+```
+
+---
+
+## Edge Function: send-reminders
+
+### Funcionamento
+1. Recebe chamada do cron (com secret para autenticacao)
+2. Busca participantes elegiveis via funcao SQL
+3. Para cada participante:
+   - Busca perfil do facilitador (branding)
+   - Envia email de lembrete personalizado
+   - Atualiza `reminder_count` e `last_reminder_at`
+   - Registra em `participant_reminders`
+4. Retorna relatorio de envios
+
+### Template do Email de Lembrete
+Email diferente do convite inicial, com tom mais amigavel:
+- Assunto: "Lembrete: Seu diagnostico IQ+IS esta aguardando"
+- Corpo: Menciona que o diagnostico foi iniciado/convidado, incentiva a conclusao
+- Mantem branding do facilitador
+
+---
+
+## Agendamento via pg_cron
+
+### Habilitar Extensoes
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+CREATE EXTENSION IF NOT EXISTS pg_net;
+```
+
+### Criar Job Diario
+```sql
+SELECT cron.schedule(
+  'send-diagnostic-reminders',
+  '0 9 * * *', -- Todos os dias as 9h (UTC)
+  $$
+  SELECT net.http_post(
+    url := 'https://dlsnflfqemavnhavtaxe.supabase.co/functions/v1/send-reminders',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <ANON_KEY>'
+    ),
+    body := jsonb_build_object('source', 'cron')
+  );
+  $$
+);
 ```
 
 ---
 
 ## Arquivos a Criar
 
-### Banco de Dados (Migracao)
+### Edge Function
 | Arquivo | Descricao |
 |---------|-----------|
-| Nova migracao SQL | Enum app_role, tabelas user_roles e company_managers, funcoes e policies |
+| `supabase/functions/send-reminders/index.ts` | Logica de envio de lembretes |
+| `supabase/functions/send-reminders/deno.json` | Configuracao Deno |
 
-### Contexto de Autenticacao
-| Arquivo | Modificacao |
-|---------|-------------|
-| `src/contexts/AuthContext.tsx` | Adicionar deteccao de role e redirecionamento |
-
-### Paginas Novas
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/pages/empresa/LoginEmpresa.tsx` | Pagina de login para gestores |
-| `src/pages/empresa/CadastroGestor.tsx` | Cadastro via token de convite |
-| `src/pages/empresa/PortalEmpresa.tsx` | Dashboard principal do gestor |
-
-### Componentes Novos
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/empresa/PortalLayout.tsx` | Layout do portal com sidebar simplificada |
-| `src/components/empresa/PortalSidebar.tsx` | Sidebar especifica do gestor |
-| `src/components/empresa/TeamProgressCard.tsx` | Card de progresso da equipe |
-| `src/components/empresa/AggregateRadarChart.tsx` | Radar com medias agregadas |
-
-### Edge Functions
-| Arquivo | Descricao |
-|---------|-----------|
-| `supabase/functions/invite-manager/index.ts` | Enviar convite por email para gestor |
-
-### Arquivos a Modificar
-| Arquivo | Modificacao |
-|---------|-------------|
-| `src/App.tsx` | Adicionar novas rotas do portal empresa |
-| `src/pages/EmpresaDetalhes.tsx` | Adicionar botao "Convidar Gestor" |
+### Migracao SQL
+- Tabela `participant_reminders`
+- Colunas novas em `participants`
+- Funcao `get_pending_reminders()`
+- RLS policies
+- Job pg_cron (via insert separado)
 
 ---
 
-## Fluxo de Dados Agregados
+## Configuracao no config.toml
 
-### Visualizacao do Gestor
-O gestor NAO tera acesso a:
-- Nomes individuais dos participantes
-- Scores individuais
-- Respostas dos exercicios
-
-O gestor TERA acesso a:
-- Contagens agregadas (X de Y concluiram)
-- Medias por dimensao da equipe
-- Pontos fortes/fracos coletivos
-- Relatorio PDF de equipe
-
-### Query Segura para Dados Agregados
-```sql
--- Funcao que retorna apenas dados agregados para o gestor
-CREATE OR REPLACE FUNCTION public.get_company_aggregate_stats(p_company_id uuid)
-RETURNS json
-LANGUAGE plpgsql SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  result json;
-BEGIN
-  -- Verificar se usuario tem acesso a empresa
-  IF NOT EXISTS (
-    SELECT 1 FROM company_managers
-    WHERE company_id = p_company_id AND user_id = auth.uid()
-  ) THEN
-    RAISE EXCEPTION 'Acesso negado';
-  END IF;
-
-  SELECT json_build_object(
-    'total_participants', COUNT(*),
-    'completed', COUNT(*) FILTER (WHERE status = 'completed'),
-    'in_progress', COUNT(*) FILTER (WHERE status = 'in_progress'),
-    'pending', COUNT(*) FILTER (WHERE status IN ('pending', 'invited'))
-  ) INTO result
-  FROM participants
-  WHERE company_id = p_company_id;
-
-  RETURN result;
-END;
-$$;
+```toml
+[functions.send-reminders]
+verify_jwt = false
 ```
 
 ---
 
-## Interface do Gestor
+## Interface do Facilitador (Opcional/Futuro)
 
-### Dashboard Principal
+Possibilidades para controle manual:
+- Botao "Enviar Lembrete" individual por participante
+- Configuracao de frequencia de lembretes por empresa
+- Historico de lembretes enviados
+
+Para esta implementacao inicial, o sistema sera 100% automatico.
+
+---
+
+## Template do Email de Lembrete
+
 ```text
-+------------------------------------------------------------------+
-| [Logo Empresa]              Portal da Empresa              [Sair] |
-+------------------------------------------------------------------+
-|                                                                   |
-|  Bem-vindo ao Portal da [Nome Empresa]                           |
-|                                                                   |
-|  +----------------+  +----------------+  +----------------+       |
-|  | Total          |  | Concluidos     |  | Taxa           |       |
-|  | 25             |  | 18 (72%)       |  | 72%            |       |
-|  | Colaboradores  |  |                |  | Conclusao      |       |
-|  +----------------+  +----------------+  +----------------+       |
-|                                                                   |
-|  +---------------------------+  +---------------------------+     |
-|  | Perfil da Equipe         |  | Destaques                 |     |
-|  | [RADAR CHART AGREGADO]   |  | Forte: Coerencia (4.2)    |     |
-|  |                          |  | Desenvolver: Conexao (3.1) |     |
-|  +---------------------------+  +---------------------------+     |
-|                                                                   |
-|  +----------------------------------------------------------+    |
-|  | [Baixar Relatorio da Equipe]                             |    |
-|  +----------------------------------------------------------+    |
-+------------------------------------------------------------------+
+Assunto: Lembrete: Complete seu Diagnostico IQ+IS
+
+Corpo:
+- Saudacao personalizada
+- Mencao de que o convite foi enviado ha X dias
+- Reforco dos beneficios do diagnostico
+- Botao CTA: "Continuar Diagnostico"
+- Nota: "Se ja concluiu, ignore este email"
+- Branding do facilitador
 ```
 
 ---
 
-## Sequencia de Implementacao
+## Fluxo de Dados
 
-### Etapa 1: Banco de Dados
-1. Criar enum `app_role`
-2. Criar tabela `user_roles`
-3. Criar tabela `company_managers`
-4. Criar funcoes security definer
-5. Atualizar RLS policies
-
-### Etapa 2: Autenticacao
-1. Atualizar AuthContext para detectar role
-2. Criar ProtectedRoute com verificacao de role
-3. Implementar redirecionamento baseado em role
-
-### Etapa 3: Convite de Gestor
-1. Criar UI de convite em EmpresaDetalhes
-2. Criar edge function de convite
-3. Criar pagina de cadastro com token
-
-### Etapa 4: Portal do Gestor
-1. Criar layout especifico
-2. Criar dashboard com dados agregados
-3. Integrar geracao de PDF de equipe
+```text
+Participante convidado (status: invited, invited_at: data)
+                |
+                v
+        3 dias se passam
+                |
+                v
+    Cron dispara edge function
+                |
+                v
+    Query busca participantes elegiveis:
+    - status IN ('invited', 'in_progress')
+    - invited_at < now() - 3 days
+    - reminder_count < 3
+    - (last_reminder_at IS NULL OR last_reminder_at < now() - 3 days)
+                |
+                v
+    Para cada elegivel:
+    - Envia email
+    - Incrementa reminder_count
+    - Atualiza last_reminder_at
+    - Registra em participant_reminders
+```
 
 ---
 
-## Consideracoes de Seguranca
+## Seguranca
 
-1. **Isolamento de Dados**: Gestores nunca veem dados individuais
-2. **Funcoes Security Definer**: Todas as queries de dados agregados passam por funcoes que verificam permissao
-3. **Tokens de Convite**: Unicos e vinculados a empresa especifica
-4. **Audit Trail**: Registrar quando gestor acessa dados
+1. **Autenticacao do Cron**: O job usa a anon key, mas a funcao valida a origem
+2. **Rate Limiting**: Maximo 3 lembretes por participante
+3. **Intervalo Minimo**: 3 dias entre lembretes evita spam
+4. **Registro de Auditoria**: Todos os envios sao registrados
 
 ---
 
 ## Secao Tecnica
 
-### Dependencias Existentes
-- Ja possui Supabase Auth configurado
-- Ja possui sistema de profiles
-- Ja possui team-pdf-generator.ts
+### Dependencias
+- Resend API (ja configurada: RESEND_API_KEY)
+- pg_cron e pg_net (extensoes Postgres)
 
-### Componentes Reutilizaveis
-- ResultsRadarChart (para dados agregados)
-- TeamStats (adaptar para portal)
-- generateTeamPDF (reutilizar integralmente)
-
-### Novas Funcoes do Supabase
-```typescript
-// Tipos para o portal
-interface CompanyAggregateStats {
-  total_participants: number;
-  completed: number;
-  in_progress: number;
-  pending: number;
-}
-
-interface CompanyDimensionAverages {
-  dimension: string;
-  average: number;
-}
+### Funcao SQL de Elegibilidade
+```sql
+SELECT p.id, p.name, p.email, p.access_token, p.facilitator_id, 
+       p.reminder_count, p.invited_at
+FROM participants p
+WHERE p.status IN ('invited', 'in_progress')
+  AND p.invited_at < now() - interval '3 days'
+  AND p.reminder_count < 3
+  AND (p.last_reminder_at IS NULL 
+       OR p.last_reminder_at < now() - interval '3 days')
+ORDER BY p.invited_at ASC
+LIMIT 100; -- Batch limit
 ```
+
+### Reutilizacao de Codigo
+- Funcao `darkenColor()` do send-invite
+- Logica de busca de perfil do facilitador
+- Template de email base (adaptado)
 
 ### Estimativa de Esforco
 - Migracao DB: 1 mensagem
-- Contexto Auth + Routes: 1 mensagem
-- Paginas do Portal: 1-2 mensagens
-- Edge Function Convite: 1 mensagem
-- **Total**: ~4-5 mensagens
+- Edge Function: 1 mensagem
+- Configuracao Cron: Junto com migracao
+- **Total**: 2-3 mensagens
