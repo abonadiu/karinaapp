@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { format, parseISO, differenceInDays, startOfMonth, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { BarChart3, Calendar } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { KPICards } from "@/components/analytics/KPICards";
@@ -9,6 +10,8 @@ import { StatusPieChart } from "@/components/analytics/StatusPieChart";
 import { CompanyComparisonChart } from "@/components/analytics/CompanyComparisonChart";
 import { GlobalRadarChart } from "@/components/analytics/GlobalRadarChart";
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
+import { FeedbackSessionsTab } from "@/components/feedback/FeedbackSessionsTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -226,37 +229,54 @@ export default function Relatorios() {
       title="Relatórios"
       description="Análise de desempenho e métricas de engajamento"
     >
-      <div className="space-y-6">
-        {/* Filters */}
-        <AnalyticsFilters
-          companies={companies}
-          selectedPeriod={selectedPeriod}
-          selectedCompany={selectedCompany}
-          onPeriodChange={setSelectedPeriod}
-          onCompanyChange={setSelectedCompany}
-        />
+      <Tabs defaultValue="metrics" className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="metrics" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Métricas
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Sessões de Feedback
+          </TabsTrigger>
+        </TabsList>
 
-        {/* KPI Cards */}
-        <KPICards
-          totalParticipants={totalParticipants}
-          completedParticipants={completedParticipants}
-          completionRate={completionRate}
-          averageCompletionDays={averageCompletionDays}
-          isLoading={isLoading}
-        />
+        <TabsContent value="metrics" className="space-y-6">
+          {/* Filters */}
+          <AnalyticsFilters
+            companies={companies}
+            selectedPeriod={selectedPeriod}
+            selectedCompany={selectedCompany}
+            onPeriodChange={setSelectedPeriod}
+            onCompanyChange={setSelectedCompany}
+          />
 
-        {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MonthlyChart data={monthlyData} isLoading={isLoading} />
-          <StatusPieChart data={statusData} isLoading={isLoading} />
-        </div>
+          {/* KPI Cards */}
+          <KPICards
+            totalParticipants={totalParticipants}
+            completedParticipants={completedParticipants}
+            completionRate={completionRate}
+            averageCompletionDays={averageCompletionDays}
+            isLoading={isLoading}
+          />
 
-        {/* Charts Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CompanyComparisonChart data={companyData} isLoading={isLoading} />
-          <GlobalRadarChart data={dimensionData} isLoading={isLoading} />
-        </div>
-      </div>
+          {/* Charts Row 1 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MonthlyChart data={monthlyData} isLoading={isLoading} />
+            <StatusPieChart data={statusData} isLoading={isLoading} />
+          </div>
+
+          {/* Charts Row 2 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CompanyComparisonChart data={companyData} isLoading={isLoading} />
+            <GlobalRadarChart data={dimensionData} isLoading={isLoading} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="feedback">
+          <FeedbackSessionsTab />
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
