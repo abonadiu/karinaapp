@@ -575,12 +575,12 @@ export type Database = {
       get_company_participants_anonymized: {
         Args: { p_company_id: string; p_status?: string }
         Returns: {
-          completed_at: string
-          department: string
-          invited_at: string
-          row_number: number
-          started_at: string
-          status: string
+          participant_completed_at: string
+          participant_department: string
+          participant_invited_at: string
+          participant_started_at: string
+          participant_status: string
+          row_num: number
         }[]
       }
       get_company_percentile: {
