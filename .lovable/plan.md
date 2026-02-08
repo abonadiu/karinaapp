@@ -1,128 +1,208 @@
 
-## Revisão profunda (por que “nada funciona”)
+## Melhoria do Mapeamento Corporal e Expansão do Questionário
 
-### Sintoma principal
-- Tela em branco + erro em runtime: **`Uncaught Error: supabaseUrl is required`**
-- Isso acontece **antes** do React renderizar qualquer tela, porque o app importa `supabase` em muitos lugares (AuthContext, páginas, componentes). Ao importar, o arquivo `src/integrations/supabase/client.ts` executa `createClient(SUPABASE_URL, ...)`.
-- No seu caso, **`import.meta.env.VITE_SUPABASE_URL` está vindo como `undefined`** no build/preview, então o SDK lança erro e trava tudo.
-
-### Causa provável
-- As variáveis `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` não estão disponíveis no runtime do preview (injeção de env falhando/instável), mesmo o projeto tendo backend configurado.
-- Como `client.ts` é auto-gerado e cria o cliente imediatamente, qualquer falha de env derruba o app inteiro.
-
-## Objetivos do conserto
-1. **Eliminar a tela branca** mesmo que as envs falhem.
-2. **Garantir que o cliente do backend sempre tenha URL e chave válidas**, usando fallback seguro (valores públicos) quando necessário.
-3. Corrigir problemas secundários do fluxo `/empresa/dashboard` (redirecionamento e proteção) para evitar “carregando infinito”/comportamentos confusos.
+### Visão Geral
+Este plano implementa duas melhorias significativas no diagnóstico:
+1. **Silhueta corporal mais detalhada e interativa** com 22 zonas anatômicas (atual: 11)
+2. **16 novas perguntas** no questionário, totalizando 56 questões (atual: 40)
 
 ---
 
-## Implementação (passo a passo)
+## Parte 1: Mapeamento Corporal Avançado
 
-### 1) Criar um “cliente seguro” do backend (sem depender 100% de env)
-**Ação**
-- Criar um novo módulo (ex.: `src/integrations/backend/client.ts` ou `src/lib/backendClient.ts`) que:
-  - Leia `import.meta.env.VITE_SUPABASE_URL` e `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`.
-  - Se estiverem ausentes, use **fallback hardcoded** com a **URL pública do backend** e a **chave pública (anon/publishable)**.
-  - Exporte `supabase` a partir desse módulo.
+### Problemas atuais
+- Silhueta muito simplificada (formas geométricas básicas)
+- Apenas 11 zonas genéricas
+- Visual pouco anatômico e profissional
+- Sem indicador de intensidade (apenas presença/ausência)
 
-**Por que isso resolve**
-- Evita `createClient(undefined, ...)` e remove o ponto único de falha.
-- Mantém segredo seguro: URL + anon key são públicos por design (não são a service role key).
+### Nova implementação
 
-**Observação importante**
-- Não mexer no `src/integrations/supabase/client.ts` (auto-gerado). Em vez disso, vamos parar de importá-lo no app.
+**22 zonas corporais detalhadas:**
 
----
+```text
+CABEÇA E PESCOÇO
++----------------+
+| Testa/Fronte   |
+| Olhos          |
+| Mandíbula      |
+| Nuca           |
++----------------+
 
-### 2) Trocar todos os imports para usar o cliente seguro
-**Ação**
-- Substituir em todo o `src/`:
-  - De: `import { supabase } from "@/integrations/supabase/client";`
-  - Para: `import { supabase } from "@/integrations/backend/client";` (ou o caminho decidido)
+TRONCO SUPERIOR
++----------------+
+| Ombro Esq/Dir  |
+| Trapézio       |
+| Peito          |
+| Costas Alta    |
++----------------+
 
-**Arquivos afetados (exemplos)**
-- `src/contexts/AuthContext.tsx`
-- `src/pages/Relatorios.tsx`
-- `src/pages/empresa/LoginEmpresa.tsx`
-- `src/pages/empresa/PortalEmpresa.tsx`
-- `src/components/...` (há ~26 arquivos usando o client atual)
+BRAÇOS
++----------------+
+| Braço Esq/Dir  |
+| Antebraço E/D  |
+| Mão Esq/Dir    |
++----------------+
 
-**Resultado esperado**
-- O app para de quebrar logo ao iniciar, porque nenhum import executa mais o `client.ts` auto-gerado.
+TRONCO MÉDIO/INFERIOR
++----------------+
+| Abdômen        |
+| Lombar         |
+| Quadril        |
++----------------+
 
----
+PERNAS
++----------------+
+| Coxa Esq/Dir   |
+| Joelho Esq/Dir |
+| Panturrilha E/D|
+| Pé Esq/Dir     |
++----------------+
+```
 
-### 3) Adicionar “diagnóstico de inicialização” (para nunca mais ficar tela branca)
-**Ação**
-- No `src/main.tsx` (ou um componente `AppBootstrap`), adicionar um check simples:
-  - Se o supabase client foi criado via fallback porque env faltou, registrar um `console.warn` claro (sem expor credenciais).
-  - Opcional: exibir um banner discreto em dev/preview dizendo “Configuração do backend ausente; usando fallback”.
+**Novo recurso: Nível de intensidade**
+- Clique 1x = Leve (amarelo/verde claro)
+- Clique 2x = Moderado (laranja/verde médio)
+- Clique 3x = Intenso (vermelho/verde escuro)
+- Clique 4x = Remove seleção
 
-**Resultado esperado**
-- Mesmo se o ambiente quebrar de novo, você vê rapidamente o motivo e o app continua renderizando.
-
----
-
-## Correções específicas do fluxo /empresa (já que você está em /empresa/dashboard)
-
-### 4) Proteger `/empresa/dashboard` corretamente (evitar loops e UX confusa)
-Hoje em `App.tsx`, `/empresa/dashboard` não usa `ProtectedRoute`. Isso gera dois problemas:
-- Se o usuário não estiver logado, o `PortalEmpresa` pode ficar “carregando” ou falhar em silêncio.
-- O redirect correto para gestor deveria ser `/empresa/login` (não `/login`).
-
-**Ação**
-- Criar `CompanyManagerRoute` (similar ao `ProtectedRoute`) que:
-  - Se `loading`: mostra spinner.
-  - Se `!user`: redireciona para `/empresa/login`.
-  - Se `user` mas **não for gestor**: redireciona para `/empresa/login` com mensagem (ou para `/dashboard`).
-  - Usar o que já existe no `AuthContext`: `isManager` e `managerCompanyId`.
-
-**Atualização em `App.tsx`**
-- Envolver `/empresa/dashboard` com `CompanyManagerRoute`.
-
----
-
-### 5) Simplificar `PortalEmpresa` usando dados do AuthContext
-Hoje `PortalEmpresa` faz `rpc('get_manager_company_id')` de novo.
-**Ação**
-- Usar `managerCompanyId` do `useAuth()` como fonte primária do `companyId`.
-- Se `!authLoading && !user` → redirect imediato para `/empresa/login`.
-- Se `user` e `!managerCompanyId` → mostrar mensagem e redirect (ou botão para voltar).
-
-**Benefícios**
-- Menos chamadas ao backend.
-- Menos pontos de falha.
-- Remove estados “travados” (ex.: isLoading nunca finaliza quando `!user`).
+**Melhorias de UX:**
+- SVG anatômico mais realista com curvas bezier
+- Tooltips ao passar o mouse com nome da região
+- Animação de pulse ao selecionar
+- Tamanho maior da silhueta (responsivo)
+- Modo unificado (seleciona tensão OU conforto por área, com toggle visual)
 
 ---
 
-## Validação / Testes (checklist objetivo)
-1. Recarregar o preview na rota `/` e confirmar: **não há mais tela branca**.
-2. Abrir `/login` e fazer login de facilitador → `/dashboard` abre.
-3. Abrir `/empresa/login` e fazer login de gestor:
-   - Se for gestor: entra em `/empresa/dashboard`.
-   - Se não for gestor: mensagem e retorno/redirect adequado.
-4. Em `/empresa/dashboard`, validar que carrega:
-   - Nome da empresa
-   - Cards de status
-   - Radar/benchmark (quando houver dados)
-5. Ir em `/relatorios` e validar que os gráficos/tabela e export PDF continuam funcionando.
-6. Conferir console: não deve existir mais `supabaseUrl is required`.
+## Parte 2: Expansão do Questionário
+
+### Estrutura atual
+- 5 dimensões × 8 perguntas = 40 perguntas
+- Cada dimensão tem ~2 perguntas reversas
+
+### Nova estrutura
+- 5 dimensões × 10-12 perguntas = 56 perguntas (+40%)
+- Mantém proporção de ~25% perguntas reversas
+
+### Novas perguntas por dimensão
+
+**1. Consciência Interior (+3 perguntas)**
+- "Consigo fazer pausas conscientes durante o dia para verificar como estou me sentindo."
+- "Percebo a diferença entre o que penso e o que sinto em situações desafiadoras."
+- "Tenho dificuldade em distinguir minhas próprias opiniões das opiniões dos outros." (reversa)
+
+**2. Coerência Emocional (+3 perguntas)**
+- "Consigo pedir ajuda quando estou emocionalmente sobrecarregado."
+- "Reconheço quando estou projetando minhas emoções em outras pessoas."
+- "Evito situações que possam trazer desconforto emocional." (reversa)
+
+**3. Conexão e Propósito (+4 perguntas)**
+- "Minhas decisões importantes são guiadas por meus valores pessoais."
+- "Sinto que contribuo de forma significativa para algo além de mim mesmo."
+- "Frequentemente me sinto perdido sobre qual direção tomar na vida." (reversa)
+- "Consigo encontrar significado mesmo em experiências difíceis."
+
+**4. Relações e Compaixão (+3 perguntas)**
+- "Pratico a escuta atenta, sem planejar minha resposta enquanto o outro fala."
+- "Consigo reconhecer e celebrar as conquistas dos outros genuinamente."
+- "Tenho dificuldade em pedir desculpas quando erro." (reversa)
+
+**5. Transformação (+3 perguntas)**
+- "Busco ativamente feedback sobre meu comportamento e desempenho."
+- "Consigo identificar lições valiosas em fracassos e decepções."
+- "Prefiro manter as coisas como estão do que arriscar mudanças." (reversa)
 
 ---
 
-## Riscos e como mitigamos
-- **Risco:** hardcode de URL/anon key “amarra” o app a um backend.
-  - **Mitigação:** o fallback só é usado quando as envs faltarem; quando estiverem corretas, ele usa env normalmente.
-- **Risco:** algum import antigo para `@/integrations/supabase/client` permanecer e quebrar.
-  - **Mitigação:** busca global + substituição em todos os arquivos; teste de build/preview após troca.
+## Plano de Implementação
+
+### Etapa 1: Migração de banco de dados
+Inserir as 16 novas perguntas na tabela `diagnostic_questions` com a ordem correta.
+
+### Etapa 2: Novo componente de mapeamento corporal
+Criar `ExerciseBodyMapV2.tsx` com:
+- SVG anatômico detalhado (22 zonas)
+- Sistema de intensidade (3 níveis)
+- Animações e feedback visual aprimorado
+- Layout responsivo
+
+### Etapa 3: Atualizar hook e tipos
+- Atualizar interface `ExercisesData` para incluir intensidade
+- Ajustar `useDiagnostic.ts` para usar novo componente
+
+### Etapa 4: Atualizar página de diagnóstico
+- Substituir `ExerciseBodyMap` por `ExerciseBodyMapV2`
 
 ---
 
-## Entregáveis (o que vai mudar)
-- Novo arquivo de cliente seguro do backend.
-- Refactor de imports em múltiplos arquivos (AuthContext, páginas e componentes).
-- Novo route guard para gestor + ajustes no `/empresa/dashboard`.
+## Detalhes Técnicos
 
-Quando você aprovar este plano, eu implemento em sequência (primeiro eliminando a tela branca, depois ajustando o portal da empresa) para você conseguir testar rapidamente.
+### Estrutura de dados do novo mapeamento
+
+```typescript
+interface BodySelection {
+  areaId: string;
+  type: "tension" | "comfort";
+  intensity: 1 | 2 | 3; // leve, moderado, intenso
+}
+
+interface BodyMapData {
+  selections: BodySelection[];
+}
+```
+
+### Zonas anatômicas (22 áreas)
+
+```typescript
+const BODY_AREAS = [
+  // Cabeça
+  { id: "forehead", name: "Testa", region: "head" },
+  { id: "eyes", name: "Olhos", region: "head" },
+  { id: "jaw", name: "Mandíbula", region: "head" },
+  { id: "nape", name: "Nuca", region: "neck" },
+  // Tronco superior
+  { id: "left_shoulder", name: "Ombro Esquerdo", region: "upper" },
+  { id: "right_shoulder", name: "Ombro Direito", region: "upper" },
+  { id: "trapezius", name: "Trapézio", region: "upper" },
+  { id: "chest", name: "Peito", region: "upper" },
+  { id: "upper_back", name: "Costas Alta", region: "upper" },
+  // Braços
+  { id: "left_arm", name: "Braço Esquerdo", region: "arms" },
+  { id: "right_arm", name: "Braço Direito", region: "arms" },
+  { id: "left_forearm", name: "Antebraço Esquerdo", region: "arms" },
+  { id: "right_forearm", name: "Antebraço Direito", region: "arms" },
+  { id: "left_hand", name: "Mão Esquerda", region: "arms" },
+  { id: "right_hand", name: "Mão Direita", region: "arms" },
+  // Tronco médio/inferior
+  { id: "abdomen", name: "Abdômen", region: "core" },
+  { id: "lower_back", name: "Lombar", region: "core" },
+  { id: "hips", name: "Quadril", region: "core" },
+  // Pernas
+  { id: "left_thigh", name: "Coxa Esquerda", region: "legs" },
+  { id: "right_thigh", name: "Coxa Direita", region: "legs" },
+  { id: "left_calf", name: "Panturrilha Esquerda", region: "legs" },
+  { id: "right_calf", name: "Panturrilha Direita", region: "legs" },
+  { id: "left_foot", name: "Pé Esquerdo", region: "legs" },
+  { id: "right_foot", name: "Pé Direito", region: "legs" },
+];
+```
+
+---
+
+## Arquivos a serem criados/modificados
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/diagnostic/ExerciseBodyMapV2.tsx` | Criar |
+| `src/pages/Diagnostico.tsx` | Modificar (usar V2) |
+| `src/hooks/useDiagnostic.ts` | Modificar (interface) |
+| Migração SQL | Inserir 16 perguntas |
+
+---
+
+## Resultado esperado
+- Diagnóstico mais completo com 56 perguntas
+- Mapeamento corporal profissional e interativo
+- Dados mais ricos para análise (intensidade das sensações)
+- Melhor experiência visual para participantes
