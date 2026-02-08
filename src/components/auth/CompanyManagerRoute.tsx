@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 
 interface CompanyManagerRouteProps {
   children: React.ReactNode;
@@ -10,9 +11,11 @@ interface CompanyManagerRouteProps {
  * - Shows loading spinner while auth state is loading
  * - Redirects to /empresa/login if not authenticated
  * - Redirects to /empresa/login if user is not a company manager
+ * - Allows access if admin is impersonating a company manager
  */
 export function CompanyManagerRoute({ children }: CompanyManagerRouteProps) {
   const { user, loading, isManager, managerCompanyId } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
   const location = useLocation();
 
   if (loading) {
@@ -21,6 +24,11 @@ export function CompanyManagerRoute({ children }: CompanyManagerRouteProps) {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // Allow access if impersonating a company manager
+  if (isImpersonating && impersonatedUser?.role === "company_manager") {
+    return <>{children}</>;
   }
 
   if (!user) {

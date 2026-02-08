@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Users, 
   Shield, 
@@ -7,13 +8,22 @@ import {
   Calendar,
   Clock,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
+import { useImpersonation, ImpersonatedRole } from "@/contexts/ImpersonationContext";
 
 interface UserData {
   user_id: string;
@@ -27,6 +37,8 @@ interface UserData {
 export function AdminUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { startImpersonation } = useImpersonation();
+  const navigate = useNavigate();
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -46,6 +58,52 @@ export function AdminUsers() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const handleImpersonate = async (user: UserData) => {
+    const role = user.role as ImpersonatedRole;
+    
+    if (role === "company_manager") {
+      // Get the company for this manager
+      const { data: companyId } = await supabase.rpc("get_manager_company_id", {
+        _user_id: user.user_id,
+      });
+      
+      if (companyId) {
+        // Get company name
+        const { data: company } = await supabase
+          .from("companies")
+          .select("name")
+          .eq("id", companyId)
+          .single();
+        
+        startImpersonation({
+          userId: user.user_id,
+          email: user.email,
+          fullName: user.full_name,
+          role: "company_manager",
+          companyId,
+          companyName: company?.name || "Empresa",
+        });
+        
+        toast.success(`Emulando visão de ${user.full_name || user.email}`);
+        navigate("/empresa/portal");
+      } else {
+        toast.error("Este gestor não está vinculado a nenhuma empresa");
+      }
+    } else if (role === "facilitator") {
+      startImpersonation({
+        userId: user.user_id,
+        email: user.email,
+        fullName: user.full_name,
+        role: "facilitator",
+      });
+      
+      toast.success(`Emulando visão de ${user.full_name || user.email}`);
+      navigate("/dashboard");
+    } else {
+      toast.info("Este usuário não possui um perfil específico para emular");
+    }
+  };
 
   const getRoleBadge = (role: string | null) => {
     switch (role) {
@@ -126,6 +184,9 @@ export function AdminUsers() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                     Último acesso
                   </th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -165,6 +226,21 @@ export function AdminUsers() {
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {formatDate(user.last_sign_in)}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-end">
+                        {user.role && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleImpersonate(user)}
+                            className="gap-1 text-muted-foreground hover:text-foreground"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Emular
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
