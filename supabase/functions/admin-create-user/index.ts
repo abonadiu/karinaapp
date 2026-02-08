@@ -11,6 +11,7 @@ interface CreateUserRequest {
   password: string;
   fullName: string;
   role?: "admin" | "facilitator" | "company_manager" | "participant" | null;
+  companyId?: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body: CreateUserRequest = await req.json();
-    const { email, password, fullName, role } = body;
+    const { email, password, fullName, role, companyId } = body;
 
     // Validate required fields
     if (!email || !password || !fullName) {
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
 
     // Assign role if specified
     if (role && newUser?.user) {
-      const { error: roleError } = await supabaseAdmin.rpc("admin_set_user_role", {
+      const { error: roleError } = await supabase.rpc("admin_set_user_role", {
         p_user_id: newUser.user.id,
         p_role: role,
       });
@@ -128,6 +129,34 @@ Deno.serve(async (req) => {
       if (roleError) {
         console.error("Error assigning role:", roleError);
         // User was created but role assignment failed - log but don't fail
+      }
+
+      // Handle company linking for company_manager
+      if (role === "company_manager" && companyId) {
+        const { error: linkError } = await supabaseAdmin.rpc("admin_link_user_to_company", {
+          p_user_id: newUser.user.id,
+          p_company_id: companyId,
+          p_name: fullName,
+          p_email: email,
+        });
+
+        if (linkError) {
+          console.error("Error linking company_manager to company:", linkError);
+        }
+      }
+
+      // Handle company linking for participant
+      if (role === "participant" && companyId) {
+        const { error: linkError } = await supabaseAdmin.rpc("admin_link_participant_to_company", {
+          p_user_id: newUser.user.id,
+          p_company_id: companyId,
+          p_name: fullName,
+          p_email: email,
+        });
+
+        if (linkError) {
+          console.error("Error linking participant to company:", linkError);
+        }
       }
     }
 
@@ -140,6 +169,7 @@ Deno.serve(async (req) => {
         email,
         full_name: fullName,
         role: role || null,
+        company_id: companyId || null,
         created_by: caller.id,
       },
     });
