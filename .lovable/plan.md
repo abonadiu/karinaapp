@@ -1,191 +1,128 @@
-# Plano: Melhorias na Página de Relatórios
 
-## Resumo
+## Revisão profunda (por que “nada funciona”)
 
-Aprimorar a aba "Métricas" com comparativos detalhados por empresa, evolução temporal de performance e exportação de relatórios em PDF.
+### Sintoma principal
+- Tela em branco + erro em runtime: **`Uncaught Error: supabaseUrl is required`**
+- Isso acontece **antes** do React renderizar qualquer tela, porque o app importa `supabase` em muitos lugares (AuthContext, páginas, componentes). Ao importar, o arquivo `src/integrations/supabase/client.ts` executa `createClient(SUPABASE_URL, ...)`.
+- No seu caso, **`import.meta.env.VITE_SUPABASE_URL` está vindo como `undefined`** no build/preview, então o SDK lança erro e trava tudo.
 
----
+### Causa provável
+- As variáveis `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` não estão disponíveis no runtime do preview (injeção de env falhando/instável), mesmo o projeto tendo backend configurado.
+- Como `client.ts` é auto-gerado e cria o cliente imediatamente, qualquer falha de env derruba o app inteiro.
 
-## Arquitetura da Solução
-
-```text
-+----------------------------------------------------------+
-|                    Página de Relatórios                   |
-+----------------------------------------------------------+
-| [Métricas] [Sessões de Feedback]                          |
-+----------------------------------------------------------+
-|                                                          |
-|  Filtros: [Período ▼] [Empresa ▼] [📄 Exportar PDF]      |
-|                                                          |
-|  +------------------------------------------------------+|
-|  | KPIs: Total | Concluídos | Taxa | Tempo Médio        ||
-|  +------------------------------------------------------+|
-|                                                          |
-|  +------------------------+  +-------------------------+ |
-|  | Evolução Mensal        |  | Distribuição Status     | |
-|  | (Gráfico de linha)     |  | (Gráfico de pizza)      | |
-|  +------------------------+  +-------------------------+ |
-|                                                          |
-|  +------------------------+  +-------------------------+ |
-|  | Comparativo Empresas   |  | Radar Global            | |
-|  | (Gráfico de barras)    |  | (Média das dimensões)   | |
-|  +------------------------+  +-------------------------+ |
-|                                                          |
-|  +------------------------------------------------------+|
-|  | NOVO: Tabela Detalhada por Empresa                   ||
-|  | Empresa | Participantes | Concluídos | Média | Taxa  ||
-|  +------------------------------------------------------+|
-|                                                          |
-|  +------------------------------------------------------+|
-|  | NOVO: Evolução Temporal de Scores                    ||
-|  | (Gráfico de linha com média de scores por mês)       ||
-|  +------------------------------------------------------+|
-+----------------------------------------------------------+
-```
+## Objetivos do conserto
+1. **Eliminar a tela branca** mesmo que as envs falhem.
+2. **Garantir que o cliente do backend sempre tenha URL e chave válidas**, usando fallback seguro (valores públicos) quando necessário.
+3. Corrigir problemas secundários do fluxo `/empresa/dashboard` (redirecionamento e proteção) para evitar “carregando infinito”/comportamentos confusos.
 
 ---
 
-## Componentes a Criar/Modificar
+## Implementação (passo a passo)
 
-| Arquivo | Tipo | Descrição |
-|---------|------|-----------|
-| `src/components/analytics/CompanyDetailsTable.tsx` | Novo | Tabela detalhada com métricas por empresa |
-| `src/components/analytics/ScoreEvolutionChart.tsx` | Novo | Gráfico de evolução temporal de scores |
-| `src/components/analytics/ExportPDFButton.tsx` | Novo | Botão de exportação do relatório em PDF |
-| `src/pages/Relatorios.tsx` | Modificar | Adicionar novos componentes e botão de export |
+### 1) Criar um “cliente seguro” do backend (sem depender 100% de env)
+**Ação**
+- Criar um novo módulo (ex.: `src/integrations/backend/client.ts` ou `src/lib/backendClient.ts`) que:
+  - Leia `import.meta.env.VITE_SUPABASE_URL` e `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`.
+  - Se estiverem ausentes, use **fallback hardcoded** com a **URL pública do backend** e a **chave pública (anon/publishable)**.
+  - Exporte `supabase` a partir desse módulo.
 
----
+**Por que isso resolve**
+- Evita `createClient(undefined, ...)` e remove o ponto único de falha.
+- Mantém segredo seguro: URL + anon key são públicos por design (não são a service role key).
 
-## 1. Tabela Detalhada por Empresa
-
-### CompanyDetailsTable
-
-Tabela com métricas completas por empresa:
-
-| Coluna | Descrição |
-|--------|-----------|
-| Empresa | Nome da empresa |
-| Total | Total de participantes |
-| Concluídos | Participantes que finalizaram |
-| Em Andamento | Participantes ativos |
-| Pendentes | Ainda não iniciaram |
-| Média Score | Média de pontuação (0-5) |
-| Taxa Conclusão | Percentual de conclusão |
-
-Features:
-- Ordenação por qualquer coluna
-- Destaque para empresas com baixa taxa de conclusão
+**Observação importante**
+- Não mexer no `src/integrations/supabase/client.ts` (auto-gerado). Em vez disso, vamos parar de importá-lo no app.
 
 ---
 
-## 2. Evolução Temporal de Scores
+### 2) Trocar todos os imports para usar o cliente seguro
+**Ação**
+- Substituir em todo o `src/`:
+  - De: `import { supabase } from "@/integrations/supabase/client";`
+  - Para: `import { supabase } from "@/integrations/backend/client";` (ou o caminho decidido)
 
-### ScoreEvolutionChart
+**Arquivos afetados (exemplos)**
+- `src/contexts/AuthContext.tsx`
+- `src/pages/Relatorios.tsx`
+- `src/pages/empresa/LoginEmpresa.tsx`
+- `src/pages/empresa/PortalEmpresa.tsx`
+- `src/components/...` (há ~26 arquivos usando o client atual)
 
-Gráfico de linha mostrando:
-- Eixo X: Meses
-- Eixo Y: Média de scores (0-5)
-- Linha: Evolução da média geral ao longo do tempo
-
-Permite identificar:
-- Tendências de melhoria/piora
-- Sazonalidade no engajamento
-- Impacto de ações específicas
-
----
-
-## 3. Exportação PDF
-
-### ExportPDFButton
-
-Botão que gera um PDF contendo:
-1. Cabeçalho com logo do facilitador e data
-2. KPIs principais
-3. Gráfico de evolução mensal
-4. Tabela resumo por empresa
-5. Radar chart global
-
-Usar jsPDF + html2canvas (já instalados no projeto).
+**Resultado esperado**
+- O app para de quebrar logo ao iniciar, porque nenhum import executa mais o `client.ts` auto-gerado.
 
 ---
 
-## 4. Query de Dados
+### 3) Adicionar “diagnóstico de inicialização” (para nunca mais ficar tela branca)
+**Ação**
+- No `src/main.tsx` (ou um componente `AppBootstrap`), adicionar um check simples:
+  - Se o supabase client foi criado via fallback porque env faltou, registrar um `console.warn` claro (sem expor credenciais).
+  - Opcional: exibir um banner discreto em dev/preview dizendo “Configuração do backend ausente; usando fallback”.
 
-Dados já disponíveis via queries existentes. Apenas reorganizar para novos componentes:
-
-```typescript
-// Dados por empresa detalhados
-const companyDetails = companies.map(company => {
-  const companyParticipants = filteredParticipants.filter(
-    p => p.company_id === company.id
-  );
-  const completed = companyParticipants.filter(p => p.status === 'completed');
-  const companyResults = filteredResults.filter(r => 
-    completed.some(p => p.id === r.participant_id)
-  );
-  
-  return {
-    id: company.id,
-    name: company.name,
-    total: companyParticipants.length,
-    completed: completed.length,
-    inProgress: companyParticipants.filter(p => p.status === 'in_progress').length,
-    pending: companyParticipants.filter(p => p.status === 'pending').length,
-    averageScore: companyResults.length > 0 
-      ? companyResults.reduce((sum, r) => sum + r.total_score, 0) / companyResults.length 
-      : null,
-    completionRate: companyParticipants.length > 0 
-      ? (completed.length / companyParticipants.length) * 100 
-      : 0
-  };
-});
-```
+**Resultado esperado**
+- Mesmo se o ambiente quebrar de novo, você vê rapidamente o motivo e o app continua renderizando.
 
 ---
 
-## 5. Evolução de Scores por Mês
+## Correções específicas do fluxo /empresa (já que você está em /empresa/dashboard)
 
-```typescript
-// Agrupar scores por mês de conclusão
-const scoreEvolution = useMemo(() => {
-  const monthMap = new Map<string, number[]>();
-  
-  filteredResults.forEach(result => {
-    const participant = participants.find(p => p.id === result.participant_id);
-    if (participant?.completed_at) {
-      const month = format(parseISO(participant.completed_at), "MMM/yy", { locale: ptBR });
-      if (!monthMap.has(month)) monthMap.set(month, []);
-      monthMap.get(month)!.push(Number(result.total_score));
-    }
-  });
-  
-  return Array.from(monthMap.entries())
-    .map(([month, scores]) => ({
-      month,
-      average: scores.reduce((a, b) => a + b, 0) / scores.length
-    }))
-    .sort((a, b) => /* ordenar por data */);
-}, [filteredResults, participants]);
-```
+### 4) Proteger `/empresa/dashboard` corretamente (evitar loops e UX confusa)
+Hoje em `App.tsx`, `/empresa/dashboard` não usa `ProtectedRoute`. Isso gera dois problemas:
+- Se o usuário não estiver logado, o `PortalEmpresa` pode ficar “carregando” ou falhar em silêncio.
+- O redirect correto para gestor deveria ser `/empresa/login` (não `/login`).
+
+**Ação**
+- Criar `CompanyManagerRoute` (similar ao `ProtectedRoute`) que:
+  - Se `loading`: mostra spinner.
+  - Se `!user`: redireciona para `/empresa/login`.
+  - Se `user` mas **não for gestor**: redireciona para `/empresa/login` com mensagem (ou para `/dashboard`).
+  - Usar o que já existe no `AuthContext`: `isManager` e `managerCompanyId`.
+
+**Atualização em `App.tsx`**
+- Envolver `/empresa/dashboard` com `CompanyManagerRoute`.
 
 ---
 
-## Lista de Tarefas
+### 5) Simplificar `PortalEmpresa` usando dados do AuthContext
+Hoje `PortalEmpresa` faz `rpc('get_manager_company_id')` de novo.
+**Ação**
+- Usar `managerCompanyId` do `useAuth()` como fonte primária do `companyId`.
+- Se `!authLoading && !user` → redirect imediato para `/empresa/login`.
+- Se `user` e `!managerCompanyId` → mostrar mensagem e redirect (ou botão para voltar).
 
-| # | Tarefa | Estimativa |
-|---|--------|------------|
-| 1 | Criar CompanyDetailsTable | 1 msg |
-| 2 | Criar ScoreEvolutionChart | 1 msg |
-| 3 | Criar ExportPDFButton | 1 msg |
-| 4 | Integrar tudo em Relatorios.tsx | 1 msg |
-| **Total** | | **4 mensagens** |
+**Benefícios**
+- Menos chamadas ao backend.
+- Menos pontos de falha.
+- Remove estados “travados” (ex.: isLoading nunca finaliza quando `!user`).
 
 ---
 
-## Próximos Passos
+## Validação / Testes (checklist objetivo)
+1. Recarregar o preview na rota `/` e confirmar: **não há mais tela branca**.
+2. Abrir `/login` e fazer login de facilitador → `/dashboard` abre.
+3. Abrir `/empresa/login` e fazer login de gestor:
+   - Se for gestor: entra em `/empresa/dashboard`.
+   - Se não for gestor: mensagem e retorno/redirect adequado.
+4. Em `/empresa/dashboard`, validar que carrega:
+   - Nome da empresa
+   - Cards de status
+   - Radar/benchmark (quando houver dados)
+5. Ir em `/relatorios` e validar que os gráficos/tabela e export PDF continuam funcionando.
+6. Conferir console: não deve existir mais `supabaseUrl is required`.
 
-Após aprovar, implementarei na seguinte ordem:
-1. CompanyDetailsTable (tabela detalhada)
-2. ScoreEvolutionChart (evolução temporal)
-3. ExportPDFButton (exportação PDF)
-4. Integração final + testes
+---
+
+## Riscos e como mitigamos
+- **Risco:** hardcode de URL/anon key “amarra” o app a um backend.
+  - **Mitigação:** o fallback só é usado quando as envs faltarem; quando estiverem corretas, ele usa env normalmente.
+- **Risco:** algum import antigo para `@/integrations/supabase/client` permanecer e quebrar.
+  - **Mitigação:** busca global + substituição em todos os arquivos; teste de build/preview após troca.
+
+---
+
+## Entregáveis (o que vai mudar)
+- Novo arquivo de cliente seguro do backend.
+- Refactor de imports em múltiplos arquivos (AuthContext, páginas e componentes).
+- Novo route guard para gestor + ajustes no `/empresa/dashboard`.
+
+Quando você aprovar este plano, eu implemento em sequência (primeiro eliminando a tela branca, depois ajustando o portal da empresa) para você conseguir testar rapidamente.
