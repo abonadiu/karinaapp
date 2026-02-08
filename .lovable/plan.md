@@ -1,80 +1,134 @@
 
 
-## Adicionar Role "Participant" ao Sistema
+## Corrigir Sistema de Participantes no Admin
 
-### Problema Identificado
+### Problemas Identificados
 
-O role `participant` foi adicionado no código frontend (CreateUserDialog) e no Edge Function (admin-create-user), mas:
-1. O enum `app_role` no banco de dados nao inclui `participant`
-2. O dialog de edicao de roles (EditRoleDialog) nao mostra a opcao `participant`
+Ao analisar o código e banco de dados, identifiquei os seguintes problemas:
+
+| Problema | Status | Causa |
+|----------|--------|-------|
+| Role nao aparece na tabela | UI incompleta | `getRoleBadges` nao renderiza badge para `participant` |
+| Nao pede empresa na criacao | Logica ausente | `CreateUserDialog` nao tem campo de empresa para participantes |
+| Nao aparece empresa na edicao | Logica incompleta | `EditRoleDialog` so mostra empresa para `company_manager` |
+| Tabela participants sem user_id | Migracao pendente | Coluna `user_id` nao existe na tabela |
+
+**Nota importante**: A role `participant` **foi salva corretamente** no banco de dados - o problema e apenas visual na UI.
+
+---
 
 ### Solucao
 
-#### 1. Migracao do Banco de Dados
+#### 1. Adicionar Badge para Participante na Tabela
 
-Adicionar o valor `participant` ao enum `app_role`:
+**Arquivo**: `src/components/admin/AdminUsers.tsx`
 
-```sql
-ALTER TYPE app_role ADD VALUE 'participant';
-```
+Adicionar badge para role `participant` na funcao `getRoleBadges`:
 
-**Nota**: Esta migracao ja foi criada anteriormente mas pode nao ter sido aplicada corretamente.
-
----
-
-#### 2. Atualizar EditRoleDialog.tsx
-
-**Arquivo**: `src/components/admin/EditRoleDialog.tsx`
-
-**Mudancas**:
-
-1. Atualizar o tipo `AppRole`:
 ```typescript
-type AppRole = "admin" | "facilitator" | "company_manager" | "participant";
-```
-
-2. Adicionar checkbox para o role `participant` apos o checkbox de `company_manager`:
-```typescript
-<div className="flex items-center space-x-3">
-  <Checkbox
-    id="participant"
-    checked={selectedRoles.has("participant")}
-    onCheckedChange={() => handleRoleToggle("participant")}
-  />
-  <div className="grid gap-1.5 leading-none">
-    <label htmlFor="participant" className="text-sm font-medium">
-      Participante
-    </label>
-    <p className="text-xs text-muted-foreground">
-      Acesso ao diagnostico e portal de resultados
-    </p>
-  </div>
-</div>
+{roles.includes('participant') && (
+  <Badge variant="outline" className="border-green-600 text-green-600">
+    <Users className="h-3 w-3 mr-1" />
+    Participante
+    {/* Se tiver empresa vinculada, mostrar */}
+  </Badge>
+)}
 ```
 
 ---
 
-#### 3. Verificar/Atualizar Edge Function
+#### 2. Adicionar Campo de Empresa no CreateUserDialog
+
+**Arquivo**: `src/components/admin/CreateUserDialog.tsx`
+
+Quando o role selecionado for `participant` ou `company_manager`, mostrar um dropdown para selecionar a empresa:
+
+- Adicionar estado para `selectedCompanyId`
+- Carregar lista de empresas
+- Mostrar dropdown condicionalmente
+- Enviar `companyId` para a edge function
+
+---
+
+#### 3. Atualizar Edge Function para Vincular Participante a Empresa
 
 **Arquivo**: `supabase/functions/admin-create-user/index.ts`
 
-O arquivo ja inclui `participant` no tipo, mas precisamos garantir que o banco aceite esse valor.
+Adicionar logica para:
+- Receber `companyId` no request
+- Se role for `participant` e tiver `companyId`, criar registro na tabela `participants`
+- Se role for `company_manager` e tiver `companyId`, vincular via `admin_link_user_to_company`
+
+---
+
+#### 4. Mostrar Empresa na Edicao para Participantes
+
+**Arquivo**: `src/components/admin/EditRoleDialog.tsx`
+
+Expandir a logica de selecao de empresa para incluir role `participant`:
+
+```typescript
+{(selectedRoles.has("company_manager") || selectedRoles.has("participant")) && (
+  <div className="mt-4 p-3 rounded-lg border bg-muted/30">
+    {/* Selector de empresa */}
+  </div>
+)}
+```
+
+---
+
+#### 5. Criar Migracao para Coluna user_id
+
+**Banco de Dados**: Nova migracao SQL
+
+```sql
+-- Adicionar coluna user_id na tabela participants
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+
+-- Criar indice para performance
+CREATE INDEX IF NOT EXISTS idx_participants_user_id ON participants(user_id);
+
+-- Adicionar RLS para participantes verem seus proprios dados
+CREATE POLICY "Participants can view their own data"
+ON participants FOR SELECT
+USING (user_id = auth.uid());
+```
+
+---
+
+#### 6. Atualizar Funcao get_all_users
+
+**Banco de Dados**: Funcao atualizada
+
+Modificar para incluir dados de participantes vinculados:
+
+```sql
+-- Buscar empresa do participante se existir
+LEFT JOIN participants part ON part.user_id = au.id
+LEFT JOIN companies c_part ON c_part.id = part.company_id
+```
 
 ---
 
 ### Arquivos a Modificar
 
-| Arquivo | Acao |
-|---------|------|
-| Migration SQL | Adicionar `participant` ao enum `app_role` |
-| `src/components/admin/EditRoleDialog.tsx` | Adicionar opcao de checkbox para `participant` |
+| Arquivo | Mudancas |
+|---------|----------|
+| `src/components/admin/AdminUsers.tsx` | Adicionar badge para participant |
+| `src/components/admin/CreateUserDialog.tsx` | Adicionar campo de empresa |
+| `src/components/admin/EditRoleDialog.tsx` | Mostrar empresa para participant |
+| `supabase/functions/admin-create-user/index.ts` | Criar participante com empresa |
+| Migracao SQL | Adicionar user_id e atualizar get_all_users |
 
 ---
 
-### Verificacao
+### Fluxo Esperado Apos Correcoes
 
-Apos as mudancas:
-1. Criar um usuario com role `participant` no painel admin
-2. Editar roles de um usuario existente e atribuir `participant`
-3. Verificar se o participante consegue acessar o portal em `/participante/login`
+1. Admin clica em "Novo Usuario"
+2. Preenche nome, email, senha
+3. Seleciona role "Participante"
+4. **Novo**: Aparece dropdown para selecionar empresa
+5. Cria usuario
+6. Usuario aparece na tabela com badge "Participante" e nome da empresa
+7. Ao editar, pode alterar a empresa vinculada
 
