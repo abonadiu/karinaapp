@@ -1,147 +1,80 @@
 
-## Participantes com Contas no Sistema
 
-### Resumo
+## Adicionar Role "Participant" ao Sistema
 
-Evoluir o modelo de participantes para que tenham contas no sistema e possam acessar seus resultados posteriormente, mantendo retrocompatibilidade com o fluxo atual de token.
+### Problema Identificado
 
----
+O role `participant` foi adicionado no código frontend (CreateUserDialog) e no Edge Function (admin-create-user), mas:
+1. O enum `app_role` no banco de dados nao inclui `participant`
+2. O dialog de edicao de roles (EditRoleDialog) nao mostra a opcao `participant`
 
-## Beneficios da Mudanca
+### Solucao
 
-| Aspecto | Atual | Proposto |
-|---------|-------|----------|
-| Acesso aos resultados | Apenas via link unico | Login permanente |
-| Historico | Nao disponivel | Multiplos diagnosticos |
-| Seguranca | Token pode ser compartilhado | Autenticacao real |
-| Experiencia | Link perdido = sem acesso | Recuperacao de senha |
-| Engajamento | Unico contato | Relacionamento continuo |
+#### 1. Migracao do Banco de Dados
 
----
-
-## Arquitetura Proposta
-
-### Fluxo do Participante
-
-```text
-1. Facilitador cadastra participante
-        |
-        v
-2. Participante recebe email com link de cadastro
-        |
-        v
-3. Participante cria conta (senha) e faz diagnostico
-        |
-        v
-4. Apos completar, pode fazer login a qualquer momento
-        |
-        v
-5. Portal do Participante mostra resultados, historico, etc.
-```
-
----
-
-## Mudancas Necessarias
-
-### 1. Banco de Dados
-
-**Adicionar coluna `user_id` na tabela `participants`:**
-
-```sql
-ALTER TABLE participants 
-ADD COLUMN user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
-```
-
-**Adicionar role `participant` ao enum:**
+Adicionar o valor `participant` ao enum `app_role`:
 
 ```sql
 ALTER TYPE app_role ADD VALUE 'participant';
 ```
 
-**Funcao para vincular participante a usuario:**
+**Nota**: Esta migracao ja foi criada anteriormente mas pode nao ter sido aplicada corretamente.
 
-```sql
-CREATE FUNCTION activate_participant_account(p_token text, p_user_id uuid)
-RETURNS boolean
+---
+
+#### 2. Atualizar EditRoleDialog.tsx
+
+**Arquivo**: `src/components/admin/EditRoleDialog.tsx`
+
+**Mudancas**:
+
+1. Atualizar o tipo `AppRole`:
+```typescript
+type AppRole = "admin" | "facilitator" | "company_manager" | "participant";
 ```
 
-**Atualizar RLS:**
-- Participantes podem ver seus proprios dados
-- Participantes podem ver seus proprios resultados
+2. Adicionar checkbox para o role `participant` apos o checkbox de `company_manager`:
+```typescript
+<div className="flex items-center space-x-3">
+  <Checkbox
+    id="participant"
+    checked={selectedRoles.has("participant")}
+    onCheckedChange={() => handleRoleToggle("participant")}
+  />
+  <div className="grid gap-1.5 leading-none">
+    <label htmlFor="participant" className="text-sm font-medium">
+      Participante
+    </label>
+    <p className="text-xs text-muted-foreground">
+      Acesso ao diagnostico e portal de resultados
+    </p>
+  </div>
+</div>
+```
 
 ---
 
-### 2. Novas Paginas Frontend
+#### 3. Verificar/Atualizar Edge Function
 
-| Pagina | Rota | Descricao |
-|--------|------|-----------|
-| Login Participante | `/participante/login` | Login especifico para participantes |
-| Cadastro Participante | `/participante/cadastro/:token` | Criar conta via link do convite |
-| Portal Participante | `/participante/portal` | Dashboard com resultados |
+**Arquivo**: `supabase/functions/admin-create-user/index.ts`
+
+O arquivo ja inclui `participant` no tipo, mas precisamos garantir que o banco aceite esse valor.
 
 ---
 
-### 3. Portal do Participante
+### Arquivos a Modificar
 
-O portal tera:
-
-- **Resultado Atual**: Radar chart, dimensoes, pontuacoes
-- **Historico**: Lista de diagnosticos anteriores (para futuro)
-- **Recomendacoes**: Praticas personalizadas
-- **Agendar Feedback**: Se facilitador tiver Calendly configurado
-- **Download PDF**: Baixar relatorio
+| Arquivo | Acao |
+|---------|------|
+| Migration SQL | Adicionar `participant` ao enum `app_role` |
+| `src/components/admin/EditRoleDialog.tsx` | Adicionar opcao de checkbox para `participant` |
 
 ---
 
-### 4. Fluxo de Convite Atualizado
+### Verificacao
 
-**Opcao A - Convite com criacao de conta:**
-1. Facilitador envia convite
-2. Email inclui link `/participante/cadastro/{token}`
-3. Participante cria senha
-4. Sistema vincula `user_id` ao participante
-5. Redireciona para diagnostico
+Apos as mudancas:
+1. Criar um usuario com role `participant` no painel admin
+2. Editar roles de um usuario existente e atribuir `participant`
+3. Verificar se o participante consegue acessar o portal em `/participante/login`
 
-**Opcao B - Manter compatibilidade (recomendado):**
-1. Link original `/diagnostico/{token}` continua funcionando
-2. Apos completar, oferece opcao de criar conta
-3. Se criar, pode acessar portal depois
-
----
-
-### 5. Componente CompanyManagerRoute Atualizado
-
-Criar `ParticipantRoute` similar para proteger rotas do participante.
-
----
-
-## Arquivos a Criar/Modificar
-
-| Arquivo | Acao | Descricao |
-|---------|------|-----------|
-| `supabase/migrations/...` | Criar | Adicionar user_id, role, funcoes |
-| `src/pages/participante/LoginParticipante.tsx` | Criar | Pagina de login |
-| `src/pages/participante/CadastroParticipante.tsx` | Criar | Cadastro via token |
-| `src/pages/participante/PortalParticipante.tsx` | Criar | Dashboard de resultados |
-| `src/components/auth/ParticipantRoute.tsx` | Criar | Protecao de rotas |
-| `src/contexts/AuthContext.tsx` | Modificar | Adicionar isParticipant |
-| `src/App.tsx` | Modificar | Adicionar novas rotas |
-| `src/components/diagnostic/DiagnosticResults.tsx` | Modificar | Adicionar CTA para criar conta |
-
----
-
-## Seguranca
-
-1. **RLS para participantes**: Ver apenas seus proprios dados
-2. **Role separada**: `participant` isolada de outras roles
-3. **Vinculacao segura**: Somente via token valido
-4. **Sem acesso a dados de outros**: Politicas restritivas
-
----
-
-## Consideracoes de Migracao
-
-- Participantes existentes sem conta continuam funcionando via token
-- Ao acessar resultado existente, podem criar conta opcionalmente
-- Dados historicos preservados
-- Sem breaking changes no fluxo atual
