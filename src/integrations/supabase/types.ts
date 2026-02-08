@@ -516,6 +516,15 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: boolean
       }
+      admin_link_participant_to_company: {
+        Args: {
+          p_company_id: string
+          p_email: string
+          p_name: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       admin_link_user_to_company: {
         Args: {
           p_company_id: string
@@ -537,6 +546,10 @@ export type Database = {
           p_role: Database["public"]["Enums"]["app_role"]
           p_user_id: string
         }
+        Returns: boolean
+      }
+      admin_unlink_participant_from_company: {
+        Args: { p_user_id: string }
         Returns: boolean
       }
       admin_unlink_user_from_company: {

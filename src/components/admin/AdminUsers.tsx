@@ -41,6 +41,7 @@ interface UserData {
   last_sign_in: string | null;
   company_id: string | null;
   company_name: string | null;
+  participant_id: string | null;
 }
 
 export function AdminUsers() {
@@ -156,6 +157,15 @@ export function AdminUsers() {
           <Badge variant="secondary">
             <Building2 className="h-3 w-3 mr-1" />
             Gestor
+            {user.company_name && !roles.includes('participant') && (
+              <span className="ml-1 text-muted-foreground">• {user.company_name}</span>
+            )}
+          </Badge>
+        )}
+        {roles.includes('participant') && (
+          <Badge variant="outline" className="border-green-600 text-green-600">
+            <Users className="h-3 w-3 mr-1" />
+            Participante
             {user.company_name && (
               <span className="ml-1 text-muted-foreground">• {user.company_name}</span>
             )}

@@ -35,6 +35,7 @@ interface UserData {
   roles: string[] | null;
   company_id: string | null;
   company_name: string | null;
+  participant_id: string | null;
 }
 
 interface EditRoleDialogProps {
@@ -107,6 +108,8 @@ export function EditRoleDialog({
     const newRoles = selectedRoles;
     const hasCompanyManager = newRoles.has("company_manager");
     const hadCompanyManager = currentRoles.has("company_manager");
+    const hasParticipant = newRoles.has("participant");
+    const hadParticipant = currentRoles.has("participant");
 
     // Check if trying to remove own admin role
     if (user.user_id === currentUserId && currentRoles.has("admin") && !newRoles.has("admin")) {
@@ -117,6 +120,12 @@ export function EditRoleDialog({
     // Validate company selection when company_manager is selected
     if (hasCompanyManager && !selectedCompanyId) {
       toast.error("Selecione uma empresa para vincular o gestor");
+      return;
+    }
+
+    // Validate company selection when participant is selected
+    if (hasParticipant && !selectedCompanyId) {
+      toast.error("Selecione uma empresa para vincular o participante");
       return;
     }
 
@@ -153,9 +162,8 @@ export function EditRoleDialog({
         if (error) throw new Error(error.message);
       }
 
-      // Handle company linking/unlinking
+      // Handle company_manager linking/unlinking
       if (hasCompanyManager && selectedCompanyId && companyChanged) {
-        // Link to company
         const { error } = await supabase.rpc("admin_link_user_to_company", {
           p_user_id: user.user_id,
           p_company_id: selectedCompanyId,
@@ -164,8 +172,23 @@ export function EditRoleDialog({
         });
         if (error) throw new Error(error.message);
       } else if (!hasCompanyManager && hadCompanyManager && user.company_id) {
-        // Unlink from company
         const { error } = await supabase.rpc("admin_unlink_user_from_company", {
+          p_user_id: user.user_id,
+        });
+        if (error) throw new Error(error.message);
+      }
+
+      // Handle participant linking/unlinking
+      if (hasParticipant && selectedCompanyId && (companyChanged || !hadParticipant)) {
+        const { error } = await supabase.rpc("admin_link_participant_to_company", {
+          p_user_id: user.user_id,
+          p_company_id: selectedCompanyId,
+          p_name: user.full_name || user.email,
+          p_email: user.email,
+        });
+        if (error) throw new Error(error.message);
+      } else if (!hasParticipant && hadParticipant) {
+        const { error } = await supabase.rpc("admin_unlink_participant_from_company", {
           p_user_id: user.user_id,
         });
         if (error) throw new Error(error.message);
@@ -288,8 +311,8 @@ export function EditRoleDialog({
                 </div>
               </div>
 
-              {/* Company selection - shown when company_manager is selected */}
-              {selectedRoles.has("company_manager") && (
+              {/* Company selection - shown when company_manager or participant is selected */}
+              {(selectedRoles.has("company_manager") || selectedRoles.has("participant")) && (
                 <div className="mt-4 p-3 rounded-lg border bg-muted/30">
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -313,7 +336,7 @@ export function EditRoleDialog({
                   </Select>
                   {!selectedCompanyId && (
                     <p className="text-xs text-amber-600 mt-2">
-                      ⚠️ Selecione uma empresa para que o gestor possa acessar o portal
+                      ⚠️ Selecione uma empresa para vincular o {selectedRoles.has("company_manager") ? "gestor" : "participante"}
                     </p>
                   )}
                 </div>

@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, Building2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,8 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
+
+interface Company {
+  id: string;
+  name: string;
+}
 
 const createUserSchema = z.object({
   fullName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
@@ -48,6 +54,9 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -59,17 +68,56 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
     },
   });
 
+  const watchedRole = useWatch({ control: form.control, name: "role" });
+  const needsCompany = watchedRole === "company_manager" || watchedRole === "participant";
+
+  // Load companies when dialog opens
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setIsLoadingCompanies(true);
+      try {
+        const { data, error } = await supabase
+          .from("companies")
+          .select("id, name")
+          .order("name");
+        
+        if (error) throw error;
+        setCompanies(data || []);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setIsLoadingCompanies(false);
+      }
+    };
+
+    if (open) {
+      fetchCompanies();
+    }
+  }, [open]);
+
+  // Reset company when role changes
+  useEffect(() => {
+    if (!needsCompany) {
+      setSelectedCompanyId(null);
+    }
+  }, [needsCompany]);
+
   const onSubmit = async (data: CreateUserFormData) => {
+    // Validate company selection
+    if (needsCompany && !selectedCompanyId) {
+      toast.error(`Selecione uma empresa para o ${data.role === "company_manager" ? "gestor" : "participante"}`);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      
       const response = await supabase.functions.invoke("admin-create-user", {
         body: {
           email: data.email.trim().toLowerCase(),
           password: data.password,
           fullName: data.fullName.trim(),
           role: data.role === "none" ? null : data.role,
+          companyId: needsCompany ? selectedCompanyId : null,
         },
       });
 
@@ -83,6 +131,7 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
 
       toast.success("Usuário criado com sucesso!");
       form.reset();
+      setSelectedCompanyId(null);
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
@@ -156,7 +205,7 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Perfil de acesso</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um perfil" />
@@ -174,6 +223,37 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
                 </FormItem>
               )}
             />
+
+            {/* Company selection - shown when company_manager or participant is selected */}
+            {needsCompany && (
+              <div className="p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <Label>Empresa vinculada</Label>
+                </div>
+                <Select
+                  value={selectedCompanyId || ""}
+                  onValueChange={(value) => setSelectedCompanyId(value || null)}
+                  disabled={isLoadingCompanies}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={isLoadingCompanies ? "Carregando..." : "Selecione uma empresa"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!selectedCompanyId && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    ⚠️ Selecione uma empresa para vincular o {watchedRole === "company_manager" ? "gestor" : "participante"}
+                  </p>
+                )}
+              </div>
+            )}
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
