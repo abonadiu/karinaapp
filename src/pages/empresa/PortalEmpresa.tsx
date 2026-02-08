@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { toast } from "sonner";
 import { generateTeamPDF } from "@/lib/team-pdf-generator";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
@@ -63,6 +64,12 @@ interface ComparisonDimension {
 export default function PortalEmpresa() {
   const navigate = useNavigate();
   const { user, loading: authLoading, managerCompanyId } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
+  
+  // Use impersonated company ID if admin is impersonating a manager
+  const effectiveCompanyId = isImpersonating && impersonatedUser?.role === "company_manager"
+    ? impersonatedUser.companyId
+    : managerCompanyId;
   
   const [companyName, setCompanyName] = useState<string>("");
   const [stats, setStats] = useState<AggregateStats | null>(null);
@@ -75,8 +82,8 @@ export default function PortalEmpresa() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Use managerCompanyId from AuthContext (already validated by CompanyManagerRoute)
-      if (!user || !managerCompanyId) {
+      // Use effectiveCompanyId (supports impersonation)
+      if (!effectiveCompanyId) {
         setIsLoading(false);
         return;
       }
@@ -86,7 +93,7 @@ export default function PortalEmpresa() {
         const { data: companyData, error: companyError } = await supabase
           .from("companies")
           .select("name")
-          .eq("id", managerCompanyId)
+          .eq("id", effectiveCompanyId)
           .single();
 
         if (companyError) throw companyError;
@@ -94,7 +101,7 @@ export default function PortalEmpresa() {
 
         // Get aggregate stats
         const { data: statsData, error: statsError } = await supabase
-          .rpc('get_company_aggregate_stats', { p_company_id: managerCompanyId });
+          .rpc('get_company_aggregate_stats', { p_company_id: effectiveCompanyId });
 
         if (statsError) throw statsError;
         if (statsData) {
@@ -103,7 +110,7 @@ export default function PortalEmpresa() {
 
         // Get dimension averages
         const { data: avgData, error: avgError } = await supabase
-          .rpc('get_company_dimension_averages', { p_company_id: managerCompanyId });
+          .rpc('get_company_dimension_averages', { p_company_id: effectiveCompanyId });
 
         if (avgError) throw avgError;
         if (avgData && Array.isArray(avgData)) {
@@ -113,7 +120,7 @@ export default function PortalEmpresa() {
         // Get activity timeline
         const { data: activityData, error: activityError } = await supabase
           .rpc('get_company_activity_timeline', { 
-            p_company_id: managerCompanyId,
+            p_company_id: effectiveCompanyId,
             p_limit: 5
           });
 
@@ -133,7 +140,7 @@ export default function PortalEmpresa() {
 
         // Get company percentile
         const { data: percData, error: percError } = await supabase
-          .rpc('get_company_percentile', { p_company_id: managerCompanyId });
+          .rpc('get_company_percentile', { p_company_id: effectiveCompanyId });
 
         if (percError) throw percError;
         setPercentile(percData as number | null);
@@ -146,13 +153,15 @@ export default function PortalEmpresa() {
       }
     };
 
-    if (!authLoading && managerCompanyId) {
+    if (!authLoading && effectiveCompanyId) {
       fetchData();
+    } else if (!authLoading && !effectiveCompanyId && !isImpersonating) {
+      setIsLoading(false);
     }
-  }, [user, authLoading, managerCompanyId]);
+  }, [user, authLoading, effectiveCompanyId, isImpersonating]);
 
   const handleDownloadReport = async () => {
-    if (!managerCompanyId || !stats || stats.completed === 0) {
+    if (!effectiveCompanyId || !stats || stats.completed === 0) {
       toast.error("Não há resultados suficientes para gerar o relatório");
       return;
     }
