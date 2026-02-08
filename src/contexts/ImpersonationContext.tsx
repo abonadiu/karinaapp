@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-export type ImpersonatedRole = "facilitator" | "company_manager" | "participant";
+export type ImpersonatedRole = "admin" | "facilitator" | "company_manager" | "participant";
 
 export interface ImpersonatedUser {
   userId: string;

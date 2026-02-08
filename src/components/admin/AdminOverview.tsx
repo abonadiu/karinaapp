@@ -8,7 +8,8 @@ import {
   UserCheck,
   BarChart3,
   Target,
-  Loader2
+  Loader2,
+  Crown
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/backend/client";
@@ -21,6 +22,7 @@ interface PlatformStats {
   total_in_progress: number;
   total_pending: number;
   total_diagnostics: number;
+  total_admins: number;
   total_facilitators: number;
   total_managers: number;
   avg_score: number;
@@ -115,7 +117,20 @@ export function AdminOverview() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-warm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+            <Crown className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.total_admins || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Super-usuários
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-warm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Facilitadores</CardTitle>
@@ -124,7 +139,7 @@ export function AdminOverview() {
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_facilitators || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Administradores ativos
+              Coaches ativos
             </p>
           </CardContent>
         </Card>
@@ -150,7 +165,7 @@ export function AdminOverview() {
           <CardContent>
             <div className="text-2xl font-bold">{stats?.avg_score || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Score médio dos diagnósticos
+              Score médio
             </p>
           </CardContent>
         </Card>

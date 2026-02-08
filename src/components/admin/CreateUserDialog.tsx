@@ -35,7 +35,7 @@ const createUserSchema = z.object({
   fullName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
   email: z.string().email("Email inválido").max(255),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").max(72),
-  role: z.enum(["facilitator", "company_manager", "none"]),
+  role: z.enum(["admin", "facilitator", "company_manager", "none"]),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -164,7 +164,8 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="none">Sem perfil específico</SelectItem>
-                      <SelectItem value="facilitator">Facilitador (Admin)</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="facilitator">Facilitador</SelectItem>
                       <SelectItem value="company_manager">Gestor de Empresa</SelectItem>
                     </SelectContent>
                   </Select>
