@@ -23,7 +23,9 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isParticipant: boolean;
   managerCompanyId: string | null;
+  participantId: string | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -41,7 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isManager, setIsManager] = useState(false);
+  const [isParticipant, setIsParticipant] = useState(false);
   const [managerCompanyId, setManagerCompanyId] = useState<string | null>(null);
+  const [participantId, setParticipantId] = useState<string | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -81,6 +85,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsManager(false);
       setManagerCompanyId(null);
     }
+
+    // Check participant status (using text comparison since type might not be updated)
+    if (roleList.some(r => (r as string) === "participant")) {
+      const { data: pId } = await supabase.rpc("get_participant_id_by_user" as any, {
+        _user_id: userId,
+      });
+      setIsParticipant(true);
+      setParticipantId(pId as string || null);
+    } else {
+      setIsParticipant(false);
+      setParticipantId(null);
+    }
   };
 
   const refreshProfile = async () => {
@@ -109,7 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           setIsAdmin(false);
           setIsManager(false);
+          setIsParticipant(false);
           setManagerCompanyId(null);
+          setParticipantId(null);
         }
 
         setLoading(false);
@@ -165,7 +183,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setIsAdmin(false);
     setIsManager(false);
+    setIsParticipant(false);
     setManagerCompanyId(null);
+    setParticipantId(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -191,7 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     isAdmin,
     isManager,
+    isParticipant,
     managerCompanyId,
+    participantId,
     signUp,
     signIn,
     signOut,

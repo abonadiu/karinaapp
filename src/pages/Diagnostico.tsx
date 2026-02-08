@@ -151,6 +151,8 @@ export default function Diagnostico() {
       return (
         <DiagnosticResults
           participantName={participant?.name || "Participante"}
+          participantEmail={participant?.email}
+          accessToken={token}
           scores={scores || { dimensionScores: [], totalScore: 0, totalPercentage: 0 }}
           existingResult={existingResult}
           facilitatorProfile={facilitatorProfile}
