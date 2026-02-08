@@ -9,17 +9,20 @@ import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
 import { ScheduleFeedbackCard } from "./ScheduleFeedbackCard";
+import { CreateAccountCTA } from "./CreateAccountCTA";
 import { toast } from "sonner";
 import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
 interface DiagnosticResultsProps {
   participantName: string;
+  participantEmail?: string;
+  accessToken?: string;
   scores: DiagnosticScores;
   existingResult?: any;
   facilitatorProfile?: FacilitatorProfile | null;
 }
 
-export function DiagnosticResults({ participantName, scores, existingResult, facilitatorProfile }: DiagnosticResultsProps) {
+export function DiagnosticResults({ participantName, participantEmail, accessToken, scores, existingResult, facilitatorProfile }: DiagnosticResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const firstName = participantName.split(" ")[0];
@@ -172,6 +175,17 @@ export function DiagnosticResults({ participantName, scores, existingResult, fac
 
         {/* Recomendações */}
         <RecommendationList recommendations={recommendations} />
+
+        {/* CTA para criar conta - só aparece se não tem resultado existente (diagnóstico foi feito agora) */}
+        {!existingResult && participantEmail && accessToken && (
+          <div className="pdf-hide">
+            <CreateAccountCTA
+              participantEmail={participantEmail}
+              participantName={participantName}
+              accessToken={accessToken}
+            />
+          </div>
+        )}
 
         {/* Agendamento de Sessão de Feedback */}
         {facilitatorProfile?.calendly_url && (

@@ -573,6 +573,7 @@ export type Database = {
         }[]
       }
       get_participant_by_token: { Args: { p_token: string }; Returns: string }
+      get_participant_portal_data: { Args: { _user_id: string }; Returns: Json }
       get_pending_reminders: {
         Args: {
           p_batch_limit?: number
@@ -608,6 +609,7 @@ export type Database = {
         Returns: boolean
       }
       is_manager_of_company: { Args: { _company_id: string }; Returns: boolean }
+      is_participant: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           p_action: string

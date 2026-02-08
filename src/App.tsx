@@ -27,6 +27,11 @@ import Administracao from "./pages/Administracao";
 import LoginEmpresa from "./pages/empresa/LoginEmpresa";
 import CadastroGestor from "./pages/empresa/CadastroGestor";
 import PortalEmpresa from "./pages/empresa/PortalEmpresa";
+// Portal do Participante
+import LoginParticipante from "./pages/participante/LoginParticipante";
+import CadastroParticipante from "./pages/participante/CadastroParticipante";
+import PortalParticipante from "./pages/participante/PortalParticipante";
+import { ParticipantRoute } from "./components/auth/ParticipantRoute";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +57,9 @@ const App = () => (
             <Route path="/empresa/login" element={<LoginEmpresa />} />
             <Route path="/empresa/cadastro/:token" element={<CadastroGestor />} />
             
+            {/* Participant Portal (public routes) */}
+            <Route path="/participante/login" element={<LoginParticipante />} />
+            <Route path="/participante/cadastro/:token" element={<CadastroParticipante />} />
             
             {/* Company Manager Portal (protected) */}
             <Route path="/empresa/dashboard" element={
@@ -63,6 +71,13 @@ const App = () => (
               <CompanyManagerRoute>
                 <PortalEmpresa />
               </CompanyManagerRoute>
+            } />
+            
+            {/* Participant Portal (protected) */}
+            <Route path="/participante/portal" element={
+              <ParticipantRoute>
+                <PortalParticipante />
+              </ParticipantRoute>
             } />
             <Route
               path="/dashboard"
