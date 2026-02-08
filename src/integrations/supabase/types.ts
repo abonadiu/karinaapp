@@ -516,6 +516,20 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: boolean
       }
+      admin_remove_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      admin_set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       get_all_users: { Args: never; Returns: Json }
       get_company_activity_timeline: {
         Args: { p_company_id: string; p_limit?: number }
