@@ -10,6 +10,9 @@ import { StatusPieChart } from "@/components/analytics/StatusPieChart";
 import { CompanyComparisonChart } from "@/components/analytics/CompanyComparisonChart";
 import { GlobalRadarChart } from "@/components/analytics/GlobalRadarChart";
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
+import { CompanyDetailsTable } from "@/components/analytics/CompanyDetailsTable";
+import { ScoreEvolutionChart } from "@/components/analytics/ScoreEvolutionChart";
+import { ExportPDFButton } from "@/components/analytics/ExportPDFButton";
 import { FeedbackSessionsTab } from "@/components/feedback/FeedbackSessionsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -224,6 +227,61 @@ export default function Relatorios() {
     }));
   }, [filteredResults]);
 
+  // Company details for table
+  const companyDetails = useMemo(() => {
+    return companies.map((company) => {
+      const companyParticipants = filteredParticipants.filter(
+        (p) => p.company_id === company.id
+      );
+      const completed = companyParticipants.filter((p) => p.status === "completed");
+      const companyResults = filteredResults.filter((r) =>
+        completed.some((p) => p.id === r.participant_id)
+      );
+
+      return {
+        id: company.id,
+        name: company.name,
+        total: companyParticipants.length,
+        completed: completed.length,
+        inProgress: companyParticipants.filter((p) => p.status === "in_progress").length,
+        pending: companyParticipants.filter((p) => p.status === "pending" || p.status === "invited").length,
+        averageScore: companyResults.length > 0
+          ? companyResults.reduce((sum, r) => sum + Number(r.total_score), 0) / companyResults.length
+          : null,
+        completionRate: companyParticipants.length > 0
+          ? (completed.length / companyParticipants.length) * 100
+          : 0,
+      };
+    }).filter((c) => c.total > 0);
+  }, [companies, filteredParticipants, filteredResults]);
+
+  // Score evolution over time
+  const scoreEvolution = useMemo(() => {
+    const monthMap = new Map<string, { scores: number[]; date: Date }>();
+
+    filteredResults.forEach((result) => {
+      const participant = participants.find((p) => p.id === result.participant_id);
+      if (participant?.completed_at) {
+        const completedDate = parseISO(participant.completed_at);
+        const monthKey = format(startOfMonth(completedDate), "MMM/yy", { locale: ptBR });
+        
+        if (!monthMap.has(monthKey)) {
+          monthMap.set(monthKey, { scores: [], date: startOfMonth(completedDate) });
+        }
+        monthMap.get(monthKey)!.scores.push(Number(result.total_score));
+      }
+    });
+
+    return Array.from(monthMap.entries())
+      .map(([month, data]) => ({
+        month,
+        average: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
+        count: data.scores.length,
+        date: data.date,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [filteredResults, participants]);
+
   return (
     <DashboardLayout
       title="Relatórios"
@@ -243,13 +301,26 @@ export default function Relatorios() {
 
         <TabsContent value="metrics" className="space-y-6">
           {/* Filters */}
-          <AnalyticsFilters
-            companies={companies}
-            selectedPeriod={selectedPeriod}
-            selectedCompany={selectedCompany}
-            onPeriodChange={setSelectedPeriod}
-            onCompanyChange={setSelectedCompany}
-          />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <AnalyticsFilters
+              companies={companies}
+              selectedPeriod={selectedPeriod}
+              selectedCompany={selectedCompany}
+              onPeriodChange={setSelectedPeriod}
+              onCompanyChange={setSelectedCompany}
+            />
+            <ExportPDFButton
+              kpiData={{
+                totalParticipants,
+                completedParticipants,
+                completionRate,
+                averageCompletionDays,
+              }}
+              companyDetails={companyDetails}
+              selectedPeriod={selectedPeriod}
+              selectedCompany={selectedCompany}
+            />
+          </div>
 
           {/* KPI Cards */}
           <KPICards
@@ -271,6 +342,12 @@ export default function Relatorios() {
             <CompanyComparisonChart data={companyData} isLoading={isLoading} />
             <GlobalRadarChart data={dimensionData} isLoading={isLoading} />
           </div>
+
+          {/* Company Details Table */}
+          <CompanyDetailsTable data={companyDetails} isLoading={isLoading} />
+
+          {/* Score Evolution Chart */}
+          <ScoreEvolutionChart data={scoreEvolution} isLoading={isLoading} />
         </TabsContent>
 
         <TabsContent value="feedback">
