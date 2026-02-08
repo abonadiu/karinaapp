@@ -1,9 +1,43 @@
 
-## Vincular Gestor a Empresa na Edicao de Usuario
+## Participantes com Contas no Sistema
 
 ### Resumo
 
-Adicionar funcionalidade no dialog de edicao de usuario para vincular/desvincular um gestor (`company_manager`) a uma empresa existente.
+Evoluir o modelo de participantes para que tenham contas no sistema e possam acessar seus resultados posteriormente, mantendo retrocompatibilidade com o fluxo atual de token.
+
+---
+
+## Beneficios da Mudanca
+
+| Aspecto | Atual | Proposto |
+|---------|-------|----------|
+| Acesso aos resultados | Apenas via link unico | Login permanente |
+| Historico | Nao disponivel | Multiplos diagnosticos |
+| Seguranca | Token pode ser compartilhado | Autenticacao real |
+| Experiencia | Link perdido = sem acesso | Recuperacao de senha |
+| Engajamento | Unico contato | Relacionamento continuo |
+
+---
+
+## Arquitetura Proposta
+
+### Fluxo do Participante
+
+```text
+1. Facilitador cadastra participante
+        |
+        v
+2. Participante recebe email com link de cadastro
+        |
+        v
+3. Participante cria conta (senha) e faz diagnostico
+        |
+        v
+4. Apos completar, pode fazer login a qualquer momento
+        |
+        v
+5. Portal do Participante mostra resultados, historico, etc.
+```
 
 ---
 
@@ -11,119 +45,103 @@ Adicionar funcionalidade no dialog de edicao de usuario para vincular/desvincula
 
 ### 1. Banco de Dados
 
-**Atualizar funcao `get_all_users`** para retornar informacoes da empresa vinculada:
+**Adicionar coluna `user_id` na tabela `participants`:**
 
 ```sql
-CREATE OR REPLACE FUNCTION public.get_all_users()
-RETURNS json
-AS $$
-  SELECT json_agg(
-    json_build_object(
-      'user_id', au.id,
-      'email', au.email,
-      'full_name', p.full_name,
-      'roles', (SELECT COALESCE(json_agg(ur.role), '[]') FROM user_roles ur WHERE ur.user_id = au.id),
-      'created_at', au.created_at,
-      'last_sign_in', au.last_sign_in_at,
-      'company_id', cm.company_id,      -- NOVO
-      'company_name', c.name            -- NOVO
-    )
-  )
-  FROM auth.users au
-  LEFT JOIN profiles p ON p.user_id = au.id
-  LEFT JOIN company_managers cm ON cm.user_id = au.id AND cm.status = 'active'
-  LEFT JOIN companies c ON c.id = cm.company_id;
-$$;
+ALTER TABLE participants 
+ADD COLUMN user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
 ```
 
-**Criar funcao `admin_link_user_to_company`** para vincular usuario a empresa:
+**Adicionar role `participant` ao enum:**
 
 ```sql
-CREATE FUNCTION admin_link_user_to_company(
-  p_user_id uuid, 
-  p_company_id uuid,
-  p_name text,
-  p_email text
-) RETURNS boolean
+ALTER TYPE app_role ADD VALUE 'participant';
 ```
 
-**Criar funcao `admin_unlink_user_from_company`** para desvincular:
+**Funcao para vincular participante a usuario:**
 
 ```sql
-CREATE FUNCTION admin_unlink_user_from_company(p_user_id uuid) RETURNS boolean
+CREATE FUNCTION activate_participant_account(p_token text, p_user_id uuid)
+RETURNS boolean
 ```
 
----
-
-### 2. Frontend - EditRoleDialog.tsx
-
-Adicionar secao condicional quando `company_manager` estiver selecionado:
-
-- Select para escolher empresa (buscar lista de empresas)
-- Mostrar empresa atualmente vinculada
-- Botao para desvincular
-
-**Novo fluxo:**
-
-```text
-+---------------------------+
-|   Editar Roles            |
-+---------------------------+
-| [ ] Administrador         |
-| [ ] Facilitador           |
-| [x] Gestor de Empresa     |  <-- Quando marcado, exibe:
-|                           |
-| Empresa vinculada:        |
-| [TechCorp Brasil    v]    |  <-- Select com empresas
-|                           |
-+---------------------------+
-```
+**Atualizar RLS:**
+- Participantes podem ver seus proprios dados
+- Participantes podem ver seus proprios resultados
 
 ---
 
-### 3. Frontend - AdminUsers.tsx
+### 2. Novas Paginas Frontend
 
-Atualizar interface `UserData` para incluir empresa:
-
-```typescript
-interface UserData {
-  user_id: string;
-  email: string;
-  full_name: string | null;
-  roles: string[] | null;
-  created_at: string;
-  last_sign_in: string | null;
-  company_id: string | null;    // NOVO
-  company_name: string | null;  // NOVO
-}
-```
-
-Exibir empresa na tabela (na coluna de roles ou como coluna separada).
+| Pagina | Rota | Descricao |
+|--------|------|-----------|
+| Login Participante | `/participante/login` | Login especifico para participantes |
+| Cadastro Participante | `/participante/cadastro/:token` | Criar conta via link do convite |
+| Portal Participante | `/participante/portal` | Dashboard com resultados |
 
 ---
 
-## Arquivos a Modificar
+### 3. Portal do Participante
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `supabase/migrations/...` | Nova migracao SQL |
-| `src/components/admin/EditRoleDialog.tsx` | Adicionar selecao de empresa |
-| `src/components/admin/AdminUsers.tsx` | Exibir empresa na tabela |
+O portal tera:
 
----
-
-## Consideracoes de Seguranca
-
-1. Funcoes SQL usam `SECURITY DEFINER` e verificam role `admin`
-2. Validacao server-side antes de vincular/desvincular
-3. Registro no audit log para todas as operacoes
-4. Um usuario pode ter apenas uma empresa vinculada como gestor
+- **Resultado Atual**: Radar chart, dimensoes, pontuacoes
+- **Historico**: Lista de diagnosticos anteriores (para futuro)
+- **Recomendacoes**: Praticas personalizadas
+- **Agendar Feedback**: Se facilitador tiver Calendly configurado
+- **Download PDF**: Baixar relatorio
 
 ---
 
-## Comportamento Esperado
+### 4. Fluxo de Convite Atualizado
 
-1. Ao marcar `Gestor de Empresa`, aparece select de empresas
-2. Ao desmarcar, pergunta se deseja remover vinculo existente
-3. Na tabela de usuarios, gestores mostram nome da empresa vinculada
-4. Se gestor nao tem empresa, exibe aviso para vincular
+**Opcao A - Convite com criacao de conta:**
+1. Facilitador envia convite
+2. Email inclui link `/participante/cadastro/{token}`
+3. Participante cria senha
+4. Sistema vincula `user_id` ao participante
+5. Redireciona para diagnostico
+
+**Opcao B - Manter compatibilidade (recomendado):**
+1. Link original `/diagnostico/{token}` continua funcionando
+2. Apos completar, oferece opcao de criar conta
+3. Se criar, pode acessar portal depois
+
+---
+
+### 5. Componente CompanyManagerRoute Atualizado
+
+Criar `ParticipantRoute` similar para proteger rotas do participante.
+
+---
+
+## Arquivos a Criar/Modificar
+
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `supabase/migrations/...` | Criar | Adicionar user_id, role, funcoes |
+| `src/pages/participante/LoginParticipante.tsx` | Criar | Pagina de login |
+| `src/pages/participante/CadastroParticipante.tsx` | Criar | Cadastro via token |
+| `src/pages/participante/PortalParticipante.tsx` | Criar | Dashboard de resultados |
+| `src/components/auth/ParticipantRoute.tsx` | Criar | Protecao de rotas |
+| `src/contexts/AuthContext.tsx` | Modificar | Adicionar isParticipant |
+| `src/App.tsx` | Modificar | Adicionar novas rotas |
+| `src/components/diagnostic/DiagnosticResults.tsx` | Modificar | Adicionar CTA para criar conta |
+
+---
+
+## Seguranca
+
+1. **RLS para participantes**: Ver apenas seus proprios dados
+2. **Role separada**: `participant` isolada de outras roles
+3. **Vinculacao segura**: Somente via token valido
+4. **Sem acesso a dados de outros**: Politicas restritivas
+
+---
+
+## Consideracoes de Migracao
+
+- Participantes existentes sem conta continuam funcionando via token
+- Ao acessar resultado existente, podem criar conta opcionalmente
+- Dados historicos preservados
+- Sem breaking changes no fluxo atual
