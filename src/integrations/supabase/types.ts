@@ -572,6 +572,17 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      get_company_participants_anonymized: {
+        Args: { p_company_id: string; p_status?: string }
+        Returns: {
+          completed_at: string
+          department: string
+          invited_at: string
+          row_number: number
+          started_at: string
+          status: string
+        }[]
+      }
       get_company_percentile: {
         Args: { p_company_id: string }
         Returns: number

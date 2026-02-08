@@ -14,6 +14,7 @@ import {
 
 import { PortalLayout } from "@/components/empresa/PortalLayout";
 import { TeamProgressCard } from "@/components/empresa/TeamProgressCard";
+import { ParticipantStatusList } from "@/components/empresa/ParticipantStatusList";
 import { ComparisonRadarChart } from "@/components/empresa/ComparisonRadarChart";
 import { PercentilePositionCard } from "@/components/empresa/PercentilePositionCard";
 import { BenchmarkComparisonCard } from "@/components/empresa/BenchmarkComparisonCard";
@@ -79,6 +80,7 @@ export default function PortalEmpresa() {
   const [percentile, setPercentile] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -266,12 +268,14 @@ export default function PortalEmpresa() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         <TeamProgressCard
           icon={Users}
           title="Total de Colaboradores"
           value={stats?.total_participants || 0}
           variant="default"
+          onClick={() => setSelectedFilter(selectedFilter === "all" ? null : "all")}
+          isActive={selectedFilter === "all"}
         />
         <TeamProgressCard
           icon={CheckCircle}
@@ -279,20 +283,37 @@ export default function PortalEmpresa() {
           value={stats?.completed || 0}
           subtitle={`${completionRate}% do total`}
           variant="success"
+          onClick={() => setSelectedFilter(selectedFilter === "completed" ? null : "completed")}
+          isActive={selectedFilter === "completed"}
         />
         <TeamProgressCard
           icon={Clock}
           title="Em Andamento"
           value={stats?.in_progress || 0}
           variant="warning"
+          onClick={() => setSelectedFilter(selectedFilter === "in_progress" ? null : "in_progress")}
+          isActive={selectedFilter === "in_progress"}
         />
         <TeamProgressCard
           icon={AlertCircle}
           title="Pendentes"
           value={stats?.pending || 0}
           variant="muted"
+          onClick={() => setSelectedFilter(selectedFilter === "pending" ? null : "pending")}
+          isActive={selectedFilter === "pending"}
         />
       </div>
+
+      {/* Participant Status List (when filter is active) */}
+      {selectedFilter && effectiveCompanyId && (
+        <div className="mb-8">
+          <ParticipantStatusList
+            companyId={effectiveCompanyId}
+            filter={selectedFilter === "all" ? null : selectedFilter}
+            onClose={() => setSelectedFilter(null)}
+          />
+        </div>
+      )}
 
       {/* Benchmark Comparison Section */}
       {(dimensionAverages.length > 0 || benchmarkData) && (
