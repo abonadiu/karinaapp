@@ -10,20 +10,26 @@ import {
   Loader2,
   RefreshCw,
   Eye,
-  ExternalLink
+  MoreHorizontal,
+  UserPlus,
+  Pencil
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
 import { useImpersonation, ImpersonatedRole } from "@/contexts/ImpersonationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { CreateUserDialog } from "./CreateUserDialog";
+import { EditRoleDialog } from "./EditRoleDialog";
 
 interface UserData {
   user_id: string;
@@ -37,7 +43,11 @@ interface UserData {
 export function AdminUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const { startImpersonation } = useImpersonation();
+  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
   const fetchUsers = async () => {
@@ -159,10 +169,16 @@ export function AdminUsers() {
             {users.length} usuário(s) cadastrado(s)
           </p>
         </div>
-        <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Usuário
+          </Button>
+        </div>
       </div>
 
       {/* Users Table */}
@@ -229,7 +245,7 @@ export function AdminUsers() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-1">
                         {user.role && (
                           <Button 
                             variant="ghost" 
@@ -241,6 +257,24 @@ export function AdminUsers() {
                             Emular
                           </Button>
                         )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setEditRoleDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar Perfil
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -256,6 +290,21 @@ export function AdminUsers() {
           Nenhum usuário encontrado
         </div>
       )}
+
+      {/* Dialogs */}
+      <CreateUserDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={fetchUsers}
+      />
+
+      <EditRoleDialog
+        open={editRoleDialogOpen}
+        onOpenChange={setEditRoleDialogOpen}
+        user={selectedUser}
+        currentUserId={currentUser?.id || ""}
+        onSuccess={fetchUsers}
+      />
     </div>
   );
 }
