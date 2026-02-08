@@ -124,6 +124,31 @@ export function AdminUsers() {
       
       toast.success(`Emulando visão de ${user.full_name || user.email}`);
       navigate("/admin");
+    } else if (roles.includes("participant")) {
+      // Buscar dados do participante
+      const { data: participant } = await supabase
+        .from("participants")
+        .select("id, company_id, companies(name)")
+        .eq("user_id", user.user_id)
+        .single();
+      
+      if (participant) {
+        const companyData = participant.companies as { name: string } | null;
+        startImpersonation({
+          userId: user.user_id,
+          email: user.email,
+          fullName: user.full_name,
+          role: "participant",
+          companyId: participant.company_id,
+          companyName: companyData?.name || "Empresa",
+          participantToken: participant.id,
+        });
+        
+        toast.success(`Emulando visão de ${user.full_name || user.email}`);
+        navigate("/participante/portal");
+      } else {
+        toast.error("Este participante não possui dados vinculados");
+      }
     } else {
       toast.info("Este usuário não possui um perfil específico para emular");
     }
@@ -188,7 +213,7 @@ export function AdminUsers() {
 
   const hasEmulableRole = (roles: string[] | null) => {
     if (!roles || roles.length === 0) return false;
-    return roles.some(r => ['admin', 'facilitator', 'company_manager'].includes(r));
+    return roles.some(r => ['admin', 'facilitator', 'company_manager', 'participant'].includes(r));
   };
 
   if (isLoading) {
