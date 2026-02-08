@@ -18,7 +18,7 @@ import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { AdminSettings } from "@/components/admin/AdminSettings";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 

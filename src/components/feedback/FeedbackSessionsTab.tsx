@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { subDays } from "date-fns";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 import { FeedbackKPICards } from "./FeedbackKPICards";
 import { FeedbackFilters } from "./FeedbackFilters";
 import { FeedbackSessionsTable, FeedbackSession } from "./FeedbackSessionsTable";

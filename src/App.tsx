@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { CompanyManagerRoute } from "@/components/auth/CompanyManagerRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -47,9 +48,13 @@ const App = () => (
             <Route path="/empresa/login" element={<LoginEmpresa />} />
             <Route path="/empresa/cadastro/:token" element={<CadastroGestor />} />
             
+            
             {/* Company Manager Portal (protected) */}
-            <Route path="/empresa/dashboard" element={<PortalEmpresa />} />
-            {/* Protected routes */}
+            <Route path="/empresa/dashboard" element={
+              <CompanyManagerRoute>
+                <PortalEmpresa />
+              </CompanyManagerRoute>
+            } />
             <Route
               path="/dashboard"
               element={
