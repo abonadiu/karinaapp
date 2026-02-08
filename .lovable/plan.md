@@ -1,184 +1,172 @@
 
-
-## Corrigir Emulacao de Participante - Permitir Acesso Direto
+## Tornar Cards de KPI Clicaveis no Portal da Empresa
 
 ### Problema Atual
 
-Quando um admin clica em "Emular" um participante, o sistema:
-1. Armazena os dados do participante no contexto de emulacao
-2. Redireciona para `/participante/portal`
-3. **Erro**: O `ParticipantRoute` nao verifica se esta em modo de emulacao
-4. **Erro**: O `PortalParticipante` busca dados pelo `user.id` do admin (que nao e participante)
-
-Resultado: Admin e redirecionado para tela de login, mesmo estando em modo de emulacao.
+Os cards de estatisticas (Total de Colaboradores, Concluidos, Em Andamento, Pendentes) no Portal da Empresa sao apenas visuais. O usuario espera poder clicar neles para ver mais detalhes ou filtrar a lista de colaboradores.
 
 ---
 
-### Solucao
+### Solucao Proposta
 
-#### 1. Atualizar ParticipantRoute
+Adicionar interatividade aos cards de KPI para que, ao clicar, filtrem uma lista de colaboradores (anonimizados) ou exibam um modal/secao com mais detalhes.
 
-**Arquivo**: `src/components/auth/ParticipantRoute.tsx`
+Como o Portal da Empresa foi desenhado para manter a **privacidade dos participantes** (gestores so veem dados agregados), a solucao mantera esse principio exibindo apenas informacoes anonimizadas.
 
-Seguindo o mesmo padrao do `CompanyManagerRoute`, adicionar verificacao de emulacao:
+---
+
+### Implementacao
+
+#### 1. Tornar `TeamProgressCard` Clicavel
+
+**Arquivo**: `src/components/empresa/TeamProgressCard.tsx`
+
+Adicionar prop `onClick` opcional ao componente:
 
 ```typescript
-import { useImpersonation } from "@/contexts/ImpersonationContext";
-
-export function ParticipantRoute({ children }: ParticipantRouteProps) {
-  const { user, loading, isParticipant } = useAuth();
-  const { isImpersonating, impersonatedUser } = useImpersonation();
-
-  // Permitir acesso se admin esta emulando um participante
-  if (isImpersonating && impersonatedUser?.role === "participant") {
-    return <>{children}</>;
-  }
-
-  // Resto da logica existente...
+interface TeamProgressCardProps {
+  // ... props existentes
+  onClick?: () => void;
+  clickable?: boolean;
 }
 ```
 
+Quando `onClick` estiver presente, o card tera:
+- Cursor pointer
+- Efeito hover mais pronunciado
+- Seta ou indicador visual de que e clicavel
+
 ---
 
-#### 2. Atualizar PortalParticipante
+#### 2. Criar Secao de Lista Filtrada no Dashboard
 
-**Arquivo**: `src/pages/participante/PortalParticipante.tsx`
+**Arquivo**: `src/pages/empresa/PortalEmpresa.tsx`
 
-Modificar para usar dados do participante emulado quando em modo de emulacao:
-
-| Situacao | Fonte de Dados |
-|----------|----------------|
-| Usuario normal | Buscar via `user.id` |
-| Admin emulando | Usar `impersonatedUser.participantToken` (ID do participante) |
-
-**Mudancas principais**:
-
-1. Importar e usar o contexto de emulacao
-2. Criar variavel `effectiveParticipantId` (como no `PortalEmpresa`)
-3. Modificar `fetchPortalData` para usar uma RPC diferente quando emulando (buscar por participant.id em vez de user_id)
-4. Ocultar botao "Sair" quando estiver emulando (admin usa o banner para encerrar)
+Adicionar estado para controlar o filtro selecionado:
 
 ```typescript
-const { isImpersonating, impersonatedUser } = useImpersonation();
-
-// Se emulando, usar o participantToken; senao, null (buscar por user_id)
-const effectiveParticipantId = isImpersonating && impersonatedUser?.role === "participant"
-  ? impersonatedUser.participantToken
-  : null;
-
-// Modificar fetchPortalData para usar effectiveParticipantId quando disponivel
-const fetchPortalData = async () => {
-  if (effectiveParticipantId) {
-    // Buscar direto pelo ID do participante
-    const { data } = await supabase.rpc("get_participant_portal_data_by_id", {
-      _participant_id: effectiveParticipantId,
-    });
-  } else {
-    // Buscar pelo user_id (fluxo normal)
-    const { data } = await supabase.rpc("get_participant_portal_data", {
-      _user_id: user!.id,
-    });
-  }
-};
+const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 ```
+
+Ao clicar em um card, atualizar o filtro:
+
+| Card Clicado | Filtro Aplicado |
+|--------------|-----------------|
+| Total de Colaboradores | `null` (mostra todos) |
+| Concluidos | `"completed"` |
+| Em Andamento | `"in_progress"` |
+| Pendentes | `"pending"` |
 
 ---
 
-#### 3. Criar Funcao RPC Alternativa
+#### 3. Exibir Lista Anonimizada de Colaboradores
 
-**Banco de Dados**: Nova migracao SQL
+Criar uma nova secao no dashboard que aparece quando um filtro esta ativo:
 
-Criar uma funcao que busca dados do portal usando o ID do participante diretamente:
+```text
++---------------------------------------------+
+| Colaboradores: Concluidos (6)          [X]  |
++---------------------------------------------+
+| Colaborador 1  | Concluido | 15/01/2024     |
+| Colaborador 2  | Concluido | 14/01/2024     |
+| ...                                         |
++---------------------------------------------+
+```
+
+**Dados exibidos** (sem identificacao pessoal):
+- Numero sequencial ("Colaborador 1", "Colaborador 2")
+- Status
+- Data de conclusao (se aplicavel)
+- Departamento (se disponivel, mas sem nome)
+
+---
+
+#### 4. Criar RPC para Buscar Lista Anonimizada
+
+**Banco de Dados**: Nova funcao SQL
 
 ```sql
-CREATE OR REPLACE FUNCTION get_participant_portal_data_by_id(_participant_id uuid)
-RETURNS json AS $$
-DECLARE
-  result json;
+CREATE OR REPLACE FUNCTION get_company_participants_anonymized(
+  p_company_id uuid,
+  p_status text DEFAULT NULL
+)
+RETURNS TABLE (
+  row_number bigint,
+  status text,
+  department text,
+  completed_at timestamptz
+) AS $$
 BEGIN
-  SELECT json_build_object(
-    'participant', json_build_object(
-      'id', p.id,
-      'name', p.name,
-      'email', p.email,
-      'company_name', c.name,
-      'status', p.status,
-      'completed_at', p.completed_at
-    ),
-    'result', (
-      SELECT json_build_object(
-        'id', dr.id,
-        'total_score', dr.total_score,
-        'dimension_scores', dr.dimension_scores,
-        'completed_at', dr.completed_at
-      )
-      FROM diagnostic_results dr
-      WHERE dr.participant_id = p.id
-      ORDER BY dr.completed_at DESC
-      LIMIT 1
-    ),
-    'facilitator', json_build_object(
-      'name', prof.full_name,
-      'calendly_url', cs.calendly_link,
-      'logo_url', prof.logo_url
-    )
-  ) INTO result
+  RETURN QUERY
+  SELECT 
+    row_number() OVER (ORDER BY p.created_at) as row_number,
+    p.status::text,
+    p.department,
+    p.completed_at
   FROM participants p
-  JOIN companies c ON c.id = p.company_id
-  LEFT JOIN profiles prof ON prof.user_id = c.owner_id
-  LEFT JOIN calendly_settings cs ON cs.user_id = c.owner_id
-  WHERE p.id = _participant_id;
-  
-  RETURN result;
+  WHERE p.company_id = p_company_id
+    AND (p_status IS NULL OR p.status = p_status)
+  ORDER BY p.created_at;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ---
 
-### Arquivos a Modificar
+### Arquivos a Criar/Modificar
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/auth/ParticipantRoute.tsx` | Adicionar verificacao de emulacao |
-| `src/pages/participante/PortalParticipante.tsx` | Usar dados de emulacao quando disponivel |
-| Migracao SQL | Criar funcao `get_participant_portal_data_by_id` |
+| `src/components/empresa/TeamProgressCard.tsx` | Adicionar props `onClick` e `clickable` |
+| `src/pages/empresa/PortalEmpresa.tsx` | Estado de filtro + renderizar lista filtrada |
+| `src/components/empresa/ParticipantStatusList.tsx` | Novo componente para lista anonimizada |
+| Migracao SQL | Criar funcao `get_company_participants_anonymized` |
 
 ---
 
-### Fluxo Corrigido
+### Fluxo de Uso
 
 ```text
-Admin clica "Emular" no participante
+Gestor acessa Portal da Empresa
          |
          v
-Context armazena: { role: "participant", participantToken: "xxx" }
+Ve cards de KPI (agora clicaveis)
+         |
+    Clica em "Concluidos (6)"
          |
          v
-Navega para /participante/portal
+Secao aparece abaixo dos cards:
+"Mostrando 6 colaboradores com status: Concluidos"
          |
          v
-ParticipantRoute verifica: isImpersonating && role === "participant"?
+Lista anonimizada:
+- Colaborador 1 | Comercial | 15/01/2024
+- Colaborador 2 | TI | 14/01/2024
+- ...
          |
-    SIM  v
-         |
-Permite acesso ao PortalParticipante
-         |
-         v
-PortalParticipante usa participantToken para buscar dados
+    Clica no [X] ou em outro card
          |
          v
-Exibe dados do participante emulado
+Lista e ocultada ou filtro muda
 ```
+
+---
+
+### Consideracoes de Privacidade
+
+A implementacao mantem o principio de privacidade do Portal da Empresa:
+
+- Nenhum nome ou email de participante e exibido
+- Apenas dados agregados e anonimizados
+- Departamento pode ser exibido (opcional) por ser informacao estrutural, nao pessoal
+- Data de conclusao ajuda a ver cronologia sem identificar pessoas
 
 ---
 
 ### Resultado Esperado
 
-1. Admin clica em "Emular" para um participante
-2. E redirecionado diretamente para o portal do participante
-3. Ve os dados daquele participante especifico
-4. Banner de emulacao aparece no topo
-5. Botao "Sair" fica oculto (usa "Encerrar Emulacao" no banner)
-6. Ao encerrar, volta para o painel admin
-
+1. Cards de KPI tem cursor pointer e efeito hover
+2. Ao clicar, uma secao de lista aparece filtrada pelo status
+3. A lista mostra dados anonimizados (Colaborador 1, 2, etc.)
+4. Clicar em outro card muda o filtro
+5. Clicar no mesmo card ou no X fecha a lista
