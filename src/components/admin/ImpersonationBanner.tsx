@@ -33,7 +33,7 @@ export function ImpersonationBanner() {
 
   const handleStop = () => {
     stopImpersonation();
-    navigate("/administracao");
+    navigate("/admin");
   };
 
   return (
