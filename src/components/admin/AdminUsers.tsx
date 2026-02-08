@@ -39,6 +39,8 @@ interface UserData {
   roles: string[] | null;
   created_at: string;
   last_sign_in: string | null;
+  company_id: string | null;
+  company_name: string | null;
 }
 
 export function AdminUsers() {
@@ -126,7 +128,8 @@ export function AdminUsers() {
     }
   };
 
-  const getRoleBadges = (roles: string[] | null) => {
+  const getRoleBadges = (user: UserData) => {
+    const roles = user.roles;
     if (!roles || roles.length === 0) {
       return (
         <Badge variant="outline">
@@ -153,6 +156,9 @@ export function AdminUsers() {
           <Badge variant="secondary">
             <Building2 className="h-3 w-3 mr-1" />
             Gestor
+            {user.company_name && (
+              <span className="ml-1 text-muted-foreground">• {user.company_name}</span>
+            )}
           </Badge>
         )}
       </div>
@@ -254,7 +260,7 @@ export function AdminUsers() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {getRoleBadges(user.roles)}
+                      {getRoleBadges(user)}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
