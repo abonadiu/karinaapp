@@ -1,4 +1,4 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,8 @@ interface TeamProgressCardProps {
   value: number;
   subtitle?: string;
   variant?: "default" | "success" | "warning" | "muted";
+  onClick?: () => void;
+  isActive?: boolean;
 }
 
 const variantStyles = {
@@ -38,12 +40,22 @@ export function TeamProgressCard({
   title, 
   value, 
   subtitle,
-  variant = "default" 
+  variant = "default",
+  onClick,
+  isActive = false
 }: TeamProgressCardProps) {
   const styles = variantStyles[variant];
+  const isClickable = !!onClick;
 
   return (
-    <Card className="shadow-warm">
+    <Card 
+      className={cn(
+        "shadow-warm transition-all duration-200",
+        isClickable && "cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/50",
+        isActive && "ring-2 ring-primary border-primary"
+      )}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <div className={cn("p-3 rounded-lg", styles.iconBg)}>
@@ -58,6 +70,12 @@ export function TeamProgressCard({
               <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
             )}
           </div>
+          {isClickable && (
+            <ChevronRight className={cn(
+              "h-5 w-5 text-muted-foreground transition-transform",
+              isActive && "rotate-90 text-primary"
+            )} />
+          )}
         </div>
       </CardContent>
     </Card>
