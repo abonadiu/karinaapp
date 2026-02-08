@@ -15,7 +15,7 @@ import { ScoreEvolutionChart } from "@/components/analytics/ScoreEvolutionChart"
 import { ExportPDFButton } from "@/components/analytics/ExportPDFButton";
 import { FeedbackSessionsTab } from "@/components/feedback/FeedbackSessionsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Participant {

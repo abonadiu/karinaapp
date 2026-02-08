@@ -19,7 +19,7 @@ import { PercentilePositionCard } from "@/components/empresa/PercentilePositionC
 import { BenchmarkComparisonCard } from "@/components/empresa/BenchmarkComparisonCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { generateTeamPDF } from "@/lib/team-pdf-generator";
@@ -62,9 +62,8 @@ interface ComparisonDimension {
 
 export default function PortalEmpresa() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, managerCompanyId } = useAuth();
   
-  const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [stats, setStats] = useState<AggregateStats | null>(null);
   const [dimensionAverages, setDimensionAverages] = useState<DimensionAverage[]>([]);
@@ -76,55 +75,45 @@ export default function PortalEmpresa() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return;
+      // Use managerCompanyId from AuthContext (already validated by CompanyManagerRoute)
+      if (!user || !managerCompanyId) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        // 1. Get manager's company ID
-        const { data: companyIdData, error: companyIdError } = await supabase
-          .rpc('get_manager_company_id', { _user_id: user.id });
-
-        if (companyIdError) throw companyIdError;
-
-        if (!companyIdData) {
-          toast.error("Você não está associado a nenhuma empresa");
-          navigate("/empresa/login");
-          return;
-        }
-
-        setCompanyId(companyIdData);
-
-        // 2. Get company name
+        // Get company name
         const { data: companyData, error: companyError } = await supabase
           .from("companies")
           .select("name")
-          .eq("id", companyIdData)
+          .eq("id", managerCompanyId)
           .single();
 
         if (companyError) throw companyError;
         setCompanyName(companyData?.name || "Sua Empresa");
 
-        // 3. Get aggregate stats
+        // Get aggregate stats
         const { data: statsData, error: statsError } = await supabase
-          .rpc('get_company_aggregate_stats', { p_company_id: companyIdData });
+          .rpc('get_company_aggregate_stats', { p_company_id: managerCompanyId });
 
         if (statsError) throw statsError;
         if (statsData) {
           setStats(statsData as unknown as AggregateStats);
         }
 
-        // 4. Get dimension averages
+        // Get dimension averages
         const { data: avgData, error: avgError } = await supabase
-          .rpc('get_company_dimension_averages', { p_company_id: companyIdData });
+          .rpc('get_company_dimension_averages', { p_company_id: managerCompanyId });
 
         if (avgError) throw avgError;
         if (avgData && Array.isArray(avgData)) {
           setDimensionAverages(avgData as unknown as DimensionAverage[]);
         }
 
-        // 5. Get activity timeline
+        // Get activity timeline
         const { data: activityData, error: activityError } = await supabase
           .rpc('get_company_activity_timeline', { 
-            p_company_id: companyIdData,
+            p_company_id: managerCompanyId,
             p_limit: 5
           });
 
@@ -133,7 +122,7 @@ export default function PortalEmpresa() {
           setActivity(activityData as unknown as ActivityItem[]);
         }
 
-        // 6. Get global benchmark
+        // Get global benchmark
         const { data: benchData, error: benchError } = await supabase
           .rpc('get_global_benchmark');
 
@@ -142,9 +131,9 @@ export default function PortalEmpresa() {
           setBenchmarkData(benchData as unknown as BenchmarkData);
         }
 
-        // 7. Get company percentile
+        // Get company percentile
         const { data: percData, error: percError } = await supabase
-          .rpc('get_company_percentile', { p_company_id: companyIdData });
+          .rpc('get_company_percentile', { p_company_id: managerCompanyId });
 
         if (percError) throw percError;
         setPercentile(percData as number | null);
@@ -157,13 +146,13 @@ export default function PortalEmpresa() {
       }
     };
 
-    if (!authLoading) {
+    if (!authLoading && managerCompanyId) {
       fetchData();
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, managerCompanyId]);
 
   const handleDownloadReport = async () => {
-    if (!companyId || !stats || stats.completed === 0) {
+    if (!managerCompanyId || !stats || stats.completed === 0) {
       toast.error("Não há resultados suficientes para gerar o relatório");
       return;
     }

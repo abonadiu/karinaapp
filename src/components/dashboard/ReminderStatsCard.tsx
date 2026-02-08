@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 
 interface ReminderStats {
   total: number;
