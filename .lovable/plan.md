@@ -1,134 +1,112 @@
 
 
-## Corrigir Sistema de Participantes no Admin
+## Adicionar Emulacao para Participantes
 
-### Problemas Identificados
+### Problema
 
-Ao analisar o código e banco de dados, identifiquei os seguintes problemas:
+O botao "Emular" nao aparece para usuarios com role `participant` porque:
 
-| Problema | Status | Causa |
-|----------|--------|-------|
-| Role nao aparece na tabela | UI incompleta | `getRoleBadges` nao renderiza badge para `participant` |
-| Nao pede empresa na criacao | Logica ausente | `CreateUserDialog` nao tem campo de empresa para participantes |
-| Nao aparece empresa na edicao | Logica incompleta | `EditRoleDialog` so mostra empresa para `company_manager` |
-| Tabela participants sem user_id | Migracao pendente | Coluna `user_id` nao existe na tabela |
-
-**Nota importante**: A role `participant` **foi salva corretamente** no banco de dados - o problema e apenas visual na UI.
+1. A funcao `hasEmulableRole` nao inclui `participant` na lista de roles emulaveis
+2. A funcao `handleImpersonate` nao tem logica para emular participantes
 
 ---
 
 ### Solucao
 
-#### 1. Adicionar Badge para Participante na Tabela
+#### 1. Atualizar hasEmulableRole
 
 **Arquivo**: `src/components/admin/AdminUsers.tsx`
 
-Adicionar badge para role `participant` na funcao `getRoleBadges`:
+Adicionar `participant` a lista de roles emulaveis:
 
 ```typescript
-{roles.includes('participant') && (
-  <Badge variant="outline" className="border-green-600 text-green-600">
-    <Users className="h-3 w-3 mr-1" />
-    Participante
-    {/* Se tiver empresa vinculada, mostrar */}
-  </Badge>
-)}
+const hasEmulableRole = (roles: string[] | null) => {
+  if (!roles || roles.length === 0) return false;
+  return roles.some(r => ['admin', 'facilitator', 'company_manager', 'participant'].includes(r));
+};
 ```
 
 ---
 
-#### 2. Adicionar Campo de Empresa no CreateUserDialog
+#### 2. Adicionar Logica de Emulacao para Participante
 
-**Arquivo**: `src/components/admin/CreateUserDialog.tsx`
+**Arquivo**: `src/components/admin/AdminUsers.tsx`
 
-Quando o role selecionado for `participant` ou `company_manager`, mostrar um dropdown para selecionar a empresa:
-
-- Adicionar estado para `selectedCompanyId`
-- Carregar lista de empresas
-- Mostrar dropdown condicionalmente
-- Enviar `companyId` para a edge function
-
----
-
-#### 3. Atualizar Edge Function para Vincular Participante a Empresa
-
-**Arquivo**: `supabase/functions/admin-create-user/index.ts`
-
-Adicionar logica para:
-- Receber `companyId` no request
-- Se role for `participant` e tiver `companyId`, criar registro na tabela `participants`
-- Se role for `company_manager` e tiver `companyId`, vincular via `admin_link_user_to_company`
-
----
-
-#### 4. Mostrar Empresa na Edicao para Participantes
-
-**Arquivo**: `src/components/admin/EditRoleDialog.tsx`
-
-Expandir a logica de selecao de empresa para incluir role `participant`:
+Adicionar tratamento na funcao `handleImpersonate` para emular participantes:
 
 ```typescript
-{(selectedRoles.has("company_manager") || selectedRoles.has("participant")) && (
-  <div className="mt-4 p-3 rounded-lg border bg-muted/30">
-    {/* Selector de empresa */}
-  </div>
-)}
+} else if (roles.includes("participant")) {
+  // Buscar dados do participante
+  const { data: participant } = await supabase
+    .from("participants")
+    .select("id, company_id, companies(name)")
+    .eq("user_id", user.user_id)
+    .single();
+  
+  if (participant) {
+    startImpersonation({
+      userId: user.user_id,
+      email: user.email,
+      fullName: user.full_name,
+      role: "participant",
+      companyId: participant.company_id,
+      companyName: participant.companies?.name || "Empresa",
+      participantToken: participant.id, // Token para acessar portal
+    });
+    
+    toast.success(`Emulando visao de ${user.full_name || user.email}`);
+    navigate("/participante/portal");
+  } else {
+    toast.error("Este participante nao possui dados vinculados");
+  }
+}
 ```
 
 ---
 
-#### 5. Criar Migracao para Coluna user_id
+#### 3. Atualizar ImpersonationContext (se necessario)
 
-**Banco de Dados**: Nova migracao SQL
+**Arquivo**: `src/contexts/ImpersonationContext.tsx`
 
-```sql
--- Adicionar coluna user_id na tabela participants
-ALTER TABLE participants ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+Verificar se o tipo `ImpersonatedRole` ja inclui `participant`. Se nao, adicionar:
 
--- Criar indice para performance
-CREATE INDEX IF NOT EXISTS idx_participants_user_id ON participants(user_id);
-
--- Adicionar RLS para participantes verem seus proprios dados
-CREATE POLICY "Participants can view their own data"
-ON participants FOR SELECT
-USING (user_id = auth.uid());
+```typescript
+export type ImpersonatedRole = "admin" | "facilitator" | "company_manager" | "participant";
 ```
 
 ---
 
-#### 6. Atualizar Funcao get_all_users
+#### 4. Atualizar ImpersonationBanner
 
-**Banco de Dados**: Funcao atualizada
+**Arquivo**: `src/components/admin/ImpersonationBanner.tsx`
 
-Modificar para incluir dados de participantes vinculados:
+Adicionar case para exibir icone e label de participante:
 
-```sql
--- Buscar empresa do participante se existir
-LEFT JOIN participants part ON part.user_id = au.id
-LEFT JOIN companies c_part ON c_part.id = part.company_id
+```typescript
+case "participant":
+  return <User className="h-4 w-4" />;
+  
+// e no getRoleLabel:
+case "participant":
+  return "Participante";
 ```
 
 ---
 
 ### Arquivos a Modificar
 
-| Arquivo | Mudancas |
-|---------|----------|
-| `src/components/admin/AdminUsers.tsx` | Adicionar badge para participant |
-| `src/components/admin/CreateUserDialog.tsx` | Adicionar campo de empresa |
-| `src/components/admin/EditRoleDialog.tsx` | Mostrar empresa para participant |
-| `supabase/functions/admin-create-user/index.ts` | Criar participante com empresa |
-| Migracao SQL | Adicionar user_id e atualizar get_all_users |
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/components/admin/AdminUsers.tsx` | Adicionar `participant` em hasEmulableRole e handleImpersonate |
+| `src/contexts/ImpersonationContext.tsx` | Verificar/adicionar `participant` no tipo |
+| `src/components/admin/ImpersonationBanner.tsx` | Adicionar case para participant |
 
 ---
 
-### Fluxo Esperado Apos Correcoes
+### Resultado Esperado
 
-1. Admin clica em "Novo Usuario"
-2. Preenche nome, email, senha
-3. Seleciona role "Participante"
-4. **Novo**: Aparece dropdown para selecionar empresa
-5. Cria usuario
-6. Usuario aparece na tabela com badge "Participante" e nome da empresa
-7. Ao editar, pode alterar a empresa vinculada
+1. Botao "Emular" aparece para usuarios com role `participant`
+2. Ao clicar, admin e redirecionado para `/participante/portal`
+3. Banner de emulacao mostra "Participante" como role
+4. Admin pode encerrar emulacao e voltar ao painel
 
