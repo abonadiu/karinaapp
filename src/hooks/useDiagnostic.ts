@@ -30,14 +30,19 @@ export interface FacilitatorProfile {
   calendly_url: string | null;
 }
 
+export interface BodySelection {
+  areaId: string;
+  type: "tension" | "comfort";
+  intensity: 1 | 2 | 3;
+}
+
 export interface ExercisesData {
   breathing?: {
     completed: boolean;
     duration: number;
   };
   bodyMap?: {
-    tensionAreas: string[];
-    comfortAreas: string[];
+    selections: BodySelection[];
   };
   reflection?: {
     insights: string;
@@ -242,10 +247,10 @@ export function useDiagnostic(token: string) {
   }, []);
 
   // Completar mapeamento corporal
-  const completeBodyMapExercise = useCallback((tensionAreas: string[], comfortAreas: string[]) => {
+  const completeBodyMapExercise = useCallback((selections: BodySelection[]) => {
     setExercisesData(prev => ({
       ...prev,
-      bodyMap: { tensionAreas, comfortAreas }
+      bodyMap: { selections }
     }));
     setStep("reflection");
   }, []);
