@@ -10,7 +10,7 @@ interface CreateUserRequest {
   email: string;
   password: string;
   fullName: string;
-  role?: "admin" | "facilitator" | "company_manager" | null;
+  role?: "admin" | "facilitator" | "company_manager" | "participant" | null;
 }
 
 Deno.serve(async (req) => {
