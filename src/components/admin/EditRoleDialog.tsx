@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
 
-type AppRole = "admin" | "facilitator" | "company_manager";
+type AppRole = "admin" | "facilitator" | "company_manager" | "participant";
 
 interface Company {
   id: string;
@@ -265,6 +265,25 @@ export function EditRoleDialog({
                   </label>
                   <p className="text-xs text-muted-foreground">
                     RH/Gestor: visualiza dados agregados da sua empresa
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="participant"
+                  checked={selectedRoles.has("participant")}
+                  onCheckedChange={() => handleRoleToggle("participant")}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="participant"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Participante
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Acesso ao diagnóstico e portal de resultados
                   </p>
                 </div>
               </div>
