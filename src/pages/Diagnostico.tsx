@@ -4,7 +4,7 @@ import { useDiagnostic } from "@/hooks/useDiagnostic";
 import { DiagnosticWelcome } from "@/components/diagnostic/DiagnosticWelcome";
 import { QuestionCard } from "@/components/diagnostic/QuestionCard";
 import { ExerciseBreathing } from "@/components/diagnostic/ExerciseBreathing";
-import { ExerciseBodyMap } from "@/components/diagnostic/ExerciseBodyMap";
+import { ExerciseBodyMapV2 } from "@/components/diagnostic/ExerciseBodyMapV2";
 import { ExerciseReflection } from "@/components/diagnostic/ExerciseReflection";
 import { ProcessingScreen } from "@/components/diagnostic/ProcessingScreen";
 import { DiagnosticResults } from "@/components/diagnostic/DiagnosticResults";
@@ -131,7 +131,7 @@ export default function Diagnostico() {
 
     case "bodymap":
       return (
-        <ExerciseBodyMap
+        <ExerciseBodyMapV2
           onComplete={completeBodyMapExercise}
           onSkip={skipExercise}
         />
