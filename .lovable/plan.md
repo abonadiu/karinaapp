@@ -1,94 +1,137 @@
 
 
-## Adicionar Emulacao para Participantes
+## Corrigir Emulacao de Participante - Permitir Acesso Direto
 
-### Problema
+### Problema Atual
 
-O botao "Emular" nao aparece para usuarios com role `participant` porque:
+Quando um admin clica em "Emular" um participante, o sistema:
+1. Armazena os dados do participante no contexto de emulacao
+2. Redireciona para `/participante/portal`
+3. **Erro**: O `ParticipantRoute` nao verifica se esta em modo de emulacao
+4. **Erro**: O `PortalParticipante` busca dados pelo `user.id` do admin (que nao e participante)
 
-1. A funcao `hasEmulableRole` nao inclui `participant` na lista de roles emulaveis
-2. A funcao `handleImpersonate` nao tem logica para emular participantes
+Resultado: Admin e redirecionado para tela de login, mesmo estando em modo de emulacao.
 
 ---
 
 ### Solucao
 
-#### 1. Atualizar hasEmulableRole
+#### 1. Atualizar ParticipantRoute
 
-**Arquivo**: `src/components/admin/AdminUsers.tsx`
+**Arquivo**: `src/components/auth/ParticipantRoute.tsx`
 
-Adicionar `participant` a lista de roles emulaveis:
-
-```typescript
-const hasEmulableRole = (roles: string[] | null) => {
-  if (!roles || roles.length === 0) return false;
-  return roles.some(r => ['admin', 'facilitator', 'company_manager', 'participant'].includes(r));
-};
-```
-
----
-
-#### 2. Adicionar Logica de Emulacao para Participante
-
-**Arquivo**: `src/components/admin/AdminUsers.tsx`
-
-Adicionar tratamento na funcao `handleImpersonate` para emular participantes:
+Seguindo o mesmo padrao do `CompanyManagerRoute`, adicionar verificacao de emulacao:
 
 ```typescript
-} else if (roles.includes("participant")) {
-  // Buscar dados do participante
-  const { data: participant } = await supabase
-    .from("participants")
-    .select("id, company_id, companies(name)")
-    .eq("user_id", user.user_id)
-    .single();
-  
-  if (participant) {
-    startImpersonation({
-      userId: user.user_id,
-      email: user.email,
-      fullName: user.full_name,
-      role: "participant",
-      companyId: participant.company_id,
-      companyName: participant.companies?.name || "Empresa",
-      participantToken: participant.id, // Token para acessar portal
-    });
-    
-    toast.success(`Emulando visao de ${user.full_name || user.email}`);
-    navigate("/participante/portal");
-  } else {
-    toast.error("Este participante nao possui dados vinculados");
+import { useImpersonation } from "@/contexts/ImpersonationContext";
+
+export function ParticipantRoute({ children }: ParticipantRouteProps) {
+  const { user, loading, isParticipant } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
+
+  // Permitir acesso se admin esta emulando um participante
+  if (isImpersonating && impersonatedUser?.role === "participant") {
+    return <>{children}</>;
   }
+
+  // Resto da logica existente...
 }
 ```
 
 ---
 
-#### 3. Atualizar ImpersonationContext (se necessario)
+#### 2. Atualizar PortalParticipante
 
-**Arquivo**: `src/contexts/ImpersonationContext.tsx`
+**Arquivo**: `src/pages/participante/PortalParticipante.tsx`
 
-Verificar se o tipo `ImpersonatedRole` ja inclui `participant`. Se nao, adicionar:
+Modificar para usar dados do participante emulado quando em modo de emulacao:
+
+| Situacao | Fonte de Dados |
+|----------|----------------|
+| Usuario normal | Buscar via `user.id` |
+| Admin emulando | Usar `impersonatedUser.participantToken` (ID do participante) |
+
+**Mudancas principais**:
+
+1. Importar e usar o contexto de emulacao
+2. Criar variavel `effectiveParticipantId` (como no `PortalEmpresa`)
+3. Modificar `fetchPortalData` para usar uma RPC diferente quando emulando (buscar por participant.id em vez de user_id)
+4. Ocultar botao "Sair" quando estiver emulando (admin usa o banner para encerrar)
 
 ```typescript
-export type ImpersonatedRole = "admin" | "facilitator" | "company_manager" | "participant";
+const { isImpersonating, impersonatedUser } = useImpersonation();
+
+// Se emulando, usar o participantToken; senao, null (buscar por user_id)
+const effectiveParticipantId = isImpersonating && impersonatedUser?.role === "participant"
+  ? impersonatedUser.participantToken
+  : null;
+
+// Modificar fetchPortalData para usar effectiveParticipantId quando disponivel
+const fetchPortalData = async () => {
+  if (effectiveParticipantId) {
+    // Buscar direto pelo ID do participante
+    const { data } = await supabase.rpc("get_participant_portal_data_by_id", {
+      _participant_id: effectiveParticipantId,
+    });
+  } else {
+    // Buscar pelo user_id (fluxo normal)
+    const { data } = await supabase.rpc("get_participant_portal_data", {
+      _user_id: user!.id,
+    });
+  }
+};
 ```
 
 ---
 
-#### 4. Atualizar ImpersonationBanner
+#### 3. Criar Funcao RPC Alternativa
 
-**Arquivo**: `src/components/admin/ImpersonationBanner.tsx`
+**Banco de Dados**: Nova migracao SQL
 
-Adicionar case para exibir icone e label de participante:
+Criar uma funcao que busca dados do portal usando o ID do participante diretamente:
 
-```typescript
-case "participant":
-  return <User className="h-4 w-4" />;
+```sql
+CREATE OR REPLACE FUNCTION get_participant_portal_data_by_id(_participant_id uuid)
+RETURNS json AS $$
+DECLARE
+  result json;
+BEGIN
+  SELECT json_build_object(
+    'participant', json_build_object(
+      'id', p.id,
+      'name', p.name,
+      'email', p.email,
+      'company_name', c.name,
+      'status', p.status,
+      'completed_at', p.completed_at
+    ),
+    'result', (
+      SELECT json_build_object(
+        'id', dr.id,
+        'total_score', dr.total_score,
+        'dimension_scores', dr.dimension_scores,
+        'completed_at', dr.completed_at
+      )
+      FROM diagnostic_results dr
+      WHERE dr.participant_id = p.id
+      ORDER BY dr.completed_at DESC
+      LIMIT 1
+    ),
+    'facilitator', json_build_object(
+      'name', prof.full_name,
+      'calendly_url', cs.calendly_link,
+      'logo_url', prof.logo_url
+    )
+  ) INTO result
+  FROM participants p
+  JOIN companies c ON c.id = p.company_id
+  LEFT JOIN profiles prof ON prof.user_id = c.owner_id
+  LEFT JOIN calendly_settings cs ON cs.user_id = c.owner_id
+  WHERE p.id = _participant_id;
   
-// e no getRoleLabel:
-case "participant":
-  return "Participante";
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 ---
@@ -97,16 +140,45 @@ case "participant":
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/admin/AdminUsers.tsx` | Adicionar `participant` em hasEmulableRole e handleImpersonate |
-| `src/contexts/ImpersonationContext.tsx` | Verificar/adicionar `participant` no tipo |
-| `src/components/admin/ImpersonationBanner.tsx` | Adicionar case para participant |
+| `src/components/auth/ParticipantRoute.tsx` | Adicionar verificacao de emulacao |
+| `src/pages/participante/PortalParticipante.tsx` | Usar dados de emulacao quando disponivel |
+| Migracao SQL | Criar funcao `get_participant_portal_data_by_id` |
+
+---
+
+### Fluxo Corrigido
+
+```text
+Admin clica "Emular" no participante
+         |
+         v
+Context armazena: { role: "participant", participantToken: "xxx" }
+         |
+         v
+Navega para /participante/portal
+         |
+         v
+ParticipantRoute verifica: isImpersonating && role === "participant"?
+         |
+    SIM  v
+         |
+Permite acesso ao PortalParticipante
+         |
+         v
+PortalParticipante usa participantToken para buscar dados
+         |
+         v
+Exibe dados do participante emulado
+```
 
 ---
 
 ### Resultado Esperado
 
-1. Botao "Emular" aparece para usuarios com role `participant`
-2. Ao clicar, admin e redirecionado para `/participante/portal`
-3. Banner de emulacao mostra "Participante" como role
-4. Admin pode encerrar emulacao e voltar ao painel
+1. Admin clica em "Emular" para um participante
+2. E redirecionado diretamente para o portal do participante
+3. Ve os dados daquele participante especifico
+4. Banner de emulacao aparece no topo
+5. Botao "Sair" fica oculto (usa "Encerrar Emulacao" no banner)
+6. Ao encerrar, volta para o painel admin
 
