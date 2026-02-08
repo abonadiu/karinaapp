@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2 } from "lucide-react";
 
 interface ParticipantRouteProps {
@@ -9,6 +10,7 @@ interface ParticipantRouteProps {
 
 export function ParticipantRoute({ children }: ParticipantRouteProps) {
   const { user, loading, isParticipant } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
 
   if (loading) {
     return (
@@ -16,6 +18,11 @@ export function ParticipantRoute({ children }: ParticipantRouteProps) {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // Allow access if admin is impersonating a participant
+  if (isImpersonating && impersonatedUser?.role === "participant") {
+    return <>{children}</>;
   }
 
   if (!user) {

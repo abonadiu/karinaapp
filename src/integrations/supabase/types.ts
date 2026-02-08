@@ -590,6 +590,10 @@ export type Database = {
       }
       get_participant_by_token: { Args: { p_token: string }; Returns: string }
       get_participant_portal_data: { Args: { _user_id: string }; Returns: Json }
+      get_participant_portal_data_by_id: {
+        Args: { _participant_id: string }
+        Returns: Json
+      }
       get_pending_reminders: {
         Args: {
           p_batch_limit?: number

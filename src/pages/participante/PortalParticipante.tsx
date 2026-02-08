@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { supabase } from "@/integrations/backend/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,12 +40,23 @@ interface PortalData {
 export default function PortalParticipante() {
   const navigate = useNavigate();
   const { user, signOut, isParticipant, loading: authLoading } = useAuth();
+  const { isImpersonating, impersonatedUser } = useImpersonation();
   const [loading, setLoading] = useState(true);
   const [portalData, setPortalData] = useState<PortalData | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const contentRef = React.useRef<HTMLDivElement>(null);
 
+  // Determine if we're in impersonation mode for a participant
+  const isImpersonatingParticipant = isImpersonating && impersonatedUser?.role === "participant";
+  const effectiveParticipantId = isImpersonatingParticipant ? impersonatedUser.participantToken : null;
+
   useEffect(() => {
+    // Skip auth check if impersonating
+    if (isImpersonatingParticipant) {
+      fetchPortalData();
+      return;
+    }
+
     if (!authLoading && !isParticipant) {
       navigate("/participante/login");
       return;
@@ -53,13 +65,27 @@ export default function PortalParticipante() {
     if (user && isParticipant) {
       fetchPortalData();
     }
-  }, [user, isParticipant, authLoading, navigate]);
+  }, [user, isParticipant, authLoading, navigate, isImpersonatingParticipant]);
 
   const fetchPortalData = async () => {
     try {
-      const { data, error } = await supabase.rpc("get_participant_portal_data" as any, {
-        _user_id: user!.id,
-      });
+      let data, error;
+
+      if (effectiveParticipantId) {
+        // Impersonation mode: fetch by participant ID
+        const result = await supabase.rpc("get_participant_portal_data_by_id" as any, {
+          _participant_id: effectiveParticipantId,
+        });
+        data = result.data;
+        error = result.error;
+      } else {
+        // Normal mode: fetch by user ID
+        const result = await supabase.rpc("get_participant_portal_data" as any, {
+          _user_id: user!.id,
+        });
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         console.error("Error fetching portal data:", error);
@@ -172,10 +198,12 @@ export default function PortalParticipante() {
               <p className="text-sm text-muted-foreground">{participant.name}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </Button>
+          {!isImpersonatingParticipant && (
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          )}
         </div>
       </header>
 
