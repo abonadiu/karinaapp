@@ -21,6 +21,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isAdmin: boolean;
   isManager: boolean;
   managerCompanyId: string | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const [managerCompanyId, setManagerCompanyId] = useState<string | null>(null);
 
@@ -56,21 +58,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return data as Profile;
   };
 
-  const checkManagerStatus = async (userId: string) => {
-    // Check if user has company_manager role
-    const { data: roleData } = await supabase
+  const checkRolesStatus = async (userId: string) => {
+    // Check all user roles
+    const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .eq("role", "company_manager")
-      .maybeSingle();
+      .eq("user_id", userId);
 
-    if (roleData) {
-      // Get the company ID for this manager
+    const roleList = roles?.map(r => r.role) || [];
+    
+    // Check admin status
+    setIsAdmin(roleList.includes("admin"));
+    
+    // Check manager status
+    if (roleList.includes("company_manager")) {
       const { data: companyId } = await supabase.rpc("get_manager_company_id", {
         _user_id: userId,
       });
-      
       setIsManager(true);
       setManagerCompanyId(companyId || null);
     } else {
@@ -83,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
-      await checkManagerStatus(user.id);
+      await checkRolesStatus(user.id);
     }
   };
 
@@ -99,10 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setTimeout(async () => {
             const profileData = await fetchProfile(currentSession.user.id);
             setProfile(profileData);
-            await checkManagerStatus(currentSession.user.id);
+            await checkRolesStatus(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setIsAdmin(false);
           setIsManager(false);
           setManagerCompanyId(null);
         }
@@ -118,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (currentSession?.user) {
         fetchProfile(currentSession.user.id).then(setProfile);
-        checkManagerStatus(currentSession.user.id);
+        checkRolesStatus(currentSession.user.id);
       }
 
       setLoading(false);
@@ -158,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsAdmin(false);
     setIsManager(false);
     setManagerCompanyId(null);
   };
@@ -183,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     profile,
     loading,
+    isAdmin,
     isManager,
     managerCompanyId,
     signUp,

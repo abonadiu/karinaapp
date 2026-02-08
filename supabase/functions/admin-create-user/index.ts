@@ -10,7 +10,7 @@ interface CreateUserRequest {
   email: string;
   password: string;
   fullName: string;
-  role?: "facilitator" | "company_manager" | null;
+  role?: "admin" | "facilitator" | "company_manager" | null;
 }
 
 Deno.serve(async (req) => {
@@ -51,15 +51,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify caller is a facilitator (admin)
+    // Verify caller is an admin
     const { data: hasRole } = await supabaseAdmin.rpc("has_role", {
       _user_id: caller.id,
-      _role: "facilitator",
+      _role: "admin",
     });
 
     if (!hasRole) {
       return new Response(
-        JSON.stringify({ error: "Acesso negado. Apenas facilitadores podem criar usuários." }),
+        JSON.stringify({ error: "Acesso negado. Apenas administradores podem criar usuários." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

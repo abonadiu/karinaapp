@@ -12,7 +12,8 @@ import {
   Eye,
   MoreHorizontal,
   UserPlus,
-  Pencil
+  Pencil,
+  Crown
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ interface UserData {
   user_id: string;
   email: string;
   full_name: string | null;
-  role: string | null;
+  roles: string[] | null;
   created_at: string;
   last_sign_in: string | null;
 }
@@ -70,9 +71,9 @@ export function AdminUsers() {
   }, []);
 
   const handleImpersonate = async (user: UserData) => {
-    const role = user.role as ImpersonatedRole;
+    const roles = user.roles || [];
     
-    if (role === "company_manager") {
+    if (roles.includes("company_manager")) {
       // Get the company for this manager
       const { data: companyId } = await supabase.rpc("get_manager_company_id", {
         _user_id: user.user_id,
@@ -100,7 +101,7 @@ export function AdminUsers() {
       } else {
         toast.error("Este gestor não está vinculado a nenhuma empresa");
       }
-    } else if (role === "facilitator") {
+    } else if (roles.includes("facilitator")) {
       startImpersonation({
         userId: user.user_id,
         email: user.email,
@@ -110,34 +111,52 @@ export function AdminUsers() {
       
       toast.success(`Emulando visão de ${user.full_name || user.email}`);
       navigate("/dashboard");
+    } else if (roles.includes("admin")) {
+      startImpersonation({
+        userId: user.user_id,
+        email: user.email,
+        fullName: user.full_name,
+        role: "admin",
+      });
+      
+      toast.success(`Emulando visão de ${user.full_name || user.email}`);
+      navigate("/admin");
     } else {
       toast.info("Este usuário não possui um perfil específico para emular");
     }
   };
 
-  const getRoleBadge = (role: string | null) => {
-    switch (role) {
-      case 'facilitator':
-        return (
+  const getRoleBadges = (roles: string[] | null) => {
+    if (!roles || roles.length === 0) {
+      return (
+        <Badge variant="outline">
+          Sem role
+        </Badge>
+      );
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {roles.includes('admin') && (
+          <Badge variant="default" className="bg-amber-600 hover:bg-amber-700">
+            <Crown className="h-3 w-3 mr-1" />
+            Admin
+          </Badge>
+        )}
+        {roles.includes('facilitator') && (
           <Badge variant="default" className="bg-primary">
             <Shield className="h-3 w-3 mr-1" />
             Facilitador
           </Badge>
-        );
-      case 'company_manager':
-        return (
+        )}
+        {roles.includes('company_manager') && (
           <Badge variant="secondary">
             <Building2 className="h-3 w-3 mr-1" />
             Gestor
           </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline">
-            Sem role
-          </Badge>
-        );
-    }
+        )}
+      </div>
+    );
   };
 
   const formatDate = (dateString: string | null) => {
@@ -149,6 +168,11 @@ export function AdminUsers() {
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+
+  const hasEmulableRole = (roles: string[] | null) => {
+    if (!roles || roles.length === 0) return false;
+    return roles.some(r => ['admin', 'facilitator', 'company_manager'].includes(r));
   };
 
   if (isLoading) {
@@ -192,7 +216,7 @@ export function AdminUsers() {
                     Usuário
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                    Role
+                    Roles
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                     Criado em
@@ -230,7 +254,7 @@ export function AdminUsers() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {getRoleBadge(user.role)}
+                      {getRoleBadges(user.roles)}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -246,7 +270,7 @@ export function AdminUsers() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex justify-end gap-1">
-                        {user.role && (
+                        {hasEmulableRole(user.roles) && (
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -271,7 +295,7 @@ export function AdminUsers() {
                               }}
                             >
                               <Pencil className="h-4 w-4 mr-2" />
-                              Editar Perfil
+                              Editar Roles
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

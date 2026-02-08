@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Shield } from "lucide-react";
 import {
   Dialog,
@@ -9,24 +9,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
 
-type AppRole = "facilitator" | "company_manager";
+type AppRole = "admin" | "facilitator" | "company_manager";
 
 interface UserData {
   user_id: string;
   email: string;
   full_name: string | null;
-  role: string | null;
+  roles: string[] | null;
 }
 
 interface EditRoleDialogProps {
@@ -44,66 +38,74 @@ export function EditRoleDialog({
   currentUserId,
   onSuccess 
 }: EditRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<string>(user?.role || "none");
+  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
-  // Update selected role when user changes
-  useState(() => {
-    if (user) {
-      setSelectedRole(user.role || "none");
+  // Update selected roles when user changes or dialog opens
+  useEffect(() => {
+    if (user && open) {
+      setSelectedRoles(new Set(user.roles || []));
     }
-  });
+  }, [user, open]);
+
+  const handleRoleToggle = (role: string) => {
+    const newRoles = new Set(selectedRoles);
+    if (newRoles.has(role)) {
+      newRoles.delete(role);
+    } else {
+      newRoles.add(role);
+    }
+    setSelectedRoles(newRoles);
+  };
 
   const handleSave = async () => {
     if (!user) return;
 
-    const currentRole = user.role;
-    const newRole = selectedRole === "none" ? null : selectedRole;
+    const currentRoles = new Set(user.roles || []);
+    const newRoles = selectedRoles;
 
-    // Check if trying to remove own facilitator role
-    if (user.user_id === currentUserId && currentRole === "facilitator" && newRole !== "facilitator") {
-      toast.error("Você não pode remover sua própria role de facilitador");
+    // Check if trying to remove own admin role
+    if (user.user_id === currentUserId && currentRoles.has("admin") && !newRoles.has("admin")) {
+      toast.error("Você não pode remover sua própria role de administrador");
       return;
     }
 
+    // Find roles to add and remove
+    const rolesToAdd = [...newRoles].filter(r => !currentRoles.has(r));
+    const rolesToRemove = [...currentRoles].filter(r => !newRoles.has(r));
+
     // No changes
-    if (currentRole === newRole || (currentRole === null && newRole === null)) {
+    if (rolesToAdd.length === 0 && rolesToRemove.length === 0) {
       onOpenChange(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Remove old role if exists
-      if (currentRole) {
-        const { error: removeError } = await supabase.rpc("admin_remove_user_role", {
+      // Remove old roles
+      for (const role of rolesToRemove) {
+        const { error } = await supabase.rpc("admin_remove_user_role", {
           p_user_id: user.user_id,
-          p_role: currentRole as AppRole,
+          p_role: role as AppRole,
         });
-
-        if (removeError) {
-          throw new Error(removeError.message);
-        }
+        if (error) throw new Error(error.message);
       }
 
-      // Add new role if selected
-      if (newRole) {
-        const { error: addError } = await supabase.rpc("admin_set_user_role", {
+      // Add new roles
+      for (const role of rolesToAdd) {
+        const { error } = await supabase.rpc("admin_set_user_role", {
           p_user_id: user.user_id,
-          p_role: newRole as AppRole,
+          p_role: role as AppRole,
         });
-
-        if (addError) {
-          throw new Error(addError.message);
-        }
+        if (error) throw new Error(error.message);
       }
 
-      toast.success("Perfil atualizado com sucesso!");
+      toast.success("Roles atualizadas com sucesso!");
       onOpenChange(false);
       onSuccess();
     } catch (error: any) {
-      console.error("Error updating role:", error);
-      toast.error(error.message || "Erro ao atualizar perfil");
+      console.error("Error updating roles:", error);
+      toast.error(error.message || "Erro ao atualizar roles");
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +114,7 @@ export function EditRoleDialog({
   if (!user) return null;
 
   const isSelf = user.user_id === currentUserId;
-  const isSelfFacilitator = isSelf && user.role === "facilitator";
+  const isSelfAdmin = isSelf && (user.roles || []).includes("admin");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -120,10 +122,10 @@ export function EditRoleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Editar Perfil de Acesso
+            Editar Roles
           </DialogTitle>
           <DialogDescription>
-            Altere o perfil de acesso do usuário.
+            Gerencie as roles de acesso do usuário. Um usuário pode ter múltiplas roles.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,25 +136,72 @@ export function EditRoleDialog({
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Perfil de acesso</Label>
-            <Select 
-              value={selectedRole} 
-              onValueChange={setSelectedRole}
-              disabled={isSelfFacilitator}
-            >
-              <SelectTrigger id="role">
-                <SelectValue placeholder="Selecione um perfil" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem perfil específico</SelectItem>
-                <SelectItem value="facilitator">Facilitador (Admin)</SelectItem>
-                <SelectItem value="company_manager">Gestor de Empresa</SelectItem>
-              </SelectContent>
-            </Select>
-            {isSelfFacilitator && (
+          <div className="space-y-3">
+            <Label>Roles de acesso</Label>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="admin"
+                  checked={selectedRoles.has("admin")}
+                  onCheckedChange={() => handleRoleToggle("admin")}
+                  disabled={isSelfAdmin}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="admin"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Administrador
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Acesso total: gestão de usuários, configurações globais, logs de auditoria
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="facilitator"
+                  checked={selectedRoles.has("facilitator")}
+                  onCheckedChange={() => handleRoleToggle("facilitator")}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="facilitator"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Facilitador
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Coach/Consultor: gerencia empresas e aplica diagnósticos
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="company_manager"
+                  checked={selectedRoles.has("company_manager")}
+                  onCheckedChange={() => handleRoleToggle("company_manager")}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="company_manager"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Gestor de Empresa
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    RH/Gestor: visualiza dados agregados da sua empresa
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isSelfAdmin && (
               <p className="text-xs text-muted-foreground">
-                Você não pode alterar sua própria role de facilitador.
+                Você não pode remover sua própria role de administrador.
               </p>
             )}
           </div>
@@ -169,7 +218,7 @@ export function EditRoleDialog({
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={isLoading || isSelfFacilitator}
+            disabled={isLoading}
           >
             {isLoading ? (
               <>

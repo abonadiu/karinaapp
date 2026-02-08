@@ -48,7 +48,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { user, profile, signOut, isManager, managerCompanyId } = useAuth();
+  const { user, profile, signOut, isAdmin, isManager, managerCompanyId } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -145,14 +145,16 @@ export function AppSidebar() {
                 Perfil
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/admin" className="cursor-pointer">
-                <Shield className="mr-2 h-4 w-4" />
-                Administração
-              </Link>
-            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link to="/admin" className="cursor-pointer">
+                  <Shield className="mr-2 h-4 w-4" />
+                  Administração
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => signOut()} 
               className="text-destructive focus:text-destructive cursor-pointer"
             >

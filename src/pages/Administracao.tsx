@@ -24,40 +24,19 @@ import { toast } from "sonner";
 
 export default function Administracao() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const [isFacilitator, setIsFacilitator] = useState(false);
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAccess = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .rpc('has_role', { _user_id: user.id, _role: 'facilitator' });
-
-        if (error) throw error;
-
-        if (!data) {
-          toast.error("Acesso negado. Apenas facilitadores podem acessar esta página.");
-          navigate("/dashboard");
-          return;
-        }
-
-        setIsFacilitator(true);
-      } catch (error: any) {
-        console.error("Error checking access:", error);
-        toast.error("Erro ao verificar permissões");
-        navigate("/dashboard");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (!authLoading) {
-      checkAccess();
+      if (!isAdmin) {
+        toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
+        navigate("/dashboard");
+        return;
+      }
+      setIsLoading(false);
     }
-  }, [user, authLoading, navigate]);
+  }, [authLoading, isAdmin, navigate]);
 
   if (authLoading || isLoading) {
     return (
@@ -69,7 +48,7 @@ export default function Administracao() {
     );
   }
 
-  if (!isFacilitator) {
+  if (!isAdmin) {
     return null;
   }
 
