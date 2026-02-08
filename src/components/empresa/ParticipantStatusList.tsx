@@ -7,12 +7,12 @@ import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
 
 interface AnonymizedParticipant {
-  row_number: number;
-  status: string;
-  department: string | null;
-  completed_at: string | null;
-  started_at: string | null;
-  invited_at: string | null;
+  row_num: number;
+  participant_status: string;
+  participant_department: string | null;
+  participant_completed_at: string | null;
+  participant_started_at: string | null;
+  participant_invited_at: string | null;
 }
 
 interface ParticipantStatusListProps {
@@ -70,13 +70,13 @@ export function ParticipantStatusList({
   };
 
   const getRelevantDate = (participant: AnonymizedParticipant) => {
-    if (participant.status === "completed") {
-      return { label: "Concluído em", date: participant.completed_at };
+    if (participant.participant_status === "completed") {
+      return { label: "Concluído em", date: participant.participant_completed_at };
     }
-    if (participant.status === "in_progress") {
-      return { label: "Iniciado em", date: participant.started_at };
+    if (participant.participant_status === "in_progress") {
+      return { label: "Iniciado em", date: participant.participant_started_at };
     }
-    return { label: "Convidado em", date: participant.invited_at };
+    return { label: "Convidado em", date: participant.participant_invited_at };
   };
 
   const title = filter 
@@ -114,16 +114,16 @@ export function ParticipantStatusList({
               const dateInfo = getRelevantDate(participant);
               return (
                 <div 
-                  key={participant.row_number}
+                  key={participant.row_num}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium text-foreground">
-                      Colaborador {participant.row_number}
+                      Colaborador {participant.row_num}
                     </span>
-                    {participant.department && (
+                    {participant.participant_department && (
                       <span className="text-sm text-muted-foreground">
-                        • {participant.department}
+                        • {participant.participant_department}
                       </span>
                     )}
                   </div>
@@ -132,7 +132,7 @@ export function ParticipantStatusList({
                       <span className="hidden sm:inline">{dateInfo.label}: </span>
                       {formatDate(dateInfo.date)}
                     </div>
-                    <StatusBadge status={participant.status as any} />
+                    <StatusBadge status={participant.participant_status as any} />
                   </div>
                 </div>
               );
