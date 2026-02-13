@@ -70,10 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq("user_id", userId);
 
     const roleList = roles?.map(r => r.role) || [];
-    
+
     // Check admin status
     setIsAdmin(roleList.includes("admin"));
-    
+
     // Check manager status
     if (roleList.includes("company_manager")) {
       const { data: companyId } = await supabase.rpc("get_manager_company_id", {
@@ -88,11 +88,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Check participant status (using text comparison since type might not be updated)
     if (roleList.some(r => (r as string) === "participant")) {
-      const { data: pId } = await supabase.rpc("get_participant_id_by_user" as any, {
-        _user_id: userId,
-      });
+      const { data: participant } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
       setIsParticipant(true);
-      setParticipantId(pId as string || null);
+      setParticipantId(participant?.id || null);
     } else {
       setIsParticipant(false);
       setParticipantId(null);
@@ -117,9 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (currentSession?.user) {
           // Use setTimeout to avoid potential deadlock with Supabase client
           setTimeout(async () => {
-            const profileData = await fetchProfile(currentSession.user.id);
-            setProfile(profileData);
-            await checkRolesStatus(currentSession.user.id);
+            try {
+              const profileData = await fetchProfile(currentSession.user.id);
+              setProfile(profileData);
+              await checkRolesStatus(currentSession.user.id);
+            } catch (error) {
+              console.error("Error loading user data:", error);
+            } finally {
+              setLoading(false);
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -128,23 +136,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsParticipant(false);
           setManagerCompanyId(null);
           setParticipantId(null);
+          setLoading(false);
         }
-
-        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
-        fetchProfile(currentSession.user.id).then(setProfile);
-        checkRolesStatus(currentSession.user.id);
+        try {
+          const profileData = await fetchProfile(currentSession.user.id);
+          setProfile(profileData);
+          await checkRolesStatus(currentSession.user.id);
+        } catch (error) {
+          console.error("Error loading user data:", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
       }
-
-      setLoading(false);
     });
 
     return () => {
