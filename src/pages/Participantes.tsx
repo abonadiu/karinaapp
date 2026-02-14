@@ -157,6 +157,9 @@ export default function Participantes() {
     if (location.state?.statusFilter) {
       setStatusFilter(location.state.statusFilter);
     }
+    if (location.state?.searchQuery) {
+      setSearchTerm(location.state.searchQuery);
+    }
   }, [location.state]);
 
   const handleCreateParticipant = async (data: ParticipantFormData) => {
