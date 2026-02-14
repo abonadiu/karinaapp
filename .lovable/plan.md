@@ -1,18 +1,19 @@
 
 
-## Corrigir erro de build no PDF Generator
+## Botao "Copiar Link" na Lista de Participantes
 
-### Problema
-
-O arquivo `src/lib/pdf-generator.ts` usa `setGlobalAlpha` nas linhas 671 e 673, mas esse metodo nao existe no jsPDF. O optional chaining (`?.`) evita erro em runtime mas o TypeScript nao aceita.
-
-### Solucao
-
-Remover as duas linhas com `setGlobalAlpha` (linhas 671 e 673). A barra de progresso ja funciona sem transparencia - basta usar uma cor mais clara como substituto visual.
+Adicionar uma opcao "Copiar link do diagnostico" no menu de acoes (dropdown) de cada participante. Ao clicar, o link completo do diagnostico e copiado para a area de transferencia com feedback visual via toast.
 
 ### Mudanca
 
 | Arquivo | Acao |
 |---------|------|
-| `src/lib/pdf-generator.ts` | Remover linhas 671 e 673 (`setGlobalAlpha`). Substituir a cor de fundo da barra (linha 670) por um cinza claro (ex: `setFillColor(220, 220, 220)`) para simular o efeito de background sem precisar de alpha. |
+| `src/components/participants/ParticipantList.tsx` | Adicionar import do icone `Link` do lucide-react. Adicionar um novo `DropdownMenuItem` "Copiar link" no menu de acoes, visivel para todos os participantes que possuam `access_token`. Ao clicar, copia `{window.location.origin}/diagnostico/{access_token}` para o clipboard e exibe toast de confirmacao usando `sonner`. |
+
+### Detalhes
+
+- O item aparece para **qualquer participante com access_token**, independente do status
+- Usa `navigator.clipboard.writeText()` para copiar
+- Exibe toast "Link copiado!" com `toast.success` do sonner (ja usado no projeto)
+- Posicao no menu: entre os itens de convite/lembrete e o "Editar"
 
