@@ -25,11 +25,11 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-serif font-semibold text-foreground mb-2">
+            <h1 className="text-3xl md:text-4xl font-serif font-semibold text-foreground mb-3">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-muted-foreground">{subtitle}</p>
+              <p className="text-base text-muted-foreground">{subtitle}</p>
             )}
           </div>
 
@@ -41,7 +41,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
       {/* Footer */}
       <footer className="py-4 text-center text-sm text-muted-foreground">
-        <p>© 2025 IQ+IS. Todos os direitos reservados.</p>
+        <p>&copy; 2026 IQ+IS. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

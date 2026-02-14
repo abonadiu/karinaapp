@@ -15,12 +15,12 @@ export function CrossAnalysis({ dimensionScores }: CrossAnalysisProps) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center gap-2">
         <GitBranch className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Análise Cruzada entre Dimensões</h3>
+        <h3 className="text-xl font-semibold">Análise Cruzada entre Dimensões</h3>
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-base text-muted-foreground leading-relaxed">
         A interação entre suas dimensões revela padrões únicos que complementam a análise individual. Os insights abaixo identificam dinâmicas específicas do seu perfil.
       </p>
 
@@ -29,27 +29,27 @@ export function CrossAnalysis({ dimensionScores }: CrossAnalysisProps) {
         const color2 = getDimensionColor(insight.dimensions[1]);
 
         return (
-          <div key={index} className="rounded-lg border border-border overflow-hidden">
+          <div key={index} className="rounded-xl border border-border overflow-hidden">
             {/* Header */}
-            <div className="px-4 py-3 bg-muted/30 flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className={cn("w-2.5 h-2.5 rounded-full", color1.bg)} />
-                <span className="text-xs font-medium">{insight.dimensions[0]}</span>
+            <div className="px-5 py-3.5 bg-muted/30 flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className={cn("w-3 h-3 rounded-full", color1.bg)} />
+                <span className="text-sm font-medium">{insight.dimensions[0]}</span>
               </div>
-              <ArrowRight className="h-3 w-3 text-muted-foreground" />
-              <div className="flex items-center gap-1.5">
-                <span className={cn("w-2.5 h-2.5 rounded-full", color2.bg)} />
-                <span className="text-xs font-medium">{insight.dimensions[1]}</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <span className={cn("w-3 h-3 rounded-full", color2.bg)} />
+                <span className="text-sm font-medium">{insight.dimensions[1]}</span>
               </div>
-              <span className="ml-auto text-xs font-semibold text-foreground/70">{insight.title}</span>
+              <span className="ml-auto text-sm font-semibold text-foreground/70">{insight.title}</span>
             </div>
 
             {/* Content */}
-            <div className="p-4 space-y-3">
+            <div className="p-5 space-y-4">
               <p className="text-sm text-foreground/85 leading-relaxed">
                 {insight.insight}
               </p>
-              <div className="rounded-md bg-primary/5 p-3">
+              <div className="rounded-lg bg-primary/5 p-4">
                 <p className="text-sm text-foreground/80 leading-relaxed">
                   <strong className="text-primary">Recomendação:</strong> {insight.recommendation}
                 </p>

@@ -112,19 +112,19 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-bold text-foreground">{displayScores.totalScore.toFixed(1)}</span>
-                <span className="text-xs text-muted-foreground">/5</span>
+                <span className="text-sm text-muted-foreground">/5</span>
               </div>
             </div>
             <div className="text-center sm:text-left">
               <h1 className="font-display text-2xl font-semibold text-foreground">Resultado de {firstName}</h1>
-              <p className="text-sm text-muted-foreground mt-1">Diagnóstico IQ+IS — Inteligência Emocional + Espiritual</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 justify-center sm:justify-start">
-                <Calendar className="h-3 w-3" />Concluído em {completedDate}
+              <p className="text-base text-muted-foreground mt-1">Diagnóstico IQ+IS — Inteligência Emocional + Espiritual</p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2 justify-center sm:justify-start">
+                <Calendar className="h-3.5 w-3.5" />Concluído em {completedDate}
               </p>
-              <Badge variant="secondary" className={`mt-2 text-xs ${scoreBadge.className}`}>{scoreBadge.label}</Badge>
+              <Badge variant="secondary" className={`mt-2 text-sm ${scoreBadge.className}`}>{scoreBadge.label}</Badge>
             </div>
           </div>
-          <p className="text-sm text-foreground/80 italic leading-relaxed max-w-2xl">"{getOverallScoreMessage(displayScores.totalScore)}"</p>
+          <p className="text-base text-foreground/80 italic leading-relaxed max-w-2xl">"{getOverallScoreMessage(displayScores.totalScore)}"</p>
         </div>
 
         {/* 2. Resumo Executivo with Strengths/Development boxes */}
@@ -169,11 +169,11 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </div>
             </div>
             <div>
-              <h3 className="font-display text-base font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h3>
+              <h3 className="font-display text-lg font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed pl-16">{DIAGNOSTIC_THEORETICAL_FOUNDATION}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed pl-16">{DIAGNOSTIC_THEORETICAL_FOUNDATION}</p>
         </div>
 
         {/* 4. Radar Chart */}
@@ -191,9 +191,9 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold">Análise Dimensional Detalhada</h3>
+            <h3 className="text-xl font-semibold">Análise Dimensional Detalhada</h3>
           </div>
-          <p className="text-sm text-muted-foreground">Clique em cada dimensão para explorar a análise completa com fundamentação teórica, subdimensões e interpretação personalizada.</p>
+          <p className="text-base text-muted-foreground">Clique em cada dimensão para explorar a análise completa com fundamentação teórica, subdimensões e interpretação personalizada.</p>
           {displayScores.dimensionScores.map(score => (
             <DimensionCard key={score.dimension} score={score} isWeak={weakSet.has(score.dimension)} isStrong={strongSet.has(score.dimension)} />
           ))}
@@ -234,7 +234,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </Button>
               <Button variant="outline" className="gap-2" disabled><Share2 className="h-4 w-4" />Compartilhar (em breve)</Button>
             </div>
-            <p className="text-center text-sm text-muted-foreground mt-4">Guarde este link para acessar seus resultados novamente.</p>
+            <p className="text-center text-base text-muted-foreground mt-4">Guarde este link para acessar seus resultados novamente.</p>
           </CardContent>
         </Card>
       </div>

@@ -162,7 +162,7 @@ export function AppSidebar() {
                     tooltip={item.title}
                   >
                     <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="h-5 w-5" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -187,7 +187,7 @@ export function AppSidebar() {
               {!collapsed && (
                 <>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    <p className="text-sm font-semibold text-sidebar-foreground truncate">
                       {profile?.full_name || user?.email}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">

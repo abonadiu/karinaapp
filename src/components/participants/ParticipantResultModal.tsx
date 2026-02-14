@@ -84,7 +84,7 @@ export function ParticipantResultModal({
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-2xl font-bold text-foreground">{totalScore.toFixed(1)}</span>
-              <span className="text-[10px] text-muted-foreground">/5</span>
+              <span className="text-sm text-muted-foreground">/5</span>
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -92,10 +92,10 @@ export function ParticipantResultModal({
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
               <Calendar className="h-3.5 w-3.5" />Concluído em {formattedDate}
             </p>
-            <Badge variant="secondary" className={`mt-2 text-xs ${scoreBadge.className}`}>{scoreBadge.label}</Badge>
+            <Badge variant="secondary" className={`mt-2 text-sm ${scoreBadge.className}`}>{scoreBadge.label}</Badge>
           </div>
         </div>
-        <p className="text-sm text-foreground/80 italic leading-relaxed">"{getOverallScoreMessage(totalScore)}"</p>
+        <p className="text-base text-foreground/80 italic leading-relaxed">"{getOverallScoreMessage(totalScore)}"</p>
       </div>
 
       {/* 2. Resumo Executivo */}
@@ -106,10 +106,10 @@ export function ParticipantResultModal({
         <div className="rounded-lg border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900/40 p-3 space-y-1.5">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-            <h4 className="font-semibold text-xs text-green-700 dark:text-green-400">Pontos Fortes</h4>
+            <h4 className="font-semibold text-sm text-green-700 dark:text-green-400">Pontos Fortes</h4>
           </div>
           {strongest.map((dim) => (
-            <div key={dim.dimension} className="flex items-center justify-between text-xs">
+            <div key={dim.dimension} className="flex items-center justify-between text-sm">
               <span className="text-green-800 dark:text-green-300">{dim.dimension}</span>
               <span className="font-semibold text-green-700 dark:text-green-400">{dim.score.toFixed(1)}</span>
             </div>
@@ -118,10 +118,10 @@ export function ParticipantResultModal({
         <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 p-3 space-y-1.5">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            <h4 className="font-semibold text-xs text-amber-700 dark:text-amber-400">Áreas de Desenvolvimento</h4>
+            <h4 className="font-semibold text-sm text-amber-700 dark:text-amber-400">Áreas de Desenvolvimento</h4>
           </div>
           {weakest.map((dim) => (
-            <div key={dim.dimension} className="flex items-center justify-between text-xs">
+            <div key={dim.dimension} className="flex items-center justify-between text-sm">
               <span className="text-amber-800 dark:text-amber-300">{dim.dimension}</span>
               <span className="font-semibold text-amber-700 dark:text-amber-400">{dim.score.toFixed(1)}</span>
             </div>
@@ -138,18 +138,18 @@ export function ParticipantResultModal({
             </div>
           </div>
           <div>
-            <h4 className="font-display text-sm font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
+            <h4 className="font-display text-base font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground leading-relaxed pl-14">{DIAGNOSTIC_THEORETICAL_FOUNDATION}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed pl-14">{DIAGNOSTIC_THEORETICAL_FOUNDATION}</p>
       </div>
 
       <Separator />
 
       {/* 4. Radar Chart */}
       <div>
-        <h4 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+        <h4 className="text-base font-semibold text-muted-foreground mb-2 flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />Visão Geral das 5 Dimensões
         </h4>
         <ResultsRadarChart scores={dimensionScores} />
@@ -159,10 +159,10 @@ export function ParticipantResultModal({
 
       {/* 5. Análise Dimensional Detalhada */}
       <div>
-        <h4 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-2">
+        <h4 className="text-base font-semibold text-muted-foreground mb-1 flex items-center gap-2">
           <Award className="h-4 w-4" />Análise Dimensional Detalhada
         </h4>
-        <p className="text-xs text-muted-foreground mb-3">Clique em cada dimensão para explorar a análise completa.</p>
+        <p className="text-sm text-muted-foreground mb-3">Clique em cada dimensão para explorar a análise completa.</p>
         <div className="space-y-2">
           {dimensionScores.map((s) => (
             <DimensionCard key={s.dimension} score={s} isStrong={strongSet.has(s.dimension)} isWeak={weakSet.has(s.dimension)} />

@@ -13,14 +13,14 @@ export function ExecutiveSummary({ participantName, totalScore, dimensionScores 
   const summary = generateExecutiveSummary({ participantName, totalScore, dimensionScores });
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+    <div className="rounded-xl border border-border bg-card p-6 lg:p-7 space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center">
           <FileText className="h-5 w-5 text-primary" />
         </div>
-        <h3 className="font-display text-base font-semibold">Resumo Executivo</h3>
+        <h3 className="font-display text-xl font-semibold">Resumo Executivo</h3>
       </div>
-      <p className="text-sm text-foreground/85 leading-relaxed">
+      <p className="text-base text-foreground/85 leading-relaxed">
         {summary}
       </p>
     </div>

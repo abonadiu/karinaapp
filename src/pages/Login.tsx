@@ -75,7 +75,7 @@ export default function Login() {
       subtitle="Acesse sua conta de facilitador"
     >
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="email"
@@ -154,7 +154,7 @@ export default function Login() {
         </form>
       </Form>
 
-      <div className="mt-6 text-center text-sm">
+      <div className="mt-6 text-center text-base">
         <span className="text-muted-foreground">Não tem uma conta? </span>
         <Link to="/cadastro" className="text-primary font-medium hover:underline">
           Cadastre-se
