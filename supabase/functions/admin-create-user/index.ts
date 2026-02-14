@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
 
     // Assign role if specified
     if (role && newUser?.user) {
-      const { error: roleError } = await supabase.rpc("admin_set_user_role", {
+      const { error: roleError } = await supabaseAdmin.rpc("admin_set_user_role", {
         p_user_id: newUser.user.id,
         p_role: role,
       });
