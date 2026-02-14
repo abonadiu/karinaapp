@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { format, parseISO, differenceInDays, startOfMonth, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BarChart3, Calendar } from "lucide-react";
@@ -69,6 +70,28 @@ const PERIOD_DAYS_MAP: Record<string, number> = {
 
 export default function Relatorios() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleKPIClick = (cardId: string) => {
+    switch (cardId) {
+      case "total":
+        navigate("/participantes");
+        break;
+      case "completed":
+        navigate("/participantes", { state: { statusFilter: "completed" } });
+        break;
+      case "completion_rate":
+        navigate("/participantes", { state: { statusFilter: "in_progress" } });
+        break;
+      case "avg_days":
+        navigate("/participantes", { state: { statusFilter: "completed" } });
+        break;
+    }
+  };
+
+  const handleCompanyClick = (companyId: string) => {
+    navigate(`/empresas/${companyId}`);
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -329,6 +352,7 @@ export default function Relatorios() {
             completionRate={completionRate}
             averageCompletionDays={averageCompletionDays}
             isLoading={isLoading}
+            onCardClick={handleKPIClick}
           />
 
           {/* Charts Row 1 */}
@@ -344,7 +368,7 @@ export default function Relatorios() {
           </div>
 
           {/* Company Details Table */}
-          <CompanyDetailsTable data={companyDetails} isLoading={isLoading} />
+          <CompanyDetailsTable data={companyDetails} isLoading={isLoading} onCompanyClick={handleCompanyClick} />
 
           {/* Score Evolution Chart */}
           <ScoreEvolutionChart data={scoreEvolution} isLoading={isLoading} />

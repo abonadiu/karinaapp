@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Search, Building2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -52,6 +53,7 @@ interface Company {
 
 export default function Participantes() {
   const { user } = useAuth();
+  const location = useLocation();
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -99,6 +101,12 @@ export default function Participantes() {
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  useEffect(() => {
+    if (location.state?.statusFilter) {
+      setStatusFilter(location.state.statusFilter);
+    }
+  }, [location.state]);
 
   const handleEditParticipant = async (data: ParticipantFormData) => {
     if (!editingParticipant) return;
