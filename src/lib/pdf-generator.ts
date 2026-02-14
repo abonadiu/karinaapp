@@ -667,10 +667,8 @@ function drawDimensionPage(
   const barY = y + 21;
   const barWidth = contentWidth - 24;
   const barHeight = 4;
-  pdf.setFillColor(255, 255, 255);
-  pdf.setGlobalAlpha?.(0.3);
+  pdf.setFillColor(220, 220, 220);
   pdf.roundedRect(margin + 12, barY, barWidth, barHeight, 2, 2, "F");
-  pdf.setGlobalAlpha?.(1);
   pdf.setFillColor(255, 255, 255);
   const filledWidth = (score.percentage / 100) * barWidth;
   if (filledWidth > 0) {
