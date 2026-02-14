@@ -1,119 +1,44 @@
 
 
-## Padronizar lista de participantes entre paginas (com modularizacao)
+## Simplificar navegacao da pagina de detalhes da empresa
 
-### Problema atual
+### Problema
 
-A pagina `EmpresaDetalhes` tem uma versao simplificada da lista de participantes comparada com a pagina `Participantes`. Faltam:
-- Busca e filtro por status
-- Cards de KPI clicaveis (Total, Pendentes, Em andamento, Concluidos)
-- Clique na linha para abrir Sheet lateral com resultados e testes
-- Funcionalidade de lembrete
-- Atribuir teste
-- Contagem de testes na tabela
-- Geracao de PDF DISC
+A barra de acoes do cabecalho tem 6 botoes em linha (Link de Autocadastro, Convidar Gestor, Editar, Enviar Convites, Importar CSV, Adicionar Participante), o que causa poluicao visual e overflow em telas menores.
 
-### Solucao: Criar um hook + componente modular reutilizavel
+### Solucao: Agrupar acoes em um menu "Mais acoes"
 
-Em vez de duplicar codigo, vamos extrair toda a logica de interacao com participantes em um **hook customizado** (`useParticipantActions`) e um **componente wrapper** (`ParticipantManager`) que encapsula filtros, KPIs, tabela e Sheet de resultados.
-
-### Arquivos a criar
-
-**1. `src/hooks/useParticipantActions.ts`** - Hook que encapsula toda a logica de:
-- Enviar convite
-- Enviar lembrete
-- Editar participante
-- Excluir participante
-- Atribuir teste
-- Ver resultado (abrir Sheet)
-- Gerar PDF DISC
-- Estados de loading para cada acao
-
-**2. `src/components/participants/ParticipantManager.tsx`** - Componente que renderiza:
-- Barra de busca + filtro de status
-- Cards de KPI clicaveis (Total, Pendentes, Em andamento, Concluidos)
-- `ParticipantList` com todas as props conectadas
-- Sheet lateral de resultados com `ParticipantTestsList`, `DiscResults`, `ParticipantResultModal`
-- Dialogs de editar, excluir, atribuir teste
-- Recebe como props: `participants`, `onRefresh`, `isLoading`, e opcionalmente `showSearch` (default true)
-
-### Arquivos a modificar
-
-**3. `src/pages/Participantes.tsx`** - Simplificar drasticamente:
-- Manter apenas: fetch de dados, filtro por empresa, botoes de acao (CSV, Novo Participante)
-- Delegar tudo de participantes ao `ParticipantManager`
-- Remover ~400 linhas de codigo duplicado
-
-**4. `src/pages/EmpresaDetalhes.tsx`** - Substituir a aba "Participantes":
-- Trocar o `ParticipantList` simples pelo `ParticipantManager`
-- Ganhar automaticamente todas as funcionalidades: busca, filtros, KPIs, Sheet de resultados, lembretes, atribuir teste
-
-### Estrutura do componente modular
+Manter apenas 2 botoes visiveis no cabecalho e agrupar o restante em um DropdownMenu:
 
 ```text
-ParticipantManager
-+--------------------------------------------------+
-| [Buscar...]              [Status v]              |
-+--------------------------------------------------+
-| [Total: 14] [Pendentes: 3] [Andamento: 1] [OK: 10] |
-+--------------------------------------------------+
-| ParticipantList (tabela com popover de acoes)     |
-|   - Ver resultados                                |
-|   - Atribuir teste                                |
-|   - Enviar convite / lembrete                     |
-|   - Editar / Excluir                              |
-+--------------------------------------------------+
-| Sheet lateral (ao clicar "Ver resultados")        |
-|   - ParticipantTestsList                          |
-|   - DiscResults ou ParticipantResultModal         |
-+--------------------------------------------------+
-| AlertDialog (confirmar exclusao)                  |
-| AssignTestDialog                                  |
-| ParticipantForm (edicao)                          |
-+--------------------------------------------------+
+[+ Adicionar Participante]   [Mais acoes v]
 ```
 
-### Beneficios da modularizacao
+**Botao principal visivel**: "Adicionar Participante" (acao mais frequente, botao primario)
 
-- Qualquer nova funcionalidade adicionada ao `ParticipantManager` aparece automaticamente em ambas as paginas
-- Codigo de participantes centralizado em um unico lugar
-- Paginas ficam mais leves e focadas no seu contexto especifico
-- Facilita testes e manutencao
+**DropdownMenu "Mais acoes"** (botao outline com icone MoreHorizontal):
+  - Link de Autocadastro (icone Link)
+  - Importar CSV (icone Upload)
+  - Enviar Convites (icone Send)
+  - Convidar Gestor (icone UserPlus)
+  - separador
+  - Editar Empresa (icone Pencil)
 
-### Detalhes tecnicos
+### Alteracoes
 
-**Props do ParticipantManager:**
+**`src/pages/EmpresaDetalhes.tsx`** (linhas 320-348)
 
-```text
-interface ParticipantManagerProps {
-  participants: Participant[]
-  onRefresh: () => void
-  isLoading: boolean
-  companyId?: string          // quando usado dentro de EmpresaDetalhes
-  showStatusFilter?: boolean  // default true
-  showSearch?: boolean        // default true
-}
-```
+Substituir o bloco de 6 botoes por:
 
-**Hook useParticipantActions:**
+1. Um `Button` primario "Adicionar Participante"
+2. Um `DropdownMenu` com `DropdownMenuTrigger` (botao outline com icone `MoreHorizontal` e texto "Acoes") contendo `DropdownMenuItem` para cada acao secundaria
 
-```text
-function useParticipantActions(onRefresh: () => void) {
-  // Estados
-  sendingInviteId, sendingReminderId, editingParticipant,
-  deletingParticipant, assigningParticipant, selectedParticipant,
-  selectedResult, selectedTestResult, isGeneratingDiscPDF...
+Isso reduz a barra de 6 botoes para apenas 2, mantendo todas as funcionalidades acessiveis com um clique a mais nas acoes menos frequentes.
 
-  // Funcoes
-  handleInviteParticipant()
-  handleReminderParticipant()
-  handleEditParticipant()
-  handleDeleteParticipant()
-  handleAssignTest()
-  handleRowClick()
-  handleViewTestResult()
+### Beneficios
 
-  return { estados, funcoes }
-}
-```
+- Visual limpo e organizado
+- Funciona bem em qualquer tamanho de tela
+- Acao principal (adicionar participante) continua em destaque
+- Todas as funcionalidades continuam acessiveis
 
