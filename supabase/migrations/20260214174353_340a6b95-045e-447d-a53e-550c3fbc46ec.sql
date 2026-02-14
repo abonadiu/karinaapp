@@ -1,0 +1,1 @@
+ALTER TABLE public.participant_tests DROP CONSTRAINT IF EXISTS participant_tests_participant_id_test_type_id_key;
