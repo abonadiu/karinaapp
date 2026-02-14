@@ -20,6 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const participantSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
@@ -27,9 +34,15 @@ const participantSchema = z.object({
   phone: z.string().max(20, "Telefone muito longo").optional(),
   department: z.string().max(100, "Departamento muito longo").optional(),
   position: z.string().max(100, "Cargo muito longo").optional(),
+  company_id: z.string().optional(),
 });
 
 export type ParticipantFormData = z.infer<typeof participantSchema>;
+
+interface CompanyOption {
+  id: string;
+  name: string;
+}
 
 interface ParticipantFormProps {
   open: boolean;
@@ -38,6 +51,7 @@ interface ParticipantFormProps {
   defaultValues?: Partial<ParticipantFormData>;
   isEditing?: boolean;
   isLoading?: boolean;
+  companies?: CompanyOption[];
 }
 
 export function ParticipantForm({
@@ -47,15 +61,26 @@ export function ParticipantForm({
   defaultValues,
   isEditing = false,
   isLoading = false,
+  companies,
 }: ParticipantFormProps) {
+  const showCompanySelect = !!companies && !isEditing;
+
   const form = useForm<ParticipantFormData>({
-    resolver: zodResolver(participantSchema),
+    resolver: zodResolver(
+      showCompanySelect
+        ? participantSchema.refine((data) => !!data.company_id, {
+            message: "Selecione uma empresa",
+            path: ["company_id"],
+          })
+        : participantSchema
+    ),
     defaultValues: {
       name: "",
       email: "",
       phone: "",
       department: "",
       position: "",
+      company_id: "",
       ...defaultValues,
     },
   });
@@ -82,6 +107,33 @@ export function ParticipantForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {showCompanySelect && (
+              <FormField
+                control={form.control}
+                name="company_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Empresa *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a empresa" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companies!.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="name"

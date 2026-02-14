@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Search, Building2, Loader2, Download } from "lucide-react";
+import { Search, Building2, Loader2, Download, UserPlus, Upload } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
 import { ParticipantResultModal } from "@/components/participants/ParticipantResultModal";
+import { CsvImport } from "@/components/participants/CsvImport";
 import { AssignTestDialog } from "@/components/participants/AssignTestDialog";
 import { ParticipantTestsList, useParticipantTestCounts } from "@/components/participants/ParticipantTestsList";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,8 @@ export default function Participantes() {
 
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [deletingParticipant, setDeletingParticipant] = useState<Participant | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
@@ -155,6 +158,64 @@ export default function Participantes() {
       setStatusFilter(location.state.statusFilter);
     }
   }, [location.state]);
+
+  const handleCreateParticipant = async (data: ParticipantFormData) => {
+    if (!user || !data.company_id) return;
+
+    setIsSaving(true);
+    const { error } = await supabase
+      .from("participants")
+      .insert({
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        department: data.department || null,
+        position: data.position || null,
+        company_id: data.company_id,
+        facilitator_id: user.id,
+      });
+
+    if (error) {
+      toast.error("Erro ao criar participante");
+      console.error(error);
+    } else {
+      toast.success("Participante adicionado!");
+      fetchData();
+    }
+    setIsSaving(false);
+  };
+
+  const handleCsvImport = async (
+    csvParticipants: { name: string; email: string; phone?: string; department?: string; position?: string }[]
+  ) => {
+    if (!user) return;
+
+    const targetCompanyId = companyFilter !== "all" ? companyFilter : null;
+    if (!targetCompanyId) {
+      toast.error("Selecione uma empresa no filtro antes de importar via CSV");
+      return;
+    }
+
+    const rows = csvParticipants.map((p) => ({
+      name: p.name,
+      email: p.email,
+      phone: p.phone || null,
+      department: p.department || null,
+      position: p.position || null,
+      company_id: targetCompanyId,
+      facilitator_id: user.id,
+    }));
+
+    const { error } = await supabase.from("participants").insert(rows);
+
+    if (error) {
+      toast.error("Erro ao importar participantes");
+      console.error(error);
+    } else {
+      toast.success(`${rows.length} participantes importados!`);
+      fetchData();
+    }
+  };
 
   const handleEditParticipant = async (data: ParticipantFormData) => {
     if (!editingParticipant) return;
@@ -391,45 +452,68 @@ export default function Participantes() {
       title="Participantes"
       description="Todos os participantes de todas as empresas"
     >
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar participantes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+      {/* Action buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h3 className="text-lg font-medium text-foreground sr-only">Filtros</h3>
+        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar participantes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Building2 className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Empresa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas empresas</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status</SelectItem>
+              <SelectItem value="pending">Pendente</SelectItem>
+              <SelectItem value="invited">Convidado</SelectItem>
+              <SelectItem value="in_progress">Em andamento</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <Select value={companyFilter} onValueChange={setCompanyFilter}>
-          <SelectTrigger className="w-[180px]">
-            <Building2 className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Empresa" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas empresas</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
-            <SelectItem value="invited">Convidado</SelectItem>
-            <SelectItem value="in_progress">Em andamento</SelectItem>
-            <SelectItem value="completed">Concluído</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (companyFilter === "all") {
+                toast.error("Selecione uma empresa no filtro antes de importar via CSV");
+                return;
+              }
+              setIsCsvOpen(true);
+            }}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Importar CSV
+          </Button>
+          <Button onClick={() => setIsFormOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Participante
+          </Button>
+        </div>
       </div>
 
       {/* Stats summary */}
@@ -507,6 +591,22 @@ export default function Participantes() {
         }
         isEditing
         isLoading={isSaving}
+      />
+
+      {/* Create participant form */}
+      <ParticipantForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleCreateParticipant}
+        isLoading={isSaving}
+        companies={companies}
+      />
+
+      {/* CSV import */}
+      <CsvImport
+        open={isCsvOpen}
+        onOpenChange={setIsCsvOpen}
+        onImport={handleCsvImport}
       />
 
       {/* Delete confirmation */}
