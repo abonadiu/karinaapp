@@ -456,10 +456,10 @@ export default function Participantes() {
       description="Todos os participantes de todas as empresas"
     >
       {/* Action buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <h3 className="text-lg font-medium text-foreground sr-only">Filtros</h3>
-        <div className="flex flex-col sm:flex-row gap-4 flex-1">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar participantes..."
@@ -470,8 +470,8 @@ export default function Participantes() {
           </div>
 
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="w-[180px]">
-              <Building2 className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-[160px]">
+              <Building2 className="h-4 w-4 mr-2 shrink-0" />
               <SelectValue placeholder="Empresa" />
             </SelectTrigger>
             <SelectContent>
@@ -485,7 +485,7 @@ export default function Participantes() {
           </Select>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -496,26 +496,27 @@ export default function Participantes() {
               <SelectItem value="completed">Concluído</SelectItem>
             </SelectContent>
           </Select>
-        </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (companyFilter === "all") {
-                toast.error("Selecione uma empresa no filtro antes de importar via CSV");
-                return;
-              }
-              setIsCsvOpen(true);
-            }}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Novo Participante
-          </Button>
+          <div className="flex gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (companyFilter === "all") {
+                  toast.error("Selecione uma empresa no filtro antes de importar via CSV");
+                  return;
+                }
+                setIsCsvOpen(true);
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button size="sm" onClick={() => setIsFormOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Novo Participante
+            </Button>
+          </div>
         </div>
       </div>
 
