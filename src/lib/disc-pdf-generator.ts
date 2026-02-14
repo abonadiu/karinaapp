@@ -830,10 +830,10 @@ function addClosingPage(doc: jsPDF, data: DiscPDFData) {
   y += 10;
 
   // Quote
-  doc.setFillColor(...primaryColor);
-  doc.setGlobalAlpha?.(0.1);
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  (doc as any).setGlobalAlpha?.(0.1);
   doc.roundedRect(PAGE.marginLeft + 10, y - 5, PAGE.contentWidth - 20, 30, 3, 3, "F");
-  doc.setGlobalAlpha?.(1);
+  (doc as any).setGlobalAlpha?.(1);
 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(10);
