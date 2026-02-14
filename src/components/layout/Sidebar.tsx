@@ -43,8 +43,7 @@ const menuItems = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
-const COLLAPSE_THRESHOLD = 120;
-const MIN_WIDTH = 48;
+const MIN_WIDTH = 64;
 const MAX_WIDTH = 450;
 const DEFAULT_WIDTH = 256;
 const DRAG_THRESHOLD = 5;
@@ -78,14 +77,8 @@ function SidebarResizeHandle() {
       }
       
       const newWidth = Math.max(MIN_WIDTH, Math.min(startWidth.current + delta, MAX_WIDTH));
-      
-      if (newWidth < COLLAPSE_THRESHOLD) {
-        setSidebarWidth(`${MIN_WIDTH}px`);
-        setOpen(false);
-      } else {
-        setSidebarWidth(`${newWidth}px`);
-        if (!open) setOpen(true);
-      }
+      setSidebarWidth(`${newWidth}px`);
+      if (!open) setOpen(true);
     };
 
     const handleMouseUp = () => {
