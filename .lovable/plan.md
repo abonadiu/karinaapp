@@ -1,112 +1,62 @@
 
-## Tornar Elementos Clicaveis na Pagina de Relatorios
+## Solucao: Sidebar com Arrastar para Redimensionar
 
-### O Que Sera Clicavel
+### Problema
 
-| Elemento | Acao ao Clicar |
-|----------|----------------|
-| Card "Total de Participantes" | Navega para `/participantes` |
-| Card "Diagnosticos Concluidos" | Navega para `/participantes` com filtro `completed` |
-| Card "Taxa de Conclusao" | Navega para `/participantes` com filtro `in_progress` (foco nos que faltam) |
-| Card "Tempo Medio (dias)" | Navega para `/participantes` com filtro `completed` |
-| Linha da tabela "Detalhamento por Empresa" | Navega para `/empresas/{id}` (detalhes da empresa) |
+O `SidebarRail` do shadcn/ui so faz toggle (clique) entre expandido/colapsado. Nao suporta arrastar para redimensionar. O usuario espera poder arrastar a borda do menu para reduzi-lo progressivamente.
 
----
+### Abordagem
 
-### Implementacao
+Substituir o `SidebarRail` por um componente customizado de resize handle que:
 
-#### 1. KPICards com onClick
+1. **Ao arrastar**: redimensiona a largura do sidebar em tempo real usando CSS variable `--sidebar-width`
+2. **Snap automatico**: se a largura ficar abaixo de um threshold (ex: 120px), colapsa automaticamente para o modo icone (3rem)
+3. **Ao clicar** (sem arrastar): faz toggle entre expandido e colapsado (comportamento atual mantido)
 
-**Arquivo**: `src/components/analytics/KPICards.tsx`
+### Detalhes Tecnicos
 
-Adicionar uma prop `onCardClick` opcional ao componente. Cada card recebera um identificador e, ao clicar, dispara a navegacao.
+#### 1. Novo componente `SidebarResizeHandle` em `src/components/layout/Sidebar.tsx`
 
-```typescript
-interface KPICardsProps {
-  // ... props existentes
-  onCardClick?: (cardId: string) => void;
-}
+Criar um componente que:
+- Escuta `mousedown` / `mousemove` / `mouseup` para drag
+- Atualiza a CSS variable `--sidebar-width` no container do `SidebarProvider`
+- Usa `useSidebar()` para acessar `setOpen` e colapsar quando a largura cair abaixo de 120px
+- Diferencia clique de drag (se o mouse moveu menos de 5px, e clique; senao, e drag)
+
+```text
++------------------+---+------------------------+
+|                  | | |                        |
+|    Sidebar       |R| |     Main Content       |
+|    (resizable)   |e| |                        |
+|                  |s| |                        |
+|                  |i| |                        |
+|                  |z| |                        |
+|                  |e| |                        |
++------------------+---+------------------------+
 ```
 
-Cada card tera:
-- Cursor pointer
-- Efeito hover (scale + shadow)
-- Indicador visual sutil de que e clicavel
+#### 2. Modificar `SidebarProvider` para aceitar largura dinamica
 
----
+Atualizar o `SidebarProvider` no `src/components/ui/sidebar.tsx` para:
+- Adicionar `sidebarWidth` e `setSidebarWidth` ao contexto
+- Usar a largura dinamica no style `--sidebar-width`
+- Ao expandir (setOpen true), restaurar a ultima largura usada
 
-#### 2. Relatorios.tsx - Navegacao nos Cards
+#### 3. Remover `SidebarRail` e usar `SidebarResizeHandle`
 
-**Arquivo**: `src/pages/Relatorios.tsx`
-
-Usar `useNavigate` do React Router. Ao clicar em um card KPI, navegar para `/participantes` passando o filtro de status como query parameter ou state:
-
-```typescript
-const navigate = useNavigate();
-
-const handleKPIClick = (cardId: string) => {
-  switch (cardId) {
-    case "total":
-      navigate("/participantes");
-      break;
-    case "completed":
-      navigate("/participantes", { state: { statusFilter: "completed" } });
-      break;
-    case "completion_rate":
-      navigate("/participantes", { state: { statusFilter: "in_progress" } });
-      break;
-    case "avg_days":
-      navigate("/participantes", { state: { statusFilter: "completed" } });
-      break;
-  }
-};
-```
-
----
-
-#### 3. CompanyDetailsTable - Linhas Clicaveis
-
-**Arquivo**: `src/components/analytics/CompanyDetailsTable.tsx`
-
-Adicionar prop `onCompanyClick` e tornar cada linha da tabela clicavel, navegando para `/empresas/{id}`:
-
-- Cursor pointer nas linhas
-- Hover com destaque de fundo
-- Ao clicar, navega para detalhes da empresa
-
----
-
-#### 4. Participantes.tsx - Receber Filtro via State
-
-**Arquivo**: `src/pages/Participantes.tsx`
-
-Usar `useLocation` para ler o state de navegacao e aplicar o filtro automaticamente:
-
-```typescript
-const location = useLocation();
-useEffect(() => {
-  if (location.state?.statusFilter) {
-    setStatusFilter(location.state.statusFilter);
-  }
-}, [location.state]);
-```
-
----
+No `Sidebar.tsx`, substituir `<SidebarRail />` pelo novo componente de resize.
 
 ### Arquivos a Modificar
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/analytics/KPICards.tsx` | Adicionar `onCardClick`, estilos hover/pointer |
-| `src/pages/Relatorios.tsx` | Adicionar `useNavigate` e handler de clique nos KPIs |
-| `src/components/analytics/CompanyDetailsTable.tsx` | Linhas clicaveis com `onCompanyClick` |
-| `src/pages/Participantes.tsx` | Receber filtro via `location.state` |
+| `src/components/ui/sidebar.tsx` | Adicionar `sidebarWidth` / `setSidebarWidth` ao contexto do SidebarProvider; atualizar CSS variable dinamicamente |
+| `src/components/layout/Sidebar.tsx` | Substituir `SidebarRail` por um `SidebarResizeHandle` customizado com logica de drag + snap |
 
----
+### Comportamento Esperado
 
-### Resultado Esperado
-
-1. Cards de KPI mostram cursor pointer e efeito hover
-2. Clicar em um card navega para a pagina de Participantes com o filtro adequado
-3. Linhas da tabela de empresas sao clicaveis e levam aos detalhes da empresa
-4. Transicoes suaves e feedback visual em todos os elementos clicaveis
+1. **Arrastar a borda direita do menu**: redimensiona fluidamente de 256px ate 120px
+2. **Soltar abaixo de 120px**: colapsa automaticamente para modo icone (48px) com animacao suave
+3. **Clicar no handle sem arrastar**: toggle entre expandido/colapsado
+4. **Modo colapsado**: exibe apenas icones (comportamento `collapsible="icon"` mantido)
+5. **Expandir do modo colapsado**: restaura a ultima largura usada
