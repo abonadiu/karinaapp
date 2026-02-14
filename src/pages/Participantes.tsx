@@ -85,7 +85,6 @@ export default function Participantes() {
 
   // Assign test dialog
   const [assigningParticipant, setAssigningParticipant] = useState<Participant | null>(null);
-  const [existingTestTypeIds, setExistingTestTypeIds] = useState<string[]>([]);
 
   // Test counts for table column
   const participantIds = participants.map(p => p.id);
@@ -266,13 +265,6 @@ export default function Participantes() {
   };
 
   const handleAssignTest = async (participant: Participant) => {
-    // Load existing test type ids for this participant
-    const { data } = await supabase
-      .from("participant_tests")
-      .select("test_type_id")
-      .eq("participant_id", participant.id);
-
-    setExistingTestTypeIds((data || []).map(d => d.test_type_id));
     setAssigningParticipant(participant);
   };
 
@@ -452,7 +444,6 @@ export default function Participantes() {
           onOpenChange={(open) => !open && setAssigningParticipant(null)}
           participantId={assigningParticipant.id}
           participantName={assigningParticipant.name}
-          existingTestTypeIds={existingTestTypeIds}
           onAssigned={fetchData}
         />
       )}

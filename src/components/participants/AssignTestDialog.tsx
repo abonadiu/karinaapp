@@ -26,7 +26,6 @@ interface AssignTestDialogProps {
   onOpenChange: (open: boolean) => void;
   participantId: string;
   participantName: string;
-  existingTestTypeIds: string[];
   onAssigned: () => void;
 }
 
@@ -43,7 +42,6 @@ export function AssignTestDialog({
   onOpenChange,
   participantId,
   participantName,
-  existingTestTypeIds,
   onAssigned,
 }: AssignTestDialogProps) {
   const [testTypes, setTestTypes] = useState<TestType[]>([]);
@@ -116,13 +114,10 @@ export function AssignTestDialog({
         ) : (
           <div className="space-y-2">
             {testTypes.map((tt) => {
-              const alreadyAssigned = existingTestTypeIds.includes(tt.id);
-              const isDisabled = !tt.is_active || alreadyAssigned;
-
               return (
                 <button
                   key={tt.id}
-                  disabled={isDisabled || assigning === tt.id}
+                  disabled={!tt.is_active || assigning === tt.id}
                   onClick={() => handleAssign(tt)}
                   className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-left"
                 >
@@ -140,11 +135,6 @@ export function AssignTestDialog({
                         <Badge variant="secondary" className="text-xs">
                           <Clock className="h-3 w-3 mr-1" />
                           Em breve
-                        </Badge>
-                      )}
-                      {alreadyAssigned && (
-                        <Badge variant="outline" className="text-xs">
-                          Já atribuído
                         </Badge>
                       )}
                     </div>
