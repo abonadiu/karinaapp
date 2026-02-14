@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Search, Building2, Clock, Loader2 } from "lucide-react";
+import { Search, Building2, Loader2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
@@ -33,7 +33,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { StatusBadge } from "@/components/participants/StatusBadge";
+
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -569,7 +569,7 @@ export default function Participantes() {
               )}
 
               {/* Legacy result view */}
-              {selectedParticipant.status === "completed" ? (
+              {selectedParticipant.status === "completed" && (
                 isLoadingResult ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -629,16 +629,6 @@ export default function Participantes() {
                     Resultado não encontrado.
                   </p>
                 )
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-                  <Clock className="h-10 w-10 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Diagnóstico ainda não concluído</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Status atual: <StatusBadge status={selectedParticipant?.status as any} />
-                    </p>
-                  </div>
-                </div>
               )}
             </div>
           )}
