@@ -457,7 +457,26 @@ export default function Participantes() {
     >
       {/* Action buttons */}
       <div className="flex flex-col gap-4 mb-6">
-        <h3 className="text-lg font-medium text-foreground sr-only">Filtros</h3>
+        <div className="flex justify-end gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (companyFilter === "all") {
+                toast.error("Selecione uma empresa no filtro antes de importar via CSV");
+                return;
+              }
+              setIsCsvOpen(true);
+            }}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Importar CSV
+          </Button>
+          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Participante
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -496,27 +515,6 @@ export default function Participantes() {
               <SelectItem value="completed">Concluído</SelectItem>
             </SelectContent>
           </Select>
-
-          <div className="flex gap-2 ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (companyFilter === "all") {
-                  toast.error("Selecione uma empresa no filtro antes de importar via CSV");
-                  return;
-                }
-                setIsCsvOpen(true);
-              }}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Importar CSV
-            </Button>
-            <Button size="sm" onClick={() => setIsFormOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Novo Participante
-            </Button>
-          </div>
         </div>
       </div>
 
