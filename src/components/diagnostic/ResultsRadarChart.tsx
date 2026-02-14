@@ -14,9 +14,24 @@ interface ResultsRadarChartProps {
   scores: DimensionScore[];
 }
 
+/**
+ * Creates a short label for the radar chart axis.
+ * Uses the first meaningful word(s) from the dimension name.
+ */
+function getShortLabel(dimension: string): string {
+  const map: Record<string, string> = {
+    "Consciência Interior": "Consciência",
+    "Coerência Emocional": "Coerência",
+    "Conexão e Propósito": "Propósito",
+    "Relações e Compaixão": "Compaixão",
+    "Transformação": "Transformação",
+  };
+  return map[dimension] || dimension.split(" ")[0];
+}
+
 export function ResultsRadarChart({ scores }: ResultsRadarChartProps) {
   const data = scores.map(s => ({
-    dimension: s.dimension.split(" ")[0], // Primeira palavra
+    dimension: getShortLabel(s.dimension),
     fullName: s.dimension,
     score: s.score,
     fullMark: 5
@@ -34,7 +49,7 @@ export function ResultsRadarChart({ scores }: ResultsRadarChartProps) {
             dataKey="dimension" 
             tick={{ 
               fill: "hsl(var(--foreground))", 
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 500
             }}
           />
@@ -63,7 +78,7 @@ export function ResultsRadarChart({ scores }: ResultsRadarChartProps) {
                   <div className="bg-background border rounded-lg shadow-lg p-3">
                     <p className="font-medium">{data.fullName}</p>
                     <p className="text-primary font-bold">
-                      Score: {data.score.toFixed(2)} / 5
+                      Score: {data.score.toFixed(1)} / 5
                     </p>
                   </div>
                 );
