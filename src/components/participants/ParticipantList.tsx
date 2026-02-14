@@ -1,4 +1,5 @@
-import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell, Link, ClipboardList } from "lucide-react";
+import { useState } from "react";
+import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell, Link, ClipboardList, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +69,7 @@ export function ParticipantList({
   sendingReminderId,
   testCounts,
 }: ParticipantListProps) {
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -104,12 +111,16 @@ export function ParticipantList({
           {participants.map((participant) => {
             const counts = testCounts?.[participant.id];
             return (
-              <TableRow 
+              <Popover 
                 key={participant.id} 
-                className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
-                onClick={() => onRowClick?.(participant)}
+                open={openPopoverId === participant.id} 
+                onOpenChange={(open) => setOpenPopoverId(open ? participant.id : null)}
               >
-                <TableCell>
+                <PopoverTrigger asChild>
+                  <TableRow 
+                    className={(onRowClick || onAssignTest) ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                  >
+                    <TableCell>
                   <div>
                     <p className="font-medium text-foreground">{participant.name}</p>
                     <p className="text-sm text-muted-foreground">{participant.email}</p>
@@ -210,6 +221,36 @@ export function ParticipantList({
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-1" align="start">
+              <div className="flex flex-col">
+                {onRowClick && (
+                  <button
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                    onClick={() => {
+                      setOpenPopoverId(null);
+                      onRowClick(participant);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ver resultados
+                  </button>
+                )}
+                {onAssignTest && (
+                  <button
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                    onClick={() => {
+                      setOpenPopoverId(null);
+                      onAssignTest(participant);
+                    }}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Atribuir teste
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
             );
           })}
         </TableBody>
