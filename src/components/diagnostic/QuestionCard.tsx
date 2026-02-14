@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -25,8 +25,14 @@ export function QuestionCard({
   onPrevious,
   canGoPrevious
 }: QuestionCardProps) {
+  const [selectedValue, setSelectedValue] = useState<number | undefined>(currentValue);
+
+  useEffect(() => {
+    setSelectedValue(currentValue);
+  }, [question.id, currentValue]);
+
   const handleSelect = (score: number) => {
-    // Pequeno delay para feedback visual antes de avançar
+    setSelectedValue(score);
     setTimeout(() => {
       onAnswer(question.id, score);
     }, 200);
@@ -58,7 +64,7 @@ export function QuestionCard({
             </p>
 
             <LikertScale
-              value={currentValue}
+              value={selectedValue}
               onChange={handleSelect}
             />
 
