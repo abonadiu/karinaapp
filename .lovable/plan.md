@@ -1,24 +1,26 @@
 
 
-## Correcao: Desmarcar selecao ao trocar de pergunta
+## Correcao: Contraste da fonte durante transicao entre perguntas
 
 ### Problema
 
-Quando o participante responde uma pergunta, o botao fica marcado (highlighted) e a proxima pergunta aparece com o mesmo botao ainda visualmente selecionado por um breve momento. Isso induz o participante a clicar no mesmo valor sem refletir.
-
-A causa e o delay de 200ms no `handleSelect` do `QuestionCard.tsx` -- durante esse tempo, o valor ja foi setado visualmente mas a pergunta ainda nao avancou. Alem disso, quando a pergunta ja foi respondida anteriormente (voltou e avancou de novo), o valor antigo aparece marcado, o que e correto, mas para perguntas novas nao deveria haver nenhuma selecao.
+Quando o componente `QuestionCard` remonta (por causa do `key={currentQuestion.id}`), os botoes do `LikertScale` usam `transition-all`, o que faz o texto animar brevemente de branco (estado anterior `text-primary-foreground`) para a cor correta. Como nao ha cor de texto explicita no estado nao-selecionado, a transicao fica visualmente quebrada.
 
 ### Solucao
 
-1. **Adicionar um estado local** no `QuestionCard` que controla a selecao visual, resetando para `undefined` sempre que o `question.id` mudar (nova pergunta)
-2. Manter o valor salvo (`currentValue`) apenas como valor inicial quando o participante volta a uma pergunta ja respondida
-3. Isso garante que ao avancar para uma pergunta nova, nenhum botao estara marcado
+Duas mudancas no `LikertScale.tsx`:
+
+1. **Substituir `transition-all` por transicoes especificas** (`transition-colors` e propriedades de borda/background) para evitar que a cor do texto anime
+2. **Adicionar `text-foreground` explicito** no estado nao-selecionado dos botoes, garantindo que a cor do texto esteja sempre definida
 
 ### Mudancas
 
-**`src/components/diagnostic/QuestionCard.tsx`**:
-- Adicionar um `useState` local para `selectedValue`, inicializado com `currentValue`
-- Usar `useEffect` para resetar `selectedValue` para `currentValue` (ou `undefined`) quando `question.id` mudar
-- Passar `selectedValue` em vez de `currentValue` para o `LikertScale`
-- No `handleSelect`, setar o `selectedValue` imediatamente para feedback visual, e depois chamar `onAnswer` com o delay
+**`src/components/diagnostic/LikertScale.tsx`**:
+
+- Linha 22 (desktop): trocar `transition-all` por `transition-colors duration-150`
+- Linha 27: adicionar `text-foreground` ao estado nao-selecionado
+- Linha 45 (mobile): mesma troca de `transition-all` por `transition-colors duration-150`
+- Linha 50: adicionar `text-foreground` ao estado nao-selecionado
+
+Isso garante que ao remontar o componente, o texto nunca pisca em branco.
 
