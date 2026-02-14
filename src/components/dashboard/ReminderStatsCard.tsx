@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, XCircle, TrendingUp, Clock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +24,7 @@ interface RecentReminder {
 }
 
 export function ReminderStatsCard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<ReminderStats>({
     total: 0,
     thisWeek: 0,
@@ -141,22 +143,34 @@ export function ReminderStatsCard() {
       <CardContent>
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-muted/50 rounded-lg p-4 text-center">
+          <div
+            className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted/80 transition-colors"
+            onClick={() => navigate("/participantes")}
+          >
             <p className="text-2xl font-bold text-foreground">{stats.total}</p>
             <p className="text-sm text-muted-foreground">Total Enviados</p>
           </div>
-          <div className="bg-muted/50 rounded-lg p-4 text-center">
+          <div
+            className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted/80 transition-colors"
+            onClick={() => navigate("/participantes")}
+          >
             <p className="text-2xl font-bold text-foreground">{stats.thisWeek}</p>
             <p className="text-sm text-muted-foreground">Esta Semana</p>
           </div>
-          <div className="bg-muted/50 rounded-lg p-4 text-center">
+          <div
+            className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted/80 transition-colors"
+            onClick={() => navigate("/participantes", { state: { statusFilter: "completed" } })}
+          >
             <p className="text-2xl font-bold text-success">{stats.conversionRate.toFixed(0)}%</p>
             <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
               <TrendingUp className="h-3 w-3" />
               Taxa Conversão
             </p>
           </div>
-          <div className="bg-muted/50 rounded-lg p-4 text-center">
+          <div
+            className="bg-muted/50 rounded-lg p-4 text-center cursor-pointer hover:bg-muted/80 transition-colors"
+            onClick={() => navigate("/participantes")}
+          >
             <p className="text-2xl font-bold text-foreground">
               {stats.total > 0 ? ((stats.successful / stats.total) * 100).toFixed(0) : 0}%
             </p>
@@ -175,7 +189,8 @@ export function ReminderStatsCard() {
               {recentReminders.map((reminder) => (
                 <div
                   key={reminder.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate("/participantes", { state: { searchQuery: reminder.participant_name } })}
                 >
                   <div className="flex items-center gap-3">
                     {reminder.success ? (
