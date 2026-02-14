@@ -1,82 +1,112 @@
 
 
-## Enriquecer o Conteudo Explicativo do Diagnostico
+## Redesign Profundo do Relatorio de Diagnostico
 
-### Problema Atual
+### Problemas Identificados
 
-O relatorio mostra dados numericos e descricoes curtas de uma linha por dimensao, mas falta contexto explicativo para o participante entender o que cada score significa na pratica. As descricoes atuais sao genericas (ex: "Capacidade de observar pensamentos e emocoes...") e os niveis sao apenas rotulos ("Em desenvolvimento", "Moderado", "Bem desenvolvido").
+1. **Modal pequeno** (max-w-2xl) - conteudo fica apertado e dificil de ler
+2. **Redundancia** - Pontos fortes/fracos sao mostrados como DimensionCards E depois todas as dimensoes sao mostradas novamente com os mesmos cards
+3. **Score header fraco** - circulo pequeno, sem impacto visual
+4. **DimensionCard generico** - todos os cards iguais, sem hierarquia visual, muita informacao empilhada
+5. **Recomendacoes basicas** - lista simples com checkmarks sem destaque
+6. **Sem transicoes visuais** entre secoes
+7. **Sem cores das dimensoes** - o sistema ja tem cores definidas (dimension-consciousness, dimension-coherence, etc.) mas nao sao usadas nos cards
 
-### O Que Vai Melhorar
+### Solucao
 
-1. **Descricoes detalhadas por dimensao** - Textos mais longos explicando o que cada dimensao avalia e por que e importante
-2. **Interpretacao por nivel de score** - Para cada dimensao, um texto especifico baseado no nivel (baixo/medio/alto) explicando o que aquele resultado significa na pratica
-3. **Descricao do score geral** - Texto explicativo sobre o que o score geral representa
-4. **Secao "O que e o IQ+IS"** - Breve introducao no topo explicando o diagnostico
+#### 1. Expandir o modal para drawer/sheet lateral
 
-### Implementacao
+Substituir o Dialog por um **Sheet** (drawer lateral) ocupando ~70% da tela, com scroll suave. Isso da espaco para o relatorio respirar.
 
-#### 1. Criar arquivo de conteudo explicativo
+#### 2. Score header impactante
 
-**Novo arquivo**: `src/lib/dimension-descriptions.ts`
-
-Contera para cada dimensao:
-- `about`: Texto de 2-3 frases explicando a dimensao em profundidade
-- `lowInterpretation`: O que significa ter score baixo nessa dimensao
-- `midInterpretation`: O que significa ter score moderado
-- `highInterpretation`: O que significa ter score alto
-- `whyItMatters`: Por que essa dimensao e importante
-
-Exemplo:
 ```
-"Consciencia Interior": {
-  about: "Esta dimensao avalia sua capacidade de pausar e observar seus proprios
-    pensamentos, emocoes e reacoes sem julgamento. Inclui praticas de atencao plena,
-    auto-observacao e reconhecimento de padroes automaticos de comportamento.",
-  lowInterpretation: "Voce pode estar operando no 'piloto automatico' com frequencia,
-    reagindo a situacoes sem perceber seus padroes internos. E um convite para
-    desenvolver momentos de pausa e auto-observacao.",
-  midInterpretation: "Voce ja demonstra capacidade de auto-observacao em alguns
-    momentos, mas pode aprofundar essa pratica para que se torne mais consistente.",
-  highInterpretation: "Voce tem uma forte capacidade de se observar internamente,
-    reconhecendo pensamentos e emocoes com clareza. Isso e uma base solida para
-    seu desenvolvimento."
-}
++---------------------------------------------------+
+|  [gradiente warm]                                 |
+|                                                   |
+|       ___                                         |
+|      / 3.8 \    Resultado de Maria Silva          |
+|      \ /5  /    Concluido em 13 de fevereiro      |
+|       ---                                         |
+|                                                   |
+|   "Seu resultado mostra um bom nivel de           |
+|    desenvolvimento, com bases solidas..."          |
+|                                                   |
+|   [========= barra de progresso =========]        |
+|   [Badge: Bom desenvolvimento]                    |
++---------------------------------------------------+
 ```
 
-#### 2. Atualizar o DimensionCard
+- Score grande (text-4xl) dentro de um circulo com borda gradiente
+- Background com gradient-warm-subtle
+- Mensagem interpretativa em destaque
+- Badge colorido com o nivel
 
-**Arquivo**: `src/components/diagnostic/DimensionCard.tsx`
+#### 3. Eliminar redundancia - secao unica de dimensoes
 
-- Importar as descricoes detalhadas
-- Substituir a descricao curta pela descricao `about` mais completa
-- Adicionar a interpretacao especifica baseada no nivel do score (baixo/medio/alto)
-- Mostrar a interpretacao como um texto em italico abaixo da barra de progresso
+Em vez de mostrar pontos fortes + pontos fracos + todas as dimensoes (3 secoes repetitivas), mostrar **uma unica secao** com todas as 5 dimensoes, cada uma com:
+- Barra lateral colorida indicando se e forte (verde), fraca (laranja) ou neutra
+- Badge "Ponto forte" ou "Area de desenvolvimento" quando aplicavel
+- Usar as cores das dimensoes do design system (dimension-consciousness, etc.)
 
-#### 3. Atualizar o ParticipantResultModal
+#### 4. DimensionCard redesenhado com accordion
 
-**Arquivo**: `src/components/participants/ParticipantResultModal.tsx`
+Novo DimensionCard com design mais profissional:
+- **Header compacto**: icone + nome + score + badge de nivel - sempre visivel
+- **Conteudo expandivel** (Collapsible): descricao detalhada, interpretacao, "por que importa"
+- Barra lateral com cor da dimensao (cada dimensao tem sua cor propria)
+- Score como mini-gauge circular em vez de texto simples
 
-- Adicionar secao introdutoria "Sobre o Diagnostico IQ+IS" antes do radar chart
-- Melhorar a mensagem do score geral com texto mais explicativo baseado na faixa
+```
++--[cor da dimensao]--+------------------------------------+
+| |                   | Brain  Consciencia Interior   4.2/5 |
+| |  [barra lateral]  | [============================] 84% |
+| |                   | [v] Ver detalhes                    |
+| |                   +-------------------------------------+
+| |                   | "Esta dimensao avalia..."           |
+| |                   | > "Voce tem forte capacidade..."    |
+| |                   | (icone) Por que importa: "..."      |
++---------------------+-------------------------------------+
+```
 
-#### 4. Atualizar o DiagnosticResults
+#### 5. Recomendacoes com visual premium
 
-**Arquivo**: `src/components/diagnostic/DiagnosticResults.tsx`
+Redesenhar RecommendationList:
+- Card com header gradiente usando a cor da dimensao relacionada
+- Cada pratica com icone contextual (meditacao, escrita, etc.)
+- Numeracao sequencial para criar senso de progressao
+- Separar em "Pratica diaria" vs "Pratica semanal" quando aplicavel
 
-- Mesmas melhorias do modal para manter consistencia entre as duas visualizacoes
+#### 6. Secao "Sobre o Diagnostico" mais visual
+
+Em vez de texto corrido, usar um bloco com icone grande, titulo em Playfair Display e texto em formato de citacao.
 
 ### Arquivos a Criar/Modificar
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/lib/dimension-descriptions.ts` | **Novo** - Conteudo explicativo detalhado por dimensao e nivel |
-| `src/components/diagnostic/DimensionCard.tsx` | Adicionar interpretacao por nivel e descricao expandida |
-| `src/components/participants/ParticipantResultModal.tsx` | Adicionar secao introdutoria e mensagem do score geral mais rica |
-| `src/components/diagnostic/DiagnosticResults.tsx` | Mesmas melhorias para consistencia |
+| `src/components/participants/ParticipantResultModal.tsx` | Redesign completo com layout profissional, score header impactante, eliminacao de redundancia |
+| `src/components/diagnostic/DimensionCard.tsx` | Redesign com accordion expansivel, barra lateral colorida, mini-gauge |
+| `src/components/diagnostic/RecommendationList.tsx` | Visual premium com cards gradiente e icones contextuais |
+| `src/components/diagnostic/DiagnosticResults.tsx` | Mesmas melhorias para consistencia (pagina publica do participante) |
+| `src/pages/Participantes.tsx` | Substituir Dialog por Sheet para mais espaco |
+| `src/lib/dimension-descriptions.ts` | Adicionar mapeamento dimensao -> cor do design system |
 
-### Secao Tecnica
+### Detalhes Tecnicos
 
-- O arquivo `dimension-descriptions.ts` exporta um `Record<string, DimensionDescription>` com as 5 dimensoes
-- Uma funcao helper `getInterpretation(dimension, score)` retorna o texto correto baseado no nivel
-- O `DimensionCard` recebe o conteudo explicativo sem necessidade de mudar sua interface (props)
-- Nenhuma mudanca no banco de dados necessaria - todo o conteudo e estatico no frontend
+**Cores das dimensoes** (ja existem no CSS):
+- Consciencia Interior: `--dimension-consciousness` (terracotta)
+- Coerencia Emocional: `--dimension-coherence` (dourado)
+- Conexao e Proposito: `--dimension-purpose` (verde sage)
+- Relacoes e Compaixao: `--dimension-compassion` (azul)
+- Transformacao: `--dimension-growth` (roxo)
+
+**Componentes reutilizados**:
+- `Sheet` (Vaul) para o drawer lateral
+- `Collapsible` (Radix) para os accordion nos DimensionCards
+- `Progress` existente
+- `ResultsRadarChart` (sem alteracao)
+- Fontes Playfair Display e Nunito ja configuradas
+
+**Animacoes**: Usar `animate-fade-in` ja configurado no Tailwind para entrada suave dos cards ao expandir.
+
