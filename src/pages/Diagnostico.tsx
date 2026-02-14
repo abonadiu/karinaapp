@@ -111,6 +111,7 @@ export default function Diagnostico() {
       if (!currentQuestion) return null;
       return (
         <QuestionCard
+          key={currentQuestion.id}
           question={currentQuestion}
           currentIndex={currentQuestionIndex}
           totalQuestions={questions.length}
