@@ -1,30 +1,29 @@
 
 
-## Unificar acoes no Popover e remover coluna "Acoes"
+## Tornar os cards de KPI clicaveis na pagina de Participantes
 
 ### O que mudar
 
-Mover **todas** as acoes que hoje estao no DropdownMenu (coluna "Acoes") para dentro do Popover que aparece ao clicar na linha. Depois, remover a coluna "Acoes" e o DropdownMenu completamente.
+Os 4 cards de resumo (Total, Pendentes, Em andamento, Concluidos) atualmente sao estaticos. Ao clicar em cada um, devem filtrar a lista de participantes pelo status correspondente:
 
-### Acoes no Popover (ordem)
+- **Total**: limpa o filtro (mostra todos)
+- **Pendentes**: filtra por `pending`
+- **Em andamento**: filtra por `in_progress`
+- **Concluidos**: filtra por `completed`
 
-1. **Ver resultados** (Eye) - se `onRowClick` existir
-2. **Atribuir teste** (ClipboardList) - se `onAssignTest` existir
-3. **Enviar convite** (Mail / Loader2) - se status === "pending"
-4. **Enviar lembrete** (Bell / Loader2) - se status === "invited" ou "in_progress" e `onReminder` existir
-5. **Editar** (Pencil)
-6. **Excluir** (Trash2) - com estilo destructive
+O card ativo deve ter um destaque visual (borda colorida ou fundo diferenciado) para indicar qual filtro esta selecionado. Ao clicar no card que ja esta ativo, o filtro e removido (volta para "all").
 
 ### Detalhes tecnicos
 
-**`src/components/participants/ParticipantList.tsx`**:
+**`src/pages/Participantes.tsx`** (linhas 436-459):
 
-- Remover a coluna `<TableHead>Acoes</TableHead>` do header
-- Remover a `<TableCell>` que contem o `DropdownMenu` inteiro
-- Remover imports de `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuTrigger`, `MoreHorizontal`
-- Mover todas as acoes condicionais (convite, lembrete, editar, excluir) para o `PopoverContent`, usando o mesmo estilo de botao ja existente
-- Para "Enviar convite" e "Enviar lembrete", manter a logica de `disabled` e o spinner (Loader2) quando `sendingInviteId`/`sendingReminderId` estiver ativo
-- Para "Excluir", usar classe `text-destructive` no botao
-- Adicionar um separador visual (div com border-t) entre as acoes principais e "Editar"/"Excluir"
-- Remover `onClick={(e) => e.stopPropagation()}` das celulas de Testes e Status, pois nao ha mais conflito com o dropdown
+- Transformar cada `<div>` de card em um `<button>` (ou `<div>` com `onClick` e `cursor-pointer`)
+- No click:
+  - Card "Total": `setStatusFilter("all")`
+  - Card "Pendentes": `setStatusFilter(statusFilter === "pending" ? "all" : "pending")`
+  - Card "Em andamento": `setStatusFilter(statusFilter === "in_progress" ? "all" : "in_progress")`
+  - Card "Concluidos": `setStatusFilter(statusFilter === "completed" ? "all" : "completed")`
+- Adicionar estilo condicional: quando `statusFilter` coincide com o status do card, aplicar uma borda destacada (ex: `border-primary` ou `ring-2 ring-primary`)
+- Adicionar `cursor-pointer` e `hover:border-primary/50 transition-colors` a todos os cards
+- Manter o `<Select>` de status sincronizado (ja usa `statusFilter`, entao funciona automaticamente)
 
