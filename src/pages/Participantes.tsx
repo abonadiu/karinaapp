@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Building2, Upload, UserPlus } from "lucide-react";
+import { Building2, Upload, UserPlus, MoreHorizontal, Link2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantManager } from "@/components/participants/ParticipantManager";
@@ -150,34 +156,46 @@ export default function Participantes() {
     >
       {/* Action buttons */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex justify-end gap-2 flex-wrap">
-          {companyFilter !== "all" && (() => {
-            const selectedCompany = companies.find(c => c.id === companyFilter);
-            return selectedCompany?.self_register_token ? (
-              <SelfRegisterLinkDialog
-                selfRegisterToken={selectedCompany.self_register_token}
-                companyName={selectedCompany.name}
-              />
-            ) : null;
-          })()}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (companyFilter === "all") {
-                toast.error("Selecione uma empresa no filtro antes de importar via CSV");
-                return;
-              }
-              setIsCsvOpen(true);
-            }}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
+        <div className="flex justify-end gap-2">
           <Button size="sm" onClick={() => setIsFormOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             Novo Participante
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreHorizontal className="h-4 w-4 mr-2" />
+                Ações
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {companyFilter !== "all" && (() => {
+                const selectedCompany = companies.find(c => c.id === companyFilter);
+                return selectedCompany?.self_register_token ? (
+                  <SelfRegisterLinkDialog
+                    selfRegisterToken={selectedCompany.self_register_token}
+                    companyName={selectedCompany.name}
+                    trigger={
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Link2 className="mr-2 h-4 w-4" />
+                        Link de Autocadastro
+                      </DropdownMenuItem>
+                    }
+                  />
+                ) : null;
+              })()}
+              <DropdownMenuItem onSelect={() => {
+                if (companyFilter === "all") {
+                  toast.error("Selecione uma empresa no filtro antes de importar via CSV");
+                  return;
+                }
+                setIsCsvOpen(true);
+              }}>
+                <Upload className="mr-2 h-4 w-4" />
+                Importar CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Company filter (only on this page) */}
