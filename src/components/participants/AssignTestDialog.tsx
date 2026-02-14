@@ -112,7 +112,7 @@ export function AssignTestDialog({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 overflow-hidden">
             {testTypes.map((tt) => {
               return (
                 <button
