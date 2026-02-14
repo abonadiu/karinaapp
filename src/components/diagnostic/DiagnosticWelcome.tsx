@@ -1,14 +1,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Heart, Compass, Users, Sparkles, Clock, CheckCircle, Target, Shield, Smile, Search } from "lucide-react";
+import { Brain, Heart, Compass, Users, Sparkles, Clock, CheckCircle, Target, Shield, Smile, Search, Star, Sun, Moon, Flame } from "lucide-react";
 import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
 interface DiagnosticWelcomeProps {
   participantName: string;
   facilitatorProfile?: FacilitatorProfile | null;
   onStart: () => void;
-  testType?: "iq_is" | "disc";
+  testType?: "iq_is" | "disc" | "mapa_da_alma";
 }
 
 const iqIsDimensions = [
@@ -26,15 +26,29 @@ const discDimensions = [
   { icon: Search, name: "Conformidade (C)", color: "text-blue-500" },
 ];
 
+const soulPlanPositions = [
+  { icon: Sun, name: "Desafios — padrões a transformar", color: "text-amber-600" },
+  { icon: Flame, name: "Talentos — dons naturais da alma", color: "text-orange-500" },
+  { icon: Target, name: "Objetivos — aspirações desta vida", color: "text-emerald-500" },
+  { icon: Star, name: "Destino da Alma — propósito central", color: "text-violet-500" },
+];
+
 export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart, testType = "iq_is" }: DiagnosticWelcomeProps) {
   const firstName = participantName.split(" ")[0];
   const isDisc = testType === "disc";
+  const isSoulPlan = testType === "mapa_da_alma";
 
-  const dimensions = isDisc ? discDimensions : iqIsDimensions;
-  const title = isDisc
+  const dimensions = isSoulPlan ? soulPlanPositions : isDisc ? discDimensions : iqIsDimensions;
+  
+  const title = isSoulPlan
+    ? "Bem-vindo(a) ao Mapa da Alma"
+    : isDisc
     ? "Bem-vindo(a) ao Perfil DISC"
     : "Bem-vindo(a) ao Diagnóstico de Inteligência Emocional e Espiritual";
-  const description = isDisc
+  
+  const description = isSoulPlan
+    ? "O Mapa da Alma é uma ferramenta de autoconhecimento profundo baseada no sistema Soul Plan de Blue Marsden. A partir do seu nome completo de nascimento, revelamos as energias que compõem o seu plano de alma:"
+    : isDisc
     ? "Este diagnóstico foi desenvolvido para mapear seu perfil comportamental em 4 dimensões fundamentais:"
     : "Este diagnóstico foi desenvolvido para ajudá-lo(a) a compreender melhor suas fortalezas e áreas de desenvolvimento em 5 dimensões fundamentais:";
 
@@ -97,41 +111,74 @@ export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart
               O que esperar:
             </h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
-                <span>{isDisc ? "40 afirmações sobre comportamento (cerca de 10 minutos)" : "40 perguntas reflexivas (cerca de 15 minutos)"}</span>
-              </li>
-              {!isDisc && (
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
-                  <span>3 exercícios vivenciais curtos</span>
-                </li>
+              {isSoulPlan ? (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Você informará seu nome completo de nascimento</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>O sistema calculará automaticamente as energias do seu plano de alma</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Você receberá a Estrela da Criação com 7 posições interpretadas</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Relatório completo em PDF disponível para download</span>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>{isDisc ? "40 afirmações sobre comportamento (cerca de 10 minutos)" : "40 perguntas reflexivas (cerca de 15 minutos)"}</span>
+                  </li>
+                  {!isDisc && (
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                      <span>3 exercícios vivenciais curtos</span>
+                    </li>
+                  )}
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Relatório personalizado com recomendações</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Você pode pausar e retomar quando quiser</span>
+                  </li>
+                </>
               )}
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
-                <span>Relatório personalizado com recomendações</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
-                <span>Você pode pausar e retomar quando quiser</span>
-              </li>
             </ul>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-            <p className="text-sm text-amber-800 dark:text-amber-200">
-              <strong>Dica:</strong> Responda com honestidade, sem pensar muito. 
-              A primeira resposta que vier à mente geralmente é a mais autêntica. 
-              Não existem respostas certas ou erradas.
-            </p>
-          </div>
+          {isSoulPlan ? (
+            <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-lg p-4">
+              <p className="text-sm text-violet-800 dark:text-violet-200">
+                <strong>Importante:</strong> Use o nome completo exatamente como consta na sua certidão de nascimento. 
+                O cálculo é baseado na vibração sonora do nome original, por isso é essencial que seja o nome de nascimento, 
+                não apelidos ou nomes sociais.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Dica:</strong> Responda com honestidade, sem pensar muito. 
+                A primeira resposta que vier à mente geralmente é a mais autêntica. 
+                Não existem respostas certas ou erradas.
+              </p>
+            </div>
+          )}
 
           <Button 
             onClick={onStart} 
             size="lg" 
             className="w-full text-lg py-6"
           >
-            {isDisc ? "Iniciar Perfil DISC" : "Iniciar Diagnóstico"}
+            {isSoulPlan ? "Iniciar Mapa da Alma" : isDisc ? "Iniciar Perfil DISC" : "Iniciar Diagnóstico"}
           </Button>
         </CardContent>
       </Card>

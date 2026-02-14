@@ -12,6 +12,7 @@ import { ExecutiveSummary } from "@/components/diagnostic/ExecutiveSummary";
 import { CrossAnalysis } from "@/components/diagnostic/CrossAnalysis";
 import { ActionPlan } from "@/components/diagnostic/ActionPlan";
 import { DiscResults } from "@/components/disc/DiscResults";
+import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
 import {
   DimensionScore,
   getStrongestDimensions,
@@ -45,6 +46,21 @@ export function ParticipantResultModal({
   if (testTypeSlug === "disc") {
     return (
       <DiscResults
+        participantName={participantName}
+        existingResult={{
+          dimension_scores: Object.fromEntries(
+            rawDimensionScores.map(d => [d.dimension, d.score])
+          ),
+          total_score: totalScore,
+        }}
+      />
+    );
+  }
+
+  // If Soul Plan test, render SoulPlanResults component
+  if (testTypeSlug === "mapa_da_alma") {
+    return (
+      <SoulPlanResults
         participantName={participantName}
         existingResult={{
           dimension_scores: Object.fromEntries(

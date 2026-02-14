@@ -36,6 +36,7 @@ import {
 import { useParticipantActions, Participant } from "@/hooks/useParticipantActions";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
 import { DiscResults } from "@/components/disc/DiscResults";
+import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
 
 interface ParticipantManagerProps {
   participants: Participant[];
@@ -256,7 +257,12 @@ export function ParticipantManager({
               )}
               {actions.selectedTestResult && !actions.isLoadingTestResult && (
                 <div className="mt-4">
-                  {actions.selectedTestTypeSlug === "disc" ? (
+                  {actions.selectedTestTypeSlug === "mapa_da_alma" ? (
+                    <SoulPlanResults
+                      participantName={actions.selectedParticipant.name}
+                      existingResult={actions.selectedTestResult}
+                    />
+                  ) : actions.selectedTestTypeSlug === "disc" ? (
                     <>
                       <div className="flex justify-end mb-4">
                         <Button

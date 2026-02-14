@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/backend/client";
 import { Question } from "@/lib/diagnostic-questions";
 import { calculateScores, DiagnosticScores } from "@/lib/diagnostic-scoring";
 import { calculateDiscScores, DiscScores } from "@/lib/disc-scoring";
+import { calculateSoulPlan, SoulPlanResult } from "@/lib/soul-plan-calculator";
 import { useToast } from "@/hooks/use-toast";
 
 export type DiagnosticStep = 
   | "welcome"
   | "questions"
+  | "name_input"
   | "breathing"
   | "bodymap"
   | "reflection"
@@ -77,11 +79,13 @@ export function useDiagnostic(token: string) {
   const [exercisesData, setExercisesData] = useState<ExercisesData>({});
   const [scores, setScores] = useState<DiagnosticScores | null>(null);
   const [discScores, setDiscScores] = useState<DiscScores | null>(null);
+  const [soulPlanResult, setSoulPlanResult] = useState<SoulPlanResult | null>(null);
   const [existingResult, setExistingResult] = useState<any>(null);
   const [testTypeSlug, setTestTypeSlug] = useState<string | null>(null);
 
-  // Helper to determine if this is a DISC test
+  // Helper to determine test type
   const isDiscTest = testTypeSlug === "disc";
+  const isSoulPlanTest = testTypeSlug === "mapa_da_alma";
 
   useEffect(() => {
     async function initialize() {
@@ -285,7 +289,11 @@ export function useDiagnostic(token: string) {
       }
 
       setParticipant({ ...participant, status: "in_progress" });
-      setStep("questions");
+      if (isSoulPlanTest) {
+        setStep("name_input");
+      } else {
+        setStep("questions");
+      }
     } catch (err: any) {
       toast({ title: "Erro", description: "Não foi possível iniciar o diagnóstico", variant: "destructive" });
     }
@@ -436,6 +444,53 @@ export function useDiagnostic(token: string) {
     await finalizeTest(finalExercisesData);
   }, [finalizeTest]);
 
+  // Soul Plan: submit birth name and calculate
+  const submitSoulPlanName = useCallback(async (birthName: string) => {
+    if (!participant || !participantTest) return;
+
+    setStep("processing");
+
+    try {
+      const result = calculateSoulPlan(birthName);
+      setSoulPlanResult(result);
+
+      // Build dimension_scores object with position energies
+      const dimensionScoresObj: Record<string, any> = {
+        birthName,
+        normalizedName: result.normalizedName,
+        isShortName: result.isShortName,
+        worldlyChallenge: { pair: result.positions.worldlyChallenge.pair, energyNumber: result.positions.worldlyChallenge.energyNumber },
+        spiritualChallenge: { pair: result.positions.spiritualChallenge.pair, energyNumber: result.positions.spiritualChallenge.energyNumber },
+        worldlyTalent: { pair: result.positions.worldlyTalent.pair, energyNumber: result.positions.worldlyTalent.energyNumber },
+        spiritualTalent: { pair: result.positions.spiritualTalent.pair, energyNumber: result.positions.spiritualTalent.energyNumber },
+        worldlyGoal: { pair: result.positions.worldlyGoal.pair, energyNumber: result.positions.worldlyGoal.energyNumber },
+        spiritualGoal: { pair: result.positions.spiritualGoal.pair, energyNumber: result.positions.spiritualGoal.energyNumber },
+        soulDestiny: { pair: result.positions.soulDestiny.pair, energyNumber: result.positions.soulDestiny.energyNumber },
+        dominantEnergies: result.dominantEnergies,
+      };
+
+      await supabase
+        .from("test_results")
+        .insert([{
+          participant_test_id: participantTest.id,
+          dimension_scores: dimensionScoresObj as any,
+          total_score: result.positions.soulDestiny.energyNumber,
+          exercises_data: { birthName, letterValues: result.letterValues } as any,
+          completed_at: new Date().toISOString()
+        }]);
+
+      await supabase
+        .from("participant_tests")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", participantTest.id);
+
+      setStep("results");
+    } catch (err: any) {
+      toast({ title: "Erro ao calcular Mapa da Alma", description: "Tente novamente", variant: "destructive" });
+      setStep("name_input");
+    }
+  }, [participant, participantTest, toast]);
+
   const skipExercise = useCallback(() => {
     if (step === "breathing") setStep("bodymap");
     else if (step === "bodymap") setStep("reflection");
@@ -454,9 +509,11 @@ export function useDiagnostic(token: string) {
     exercisesData,
     scores,
     discScores,
+    soulPlanResult,
     existingResult,
     testTypeSlug,
     isDiscTest,
+    isSoulPlanTest,
     progress: questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0,
     startDiagnostic,
     answerQuestion,
@@ -464,6 +521,7 @@ export function useDiagnostic(token: string) {
     completeBreathingExercise,
     completeBodyMapExercise,
     completeReflectionExercise,
+    submitSoulPlanName,
     skipExercise,
     setStep
   };

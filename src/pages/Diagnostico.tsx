@@ -9,6 +9,8 @@ import { ExerciseReflection } from "@/components/diagnostic/ExerciseReflection";
 import { ProcessingScreen } from "@/components/diagnostic/ProcessingScreen";
 import { DiagnosticResults } from "@/components/diagnostic/DiagnosticResults";
 import { DiscResults } from "@/components/disc/DiscResults";
+import { SoulPlanNameInput } from "@/components/soul-plan/SoulPlanNameInput";
+import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,15 +30,18 @@ export default function Diagnostico() {
     step,
     scores,
     discScores,
+    soulPlanResult,
     existingResult,
     testTypeSlug,
     isDiscTest,
+    isSoulPlanTest,
     startDiagnostic,
     answerQuestion,
     previousQuestion,
     completeBreathingExercise,
     completeBodyMapExercise,
     completeReflectionExercise,
+    submitSoulPlanName,
     skipExercise
   } = useDiagnostic(token || "");
 
@@ -99,6 +104,13 @@ export default function Diagnostico() {
     );
   }
 
+  // Determine test type label for welcome screen
+  const getTestType = () => {
+    if (isDiscTest) return "disc";
+    if (isSoulPlanTest) return "mapa_da_alma";
+    return "iq_is";
+  };
+
   // Render based on current step
   switch (step) {
     case "welcome":
@@ -107,7 +119,15 @@ export default function Diagnostico() {
           participantName={participant?.name || "Participante"}
           facilitatorProfile={facilitatorProfile}
           onStart={startDiagnostic}
-          testType={isDiscTest ? "disc" : "iq_is"}
+          testType={getTestType()}
+        />
+      );
+
+    case "name_input":
+      return (
+        <SoulPlanNameInput
+          participantName={participant?.name || "Participante"}
+          onCalculate={submitSoulPlanName}
         />
       );
 
@@ -153,6 +173,16 @@ export default function Diagnostico() {
       return <ProcessingScreen />;
 
     case "results":
+      if (isSoulPlanTest) {
+        return (
+          <SoulPlanResults
+            participantName={participant?.name || "Participante"}
+            soulPlanResult={soulPlanResult || undefined}
+            existingResult={existingResult}
+            facilitatorProfile={facilitatorProfile}
+          />
+        );
+      }
       if (isDiscTest) {
         return (
           <DiscResults
