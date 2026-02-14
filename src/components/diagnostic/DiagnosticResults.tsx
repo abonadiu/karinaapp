@@ -38,13 +38,16 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
   
   // Build raw scores from existingResult or live scores
   const rawScores = existingResult ? {
-    dimensionScores: Object.entries(existingResult.dimension_scores || {}).map(([dimension, score], index) => ({
-      dimension,
-      dimensionOrder: index + 1,
-      score: score as number,
-      maxScore: 5,
-      percentage: ((score as number) / 5) * 100
-    })),
+    dimensionScores: Object.entries(existingResult.dimension_scores || {}).map(([dimension, scoreVal], index) => {
+      const score = typeof scoreVal === 'number' ? scoreVal : (scoreVal as any)?.score ?? 0;
+      return {
+        dimension,
+        dimensionOrder: index + 1,
+        score,
+        maxScore: 5,
+        percentage: (score / 5) * 100
+      };
+    }),
     totalScore: existingResult.total_score,
     totalPercentage: (existingResult.total_score / 5) * 100
   } : scores;

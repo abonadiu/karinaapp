@@ -53,9 +53,29 @@ export function normalizeDimensionName(name: string): string {
  * formatted names and recalculating percentage if it's 0 or missing.
  */
 export function normalizeDimensionScores(scores: DimensionScore[]): DimensionScore[] {
-  return scores.map((s) => ({
+  const normalized = scores.map((s) => ({
     ...s,
     dimension: normalizeDimensionName(s.dimension),
     percentage: s.percentage > 0 ? s.percentage : (s.score / (s.maxScore || 5)) * 100,
   }));
+
+  // Deduplicate: merge dimensions with same normalized name (average scores)
+  const grouped = new Map<string, DimensionScore[]>();
+  for (const s of normalized) {
+    const existing = grouped.get(s.dimension) || [];
+    existing.push(s);
+    grouped.set(s.dimension, existing);
+  }
+
+  return Array.from(grouped.entries()).map(([dimension, items]) => {
+    if (items.length === 1) return items[0];
+    const avgScore = items.reduce((sum, i) => sum + i.score, 0) / items.length;
+    const maxScore = items[0].maxScore || 5;
+    return {
+      ...items[0],
+      dimension,
+      score: avgScore,
+      percentage: (avgScore / maxScore) * 100,
+    };
+  });
 }
