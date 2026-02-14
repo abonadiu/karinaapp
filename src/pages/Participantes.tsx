@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
+import { DiscResults } from "@/components/disc/DiscResults";
 
 type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
 
@@ -82,6 +83,9 @@ export default function Participantes() {
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const [isLoadingResult, setIsLoadingResult] = useState(false);
+  const [selectedTestResult, setSelectedTestResult] = useState<any>(null);
+  const [selectedTestTypeSlug, setSelectedTestTypeSlug] = useState<string | null>(null);
+  const [isLoadingTestResult, setIsLoadingTestResult] = useState(false);
 
   // Assign test dialog
   const [assigningParticipant, setAssigningParticipant] = useState<Participant | null>(null);
@@ -278,10 +282,49 @@ export default function Participantes() {
 
   const [allResults, setAllResults] = useState<any[]>([]);
 
+  const handleViewTestResult = async (participantTestId: string) => {
+    setIsLoadingTestResult(true);
+    setSelectedTestResult(null);
+    setSelectedTestTypeSlug(null);
+
+    try {
+      // Fetch the participant_test to get test_type_id
+      const { data: ptData } = await supabase
+        .from("participant_tests")
+        .select("*, test_types(slug)")
+        .eq("id", participantTestId)
+        .single();
+
+      if (ptData) {
+        setSelectedTestTypeSlug(ptData.test_types?.slug || null);
+      }
+
+      // Fetch the test result
+      const { data: resultData, error } = await supabase
+        .from("test_results")
+        .select("*")
+        .eq("participant_test_id", participantTestId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching test result:", error);
+        toast.error("Erro ao carregar resultado");
+      } else if (resultData) {
+        setSelectedTestResult(resultData);
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setIsLoadingTestResult(false);
+    }
+  };
+
   const handleRowClick = async (participant: Participant) => {
     setSelectedParticipant(participant);
     setSelectedResult(null);
     setAllResults([]);
+    setSelectedTestResult(null);
+    setSelectedTestTypeSlug(null);
 
     if (participant.status === "completed") {
       setIsLoadingResult(true);
@@ -480,7 +523,43 @@ export default function Participantes() {
               <ParticipantTestsList
                 participantId={selectedParticipant.id}
                 participantName={selectedParticipant.name}
+                onViewResult={handleViewTestResult}
               />
+
+              {/* Test result view (new flow) */}
+              {isLoadingTestResult && (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              )}
+              {selectedTestResult && !isLoadingTestResult && (
+                <div className="mt-4">
+                  {selectedTestTypeSlug === "disc" ? (
+                    <DiscResults
+                      participantName={selectedParticipant.name}
+                      existingResult={selectedTestResult}
+                    />
+                  ) : (
+                    <ParticipantResultModal
+                      participantName={selectedParticipant.name}
+                      completedAt={selectedTestResult.completed_at}
+                      totalScore={Number(selectedTestResult.total_score)}
+                      dimensionScores={
+                        Object.entries(selectedTestResult.dimension_scores as Record<string, any>).map(
+                          ([dimension, data]) => ({
+                            dimension,
+                            dimensionOrder: typeof data === 'object' ? ((data as any).dimensionOrder ?? 0) : 0,
+                            score: typeof data === 'number' ? data : ((data as any).score ?? 0),
+                            maxScore: typeof data === 'object' ? ((data as any).maxScore ?? 5) : 5,
+                            percentage: typeof data === 'object' ? ((data as any).percentage ?? 0) : 0,
+                          })
+                        ) as DimensionScore[]
+                      }
+                      testTypeSlug={selectedTestTypeSlug || undefined}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Legacy result view */}
               {selectedParticipant.status === "completed" ? (

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/backend/client";
 import { Question } from "@/lib/diagnostic-questions";
 import { calculateScores, DiagnosticScores } from "@/lib/diagnostic-scoring";
+import { calculateDiscScores, DiscScores } from "@/lib/disc-scoring";
 import { useToast } from "@/hooks/use-toast";
 
 export type DiagnosticStep = 
@@ -75,7 +76,12 @@ export function useDiagnostic(token: string) {
   const [step, setStep] = useState<DiagnosticStep>("welcome");
   const [exercisesData, setExercisesData] = useState<ExercisesData>({});
   const [scores, setScores] = useState<DiagnosticScores | null>(null);
+  const [discScores, setDiscScores] = useState<DiscScores | null>(null);
   const [existingResult, setExistingResult] = useState<any>(null);
+  const [testTypeSlug, setTestTypeSlug] = useState<string | null>(null);
+
+  // Helper to determine if this is a DISC test
+  const isDiscTest = testTypeSlug === "disc";
 
   useEffect(() => {
     async function initialize() {
@@ -95,6 +101,7 @@ export function useDiagnostic(token: string) {
         if (ptData && !ptError) {
           // New flow: found in participant_tests
           setParticipantTest(ptData as any);
+          setTestTypeSlug(ptData.test_types?.slug || null);
 
           // Fetch participant
           const { data: pData, error: pError } = await supabase
@@ -151,7 +158,15 @@ export function useDiagnostic(token: string) {
             const nextUnansweredIndex = questionsData?.findIndex(q => !answeredIds.has(q.id)) ?? 0;
 
             if (nextUnansweredIndex === -1 || nextUnansweredIndex >= (questionsData?.length || 0)) {
-              setStep("breathing");
+              // All questions answered
+              if (ptData.test_types?.slug === "disc") {
+                // DISC: skip exercises, go directly to processing/results
+                if (ptData.status !== "completed") {
+                  setStep("processing");
+                }
+              } else {
+                setStep("breathing");
+              }
             } else {
               setCurrentQuestionIndex(nextUnansweredIndex);
               if (ptData.status === "in_progress") {
@@ -173,6 +188,7 @@ export function useDiagnostic(token: string) {
           }
 
           participantData = oldData;
+          setTestTypeSlug("iq_is"); // Old flow is always IQ+IS
 
           if (oldData.status === "completed") {
             const { data: resultData } = await supabase
@@ -306,12 +322,18 @@ export function useDiagnostic(token: string) {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else {
-        setStep("breathing");
+        // All questions answered
+        if (isDiscTest) {
+          // DISC: skip exercises, finalize directly
+          finalizeTest({});
+        } else {
+          setStep("breathing");
+        }
       }
     } catch (err: any) {
       toast({ title: "Erro ao salvar resposta", description: "Tente novamente", variant: "destructive" });
     }
-  }, [participant, participantTest, currentQuestionIndex, questions.length, toast]);
+  }, [participant, participantTest, currentQuestionIndex, questions.length, toast, isDiscTest]);
 
   const previousQuestion = useCallback(() => {
     if (currentQuestionIndex > 0) {
@@ -334,19 +356,35 @@ export function useDiagnostic(token: string) {
     finalizeDiagnostic({ ...exercisesData, reflection: { insights } });
   }, [exercisesData]);
 
-  const finalizeDiagnostic = useCallback(async (finalExercisesData: ExercisesData) => {
+  // Shared finalization logic for both IQ+IS and DISC
+  const finalizeTest = useCallback(async (finalExercisesData: ExercisesData) => {
     if (!participant) return;
 
     setStep("processing");
 
     try {
-      const calculatedScores = calculateScores(questions, responses);
-      setScores(calculatedScores);
+      let dimensionScoresObj: Record<string, number> = {};
+      let totalScoreValue: number;
 
-      const dimensionScoresObj: Record<string, number> = {};
-      calculatedScores.dimensionScores.forEach(d => {
-        dimensionScoresObj[d.dimension] = d.score;
-      });
+      if (isDiscTest) {
+        // DISC scoring
+        const calculatedDiscScores = calculateDiscScores(questions, responses);
+        setDiscScores(calculatedDiscScores);
+        
+        calculatedDiscScores.dimensionScores.forEach(d => {
+          dimensionScoresObj[d.dimension] = d.score;
+        });
+        totalScoreValue = calculatedDiscScores.totalScore;
+      } else {
+        // IQ+IS scoring
+        const calculatedScores = calculateScores(questions, responses);
+        setScores(calculatedScores);
+
+        calculatedScores.dimensionScores.forEach(d => {
+          dimensionScoresObj[d.dimension] = d.score;
+        });
+        totalScoreValue = calculatedScores.totalScore;
+      }
 
       if (participantTest) {
         // New flow
@@ -355,7 +393,7 @@ export function useDiagnostic(token: string) {
           .insert([{
             participant_test_id: participantTest.id,
             dimension_scores: dimensionScoresObj as any,
-            total_score: calculatedScores.totalScore,
+            total_score: totalScoreValue,
             exercises_data: finalExercisesData as any,
             completed_at: new Date().toISOString()
           }]);
@@ -365,13 +403,13 @@ export function useDiagnostic(token: string) {
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("id", participantTest.id);
       } else {
-        // Old flow
+        // Old flow (always IQ+IS)
         await supabase
           .from("diagnostic_results")
           .insert([{
             participant_id: participant.id,
             dimension_scores: dimensionScoresObj as any,
-            total_score: calculatedScores.totalScore,
+            total_score: totalScoreValue,
             exercises_data: finalExercisesData as any,
             completed_at: new Date().toISOString()
           }]);
@@ -385,9 +423,18 @@ export function useDiagnostic(token: string) {
       setStep("results");
     } catch (err: any) {
       toast({ title: "Erro ao finalizar", description: "Tente novamente", variant: "destructive" });
-      setStep("reflection");
+      if (isDiscTest) {
+        setStep("questions");
+      } else {
+        setStep("reflection");
+      }
     }
-  }, [participant, participantTest, questions, responses, toast]);
+  }, [participant, participantTest, questions, responses, toast, isDiscTest]);
+
+  // Legacy finalizeDiagnostic for IQ+IS (called from completeReflectionExercise)
+  const finalizeDiagnostic = useCallback(async (finalExercisesData: ExercisesData) => {
+    await finalizeTest(finalExercisesData);
+  }, [finalizeTest]);
 
   const skipExercise = useCallback(() => {
     if (step === "breathing") setStep("bodymap");
@@ -406,7 +453,10 @@ export function useDiagnostic(token: string) {
     step,
     exercisesData,
     scores,
+    discScores,
     existingResult,
+    testTypeSlug,
+    isDiscTest,
     progress: questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0,
     startDiagnostic,
     answerQuestion,

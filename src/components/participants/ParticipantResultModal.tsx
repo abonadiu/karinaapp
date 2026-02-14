@@ -11,6 +11,7 @@ import { RecommendationList } from "@/components/diagnostic/RecommendationList";
 import { ExecutiveSummary } from "@/components/diagnostic/ExecutiveSummary";
 import { CrossAnalysis } from "@/components/diagnostic/CrossAnalysis";
 import { ActionPlan } from "@/components/diagnostic/ActionPlan";
+import { DiscResults } from "@/components/disc/DiscResults";
 import {
   DimensionScore,
   getStrongestDimensions,
@@ -27,6 +28,7 @@ interface ParticipantResultModalProps {
   completedAt: string;
   totalScore: number;
   dimensionScores: DimensionScore[];
+  testTypeSlug?: string;
 }
 
 export function ParticipantResultModal({
@@ -34,10 +36,27 @@ export function ParticipantResultModal({
   completedAt,
   totalScore,
   dimensionScores: rawDimensionScores,
+  testTypeSlug,
 }: ParticipantResultModalProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // If DISC test, render DiscResults component instead
+  if (testTypeSlug === "disc") {
+    return (
+      <DiscResults
+        participantName={participantName}
+        existingResult={{
+          dimension_scores: Object.fromEntries(
+            rawDimensionScores.map(d => [d.dimension, d.score])
+          ),
+          total_score: totalScore,
+        }}
+      />
+    );
+  }
+
+  // IQ+IS flow below
   // Normalize dimension names (slug → formatted) so all child components work correctly
   const dimensionScores = normalizeDimensionScores(rawDimensionScores);
 
