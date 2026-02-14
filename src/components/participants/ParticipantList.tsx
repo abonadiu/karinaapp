@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye } from "lucide-react";
-import { toast } from "sonner";
+import { Users, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye } from "lucide-react";
 
 import {
   Table,
@@ -15,13 +14,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
 
@@ -70,6 +62,7 @@ export function ParticipantList({
   testCounts,
 }: ParticipantListProps) {
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -104,7 +97,6 @@ export function ParticipantList({
             <TableHead>Cargo</TableHead>
             <TableHead>Testes</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -118,127 +110,122 @@ export function ParticipantList({
               >
                 <PopoverTrigger asChild>
                   <TableRow 
-                    className={(onRowClick || onAssignTest) ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     <TableCell>
-                  <div>
-                    <p className="font-medium text-foreground">{participant.name}</p>
-                    <p className="text-sm text-muted-foreground">{participant.email}</p>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-muted-foreground">
-                    {participant.department || "-"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-muted-foreground">
-                    {participant.position || "-"}
-                  </span>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {counts ? (
-                    <Badge variant="secondary" className="text-xs">
-                      {counts.completed}/{counts.total}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">0</span>
-                  )}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <StatusBadge status={participant.status} />
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {onAssignTest && (
-                        <DropdownMenuItem onClick={() => onAssignTest(participant)}>
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          Atribuir teste
-                        </DropdownMenuItem>
+                      <div>
+                        <p className="font-medium text-foreground">{participant.name}</p>
+                        <p className="text-sm text-muted-foreground">{participant.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground">
+                        {participant.department || "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground">
+                        {participant.position || "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {counts ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {counts.completed}/{counts.total}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">0</span>
                       )}
-                      {participant.status === "pending" && (
-                        <DropdownMenuItem 
-                          onClick={() => onInvite(participant)}
-                          disabled={sendingInviteId === participant.id}
-                        >
-                          {sendingInviteId === participant.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Mail className="mr-2 h-4 w-4" />
-                          )}
-                          {sendingInviteId === participant.id 
-                            ? "Enviando..." 
-                            : "Enviar convite"
-                          }
-                        </DropdownMenuItem>
-                      )}
-                      {(participant.status === "invited" || participant.status === "in_progress") && onReminder && (
-                        <DropdownMenuItem 
-                          onClick={() => onReminder(participant)}
-                          disabled={sendingReminderId === participant.id}
-                        >
-                          {sendingReminderId === participant.id ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Bell className="mr-2 h-4 w-4" />
-                          )}
-                          {sendingReminderId === participant.id 
-                            ? "Enviando..." 
-                            : "Enviar lembrete"
-                          }
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => onEdit(participant)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => onDelete(participant)}
-                        className="text-destructive focus:text-destructive"
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={participant.status} />
+                    </TableCell>
+                  </TableRow>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1" align="start">
+                  <div className="flex flex-col">
+                    {onRowClick && (
+                      <button
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                        onClick={() => {
+                          setOpenPopoverId(null);
+                          onRowClick(participant);
+                        }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="start">
-              <div className="flex flex-col">
-                {onRowClick && (
-                  <button
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                    onClick={() => {
-                      setOpenPopoverId(null);
-                      onRowClick(participant);
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                    Ver resultados
-                  </button>
-                )}
-                {onAssignTest && (
-                  <button
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                    onClick={() => {
-                      setOpenPopoverId(null);
-                      onAssignTest(participant);
-                    }}
-                  >
-                    <ClipboardList className="h-4 w-4" />
-                    Atribuir teste
-                  </button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
+                        <Eye className="h-4 w-4" />
+                        Ver resultados
+                      </button>
+                    )}
+                    {onAssignTest && (
+                      <button
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                        onClick={() => {
+                          setOpenPopoverId(null);
+                          onAssignTest(participant);
+                        }}
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        Atribuir teste
+                      </button>
+                    )}
+                    {participant.status === "pending" && (
+                      <button
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:pointer-events-none"
+                        disabled={sendingInviteId === participant.id}
+                        onClick={() => {
+                          setOpenPopoverId(null);
+                          onInvite(participant);
+                        }}
+                      >
+                        {sendingInviteId === participant.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Mail className="h-4 w-4" />
+                        )}
+                        {sendingInviteId === participant.id ? "Enviando..." : "Enviar convite"}
+                      </button>
+                    )}
+                    {(participant.status === "invited" || participant.status === "in_progress") && onReminder && (
+                      <button
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left disabled:opacity-50 disabled:pointer-events-none"
+                        disabled={sendingReminderId === participant.id}
+                        onClick={() => {
+                          setOpenPopoverId(null);
+                          onReminder(participant);
+                        }}
+                      >
+                        {sendingReminderId === participant.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Bell className="h-4 w-4" />
+                        )}
+                        {sendingReminderId === participant.id ? "Enviando..." : "Enviar lembrete"}
+                      </button>
+                    )}
+                    <div className="border-t my-1" />
+                    <button
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                      onClick={() => {
+                        setOpenPopoverId(null);
+                        onEdit(participant);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Editar
+                    </button>
+                    <button
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-destructive/10 transition-colors text-left text-destructive"
+                      onClick={() => {
+                        setOpenPopoverId(null);
+                        onDelete(participant);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             );
           })}
         </TableBody>
