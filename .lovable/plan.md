@@ -1,37 +1,56 @@
 
 
-## Remover Snap Automatico ao Colapsar
+## Clicar no Participante para Ver Resultado do Teste
 
-### Problema Atual
+### O Que Muda
 
-Quando o usuario arrasta a borda do menu para a esquerda e a largura cai abaixo de 120px, o menu "pula" automaticamente para o modo colapsado (48px com icones). O usuario quer poder reduzir a largura gradualmente sem que o menu feche sozinho.
+Na pagina `/participantes`, clicar em uma linha da tabela abre um **Dialog (modal)** com o resultado do diagnostico daquele participante. Para participantes com status "Concluido", mostra o radar chart, pontos fortes/fracos e opcao de baixar PDF. Para outros status, mostra uma mensagem informando que o diagnostico ainda nao foi concluido.
 
-### Solucao
+### Por Que um Dialog e Nao uma Nova Pagina
 
-Remover o comportamento de snap automatico durante o arraste. O menu so colapsara ao **clicar** no handle (sem arrastar), nunca durante o drag.
+- O resultado ja existe como componente (`ParticipantResultCard`) - reutilizamos
+- O usuario pode ver o resultado e voltar rapidamente para a lista
+- Evita criar uma nova rota/pagina
 
-### Mudanca
+### Implementacao
 
-**Arquivo**: `src/components/layout/Sidebar.tsx`
+#### 1. Tornar Linhas da Tabela Clicaveis
 
-- Remover a constante `COLLAPSE_THRESHOLD`
-- Alterar `MIN_WIDTH` de 48 para algo como 60-64px (largura minima util para exibir icones)
-- Simplificar o `handleMouseMove`: apenas atualizar a largura sem verificar threshold de colapso
-- Manter o clique (sem drag) como toggle entre expandido/colapsado
+**Arquivo**: `src/components/participants/ParticipantList.tsx`
 
-**Logica simplificada do drag**:
+- Adicionar prop `onRowClick?: (participant: Participant) => void`
+- Adicionar `cursor-pointer` e `hover:bg-muted/50` nas `TableRow`
+- Ao clicar na linha (exceto na coluna de acoes), chamar `onRowClick`
+
+#### 2. Dialog de Resultado do Participante
+
+**Arquivo**: `src/pages/Participantes.tsx`
+
+- Adicionar estado `selectedParticipant` para controlar qual participante foi clicado
+- Ao selecionar um participante com status `completed`, buscar dados de `diagnostic_results` na base
+- Exibir um `Dialog` com o `ParticipantResultCard` dentro (reutilizando componente existente)
+- Para participantes sem resultado, mostrar mensagem informativa com o status atual
+
+#### 3. Busca de Dados
+
+Quando um participante e clicado:
 ```
-handleMouseMove:
-  newWidth = clamp(startWidth + delta, MIN_WIDTH, MAX_WIDTH)
-  setSidebarWidth(newWidth)
-  setOpen(true)  // sempre aberto durante drag
+SELECT * FROM diagnostic_results WHERE participant_id = '<id>'
 ```
 
-O usuario podera arrastar ate a largura minima (~60px) onde so os icones ficam visiveis, sem nunca ter o menu "fechando" abruptamente.
+Se encontrar resultado, renderiza o `ParticipantResultCard`. Se nao, mostra mensagem.
 
-### Arquivo a Modificar
+### Arquivos a Modificar
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/layout/Sidebar.tsx` | Remover snap/collapse durante drag; ajustar MIN_WIDTH; manter click-toggle |
+| `src/components/participants/ParticipantList.tsx` | Adicionar `onRowClick`, estilos hover/pointer nas linhas |
+| `src/pages/Participantes.tsx` | Adicionar estado + Dialog + busca de resultado ao clicar |
+
+### Resultado Esperado
+
+1. Linhas da tabela de participantes mostram cursor pointer e destaque ao hover
+2. Clicar em um participante "Concluido" abre modal com radar chart, pontos fortes/fracos e botao de PDF
+3. Clicar em participante com outro status abre modal informando que o diagnostico nao foi concluido
+4. Botao de acoes (tres pontos) continua funcionando normalmente sem abrir o modal
 
