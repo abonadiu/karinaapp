@@ -1,41 +1,35 @@
 
 
-## Corrigir navegacao com filtros e tornar lembretes clicaveis no Dashboard
+## Corrigir overflow na pagina Participantes e no dialog Atribuir Teste
 
 ### Problema
 
-- O card "Concluidos" no Dashboard navega para `/participantes?status=completed`, mas a pagina Participantes le o filtro de `location.state.statusFilter`, nao de query params. O filtro nao e aplicado.
-- Os 4 cards de estatisticas de lembretes e a lista de lembretes recentes nao sao clicaveis.
+O container `main` no `DashboardLayout` nao tem `overflow-hidden`, entao conteudos que excedem a largura causam scroll horizontal. Alem disso, os filtros e botoes estao todos numa unica linha flex que estoura.
 
 ### Alteracoes
 
-**1. `src/pages/Dashboard.tsx`**
+**1. `src/components/layout/DashboardLayout.tsx`** (linha 34)
 
-- Adicionar propriedade `state` ao array `statCards` para o card "Concluidos":
-  - `href: "/participantes"` com `state: { statusFilter: "completed" }`
-- Atualizar o componente `Link` para passar `state={stat.state}` na navegacao
-- Os outros dois cards (Empresas, Participantes) continuam sem state
+- Adicionar `overflow-x-hidden` ao `<main>` para impedir scroll horizontal:
+  - De: `className="flex-1 p-5 lg:p-8"`
+  - Para: `className="flex-1 p-5 lg:p-8 overflow-x-hidden"`
 
-**2. `src/components/dashboard/ReminderStatsCard.tsx`**
+**2. `src/pages/Participantes.tsx`** (linhas 458-521)
 
-- Importar `useNavigate` do react-router-dom
-- Tornar os 4 cards de estatisticas clicaveis com `onClick` e estilos de hover:
-  - **Total Enviados**: navega para `/participantes` (sem filtro, mostra todos)
-  - **Esta Semana**: navega para `/participantes` (sem filtro)
-  - **Taxa Conversao**: navega para `/participantes` com `statusFilter: "completed"`
-  - **Taxa Sucesso**: navega para `/participantes` (sem filtro)
-- Adicionar `cursor-pointer`, `hover:bg-muted/80`, e `transition-colors` aos cards
-- Tornar cada item da lista de lembretes recentes clicavel:
-  - Ao clicar, navega para `/participantes` com `{ searchQuery: reminder.participant_name }` no state
+Separar filtros e botoes em duas linhas:
 
-**3. `src/pages/Participantes.tsx`** (ajuste menor)
+- **Linha 1** (botoes de acao): `div` com `flex justify-end gap-2 flex-wrap`
+  - Botao "Importar CSV"
+  - Botao "Novo Participante"
 
-- Adicionar suporte a `location.state?.searchQuery` para pre-preencher o campo de busca quando o usuario clica em um lembrete recente no Dashboard
+- **Linha 2** (filtros): `div` com `flex flex-wrap gap-3 items-center`
+  - Campo de busca (flex-1 min-w-[200px])
+  - Select empresa (w-[160px])
+  - Select status (w-[160px])
 
-### Fluxo esperado
+Isso garante que os botoes nunca competem por espaco com os filtros.
 
-1. Clicar em "Concluidos" no Dashboard -> abre Participantes filtrado por status "completed"
-2. Clicar em "Taxa Conversao" nos lembretes -> abre Participantes filtrado por "completed"
-3. Clicar em "Total Enviados" -> abre Participantes (lista geral)
-4. Clicar no nome de um participante nos lembretes recentes -> abre Participantes com o nome no campo de busca
+**3. `src/components/participants/AssignTestDialog.tsx`** (linha ~98)
+
+O dialog tambem esta estourando lateralmente. Adicionar `overflow-hidden` ao container da lista de testes e garantir que o texto da descricao tenha `truncate` para nao forcar largura extra.
 
