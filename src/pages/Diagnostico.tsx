@@ -8,6 +8,7 @@ import { ExerciseBodyMapV2 } from "@/components/diagnostic/ExerciseBodyMapV2";
 import { ExerciseReflection } from "@/components/diagnostic/ExerciseReflection";
 import { ProcessingScreen } from "@/components/diagnostic/ProcessingScreen";
 import { DiagnosticResults } from "@/components/diagnostic/DiagnosticResults";
+import { DiscResults } from "@/components/disc/DiscResults";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,10 @@ export default function Diagnostico() {
     currentQuestion,
     step,
     scores,
+    discScores,
     existingResult,
+    testTypeSlug,
+    isDiscTest,
     startDiagnostic,
     answerQuestion,
     previousQuestion,
@@ -42,7 +46,6 @@ export default function Diagnostico() {
       const root = document.documentElement;
       
       if (facilitatorProfile.primary_color) {
-        // Convert hex to HSL for CSS variable
         root.style.setProperty('--brand-primary', facilitatorProfile.primary_color);
       }
       if (facilitatorProfile.secondary_color) {
@@ -104,6 +107,7 @@ export default function Diagnostico() {
           participantName={participant?.name || "Participante"}
           facilitatorProfile={facilitatorProfile}
           onStart={startDiagnostic}
+          testType={isDiscTest ? "disc" : "iq_is"}
         />
       );
 
@@ -149,6 +153,18 @@ export default function Diagnostico() {
       return <ProcessingScreen />;
 
     case "results":
+      if (isDiscTest) {
+        return (
+          <DiscResults
+            participantName={participant?.name || "Participante"}
+            participantEmail={participant?.email}
+            accessToken={token}
+            discScores={discScores || undefined}
+            existingResult={existingResult}
+            facilitatorProfile={facilitatorProfile}
+          />
+        );
+      }
       return (
         <DiagnosticResults
           participantName={participant?.name || "Participante"}
