@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Download, Loader2, Award, BookOpen, BarChart3 } from "lucide-react";
+import { Calendar, Download, Loader2, Award, BookOpen, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateParticipantPDF } from "@/lib/pdf-generator";
+import { normalizeDimensionScores } from "@/lib/dimension-utils";
 import { toast } from "sonner";
 import { DIAGNOSTIC_INTRO, DIAGNOSTIC_THEORETICAL_FOUNDATION, getOverallScoreMessage, getScoreLevelBadge } from "@/lib/dimension-descriptions";
 
@@ -32,10 +33,13 @@ export function ParticipantResultModal({
   participantName,
   completedAt,
   totalScore,
-  dimensionScores,
+  dimensionScores: rawDimensionScores,
 }: ParticipantResultModalProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Normalize dimension names (slug → formatted) so all child components work correctly
+  const dimensionScores = normalizeDimensionScores(rawDimensionScores);
 
   const strongest = getStrongestDimensions(dimensionScores);
   const weakest = getWeakestDimensions(dimensionScores);
@@ -96,6 +100,34 @@ export function ParticipantResultModal({
 
       {/* 2. Resumo Executivo */}
       <ExecutiveSummary participantName={participantName} totalScore={totalScore} dimensionScores={dimensionScores} />
+
+      {/* Pontos Fortes / Áreas de Desenvolvimento */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-lg border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900/40 p-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+            <h4 className="font-semibold text-xs text-green-700 dark:text-green-400">Pontos Fortes</h4>
+          </div>
+          {strongest.map((dim) => (
+            <div key={dim.dimension} className="flex items-center justify-between text-xs">
+              <span className="text-green-800 dark:text-green-300">{dim.dimension}</span>
+              <span className="font-semibold text-green-700 dark:text-green-400">{dim.score.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 p-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <h4 className="font-semibold text-xs text-amber-700 dark:text-amber-400">Áreas de Desenvolvimento</h4>
+          </div>
+          {weakest.map((dim) => (
+            <div key={dim.dimension} className="flex items-center justify-between text-xs">
+              <span className="text-amber-800 dark:text-amber-300">{dim.dimension}</span>
+              <span className="font-semibold text-amber-700 dark:text-amber-400">{dim.score.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* 3. Sobre o Diagnóstico */}
       <div className="rounded-xl border border-border p-5 space-y-2">

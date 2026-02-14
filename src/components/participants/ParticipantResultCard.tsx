@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ResultsRadarChart } from "@/components/diagnostic/ResultsRadarChart";
 import { DimensionScore, getStrongestDimensions, getWeakestDimensions } from "@/lib/diagnostic-scoring";
 import { generateParticipantPDF } from "@/lib/pdf-generator";
+import { normalizeDimensionScores } from "@/lib/dimension-utils";
 import { ChevronDown, ChevronUp, Calendar, TrendingUp, TrendingDown, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -20,11 +21,14 @@ export function ParticipantResultCard({
   participantName,
   completedAt,
   totalScore,
-  dimensionScores
+  dimensionScores: rawDimensionScores
 }: ParticipantResultCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const cardContentRef = useRef<HTMLDivElement>(null);
+
+  // Normalize dimension names (slug → formatted)
+  const dimensionScores = normalizeDimensionScores(rawDimensionScores);
 
   const strongest = getStrongestDimensions(dimensionScores);
   const weakest = getWeakestDimensions(dimensionScores);

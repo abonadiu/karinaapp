@@ -2,11 +2,12 @@ import React, { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Award, Download, Share2, Loader2, BookOpen, Calendar, BarChart3 } from "lucide-react";
+import { Award, Download, Share2, Loader2, BookOpen, Calendar, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
 import { DiagnosticScores, getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateDiagnosticPDF } from "@/lib/pdf-generator";
 import { DIAGNOSTIC_INTRO, DIAGNOSTIC_THEORETICAL_FOUNDATION, getOverallScoreMessage, getScoreLevelBadge } from "@/lib/dimension-descriptions";
+import { normalizeDimensionScores } from "@/lib/dimension-utils";
 import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
@@ -35,7 +36,8 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const firstName = participantName.split(" ")[0];
   
-  const displayScores = existingResult ? {
+  // Build raw scores from existingResult or live scores
+  const rawScores = existingResult ? {
     dimensionScores: Object.entries(existingResult.dimension_scores || {}).map(([dimension, score], index) => ({
       dimension,
       dimensionOrder: index + 1,
@@ -46,6 +48,12 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
     totalScore: existingResult.total_score,
     totalPercentage: (existingResult.total_score / 5) * 100
   } : scores;
+
+  // Normalize dimension names (slug → formatted) so all child components work correctly
+  const displayScores = {
+    ...rawScores,
+    dimensionScores: normalizeDimensionScores(rawScores.dimensionScores),
+  };
 
   const weakDimensions = getWeakestDimensions(displayScores.dimensionScores);
   const strongDimensions = getStrongestDimensions(displayScores.dimensionScores);
@@ -108,10 +116,10 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </div>
             </div>
             <div className="text-center sm:text-left">
-              <h1 className="font-display text-2xl font-semibold text-foreground">Parabéns, {firstName}!</h1>
-              <p className="text-sm text-muted-foreground mt-1">Você completou o Diagnóstico IQ+IS</p>
+              <h1 className="font-display text-2xl font-semibold text-foreground">Resultado de {firstName}</h1>
+              <p className="text-sm text-muted-foreground mt-1">Diagnóstico IQ+IS — Inteligência Emocional + Espiritual</p>
               <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 justify-center sm:justify-start">
-                <Calendar className="h-3 w-3" />{completedDate}
+                <Calendar className="h-3 w-3" />Concluído em {completedDate}
               </p>
               <Badge variant="secondary" className={`mt-2 text-xs ${scoreBadge.className}`}>{scoreBadge.label}</Badge>
             </div>
@@ -119,8 +127,38 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
           <p className="text-sm text-foreground/80 italic leading-relaxed max-w-2xl">"{getOverallScoreMessage(displayScores.totalScore)}"</p>
         </div>
 
-        {/* 2. Resumo Executivo */}
-        <ExecutiveSummary participantName={participantName} totalScore={displayScores.totalScore} dimensionScores={displayScores.dimensionScores} />
+        {/* 2. Resumo Executivo with Strengths/Development boxes */}
+        <div className="space-y-4">
+          <ExecutiveSummary participantName={participantName} totalScore={displayScores.totalScore} dimensionScores={displayScores.dimensionScores} />
+
+          {/* Pontos Fortes / Áreas de Desenvolvimento - side by side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900/40 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <h4 className="font-semibold text-sm text-green-700 dark:text-green-400">Pontos Fortes</h4>
+              </div>
+              {strongDimensions.map((dim) => (
+                <div key={dim.dimension} className="flex items-center justify-between text-sm">
+                  <span className="text-green-800 dark:text-green-300">{dim.dimension}</span>
+                  <span className="font-semibold text-green-700 dark:text-green-400">{dim.score.toFixed(1)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900/40 p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <h4 className="font-semibold text-sm text-amber-700 dark:text-amber-400">Áreas de Desenvolvimento</h4>
+              </div>
+              {weakDimensions.map((dim) => (
+                <div key={dim.dimension} className="flex items-center justify-between text-sm">
+                  <span className="text-amber-800 dark:text-amber-300">{dim.dimension}</span>
+                  <span className="font-semibold text-amber-700 dark:text-amber-400">{dim.score.toFixed(1)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* 3. Sobre o Diagnóstico */}
         <div className="rounded-xl border border-border p-6 space-y-3">
