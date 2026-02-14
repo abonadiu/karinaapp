@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Search, Building2, Loader2 } from "lucide-react";
+import { Search, Building2, Loader2, Download } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
@@ -39,6 +39,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
 import { DiscResults } from "@/components/disc/DiscResults";
+import { generateDiscPDF } from "@/lib/disc-pdf-generator";
+import { Button } from "@/components/ui/button";
+import {
+  DiscDimensionScore,
+  getDiscScoreLevel,
+} from "@/lib/disc-scoring";
+import {
+  DISC_DIMENSIONS,
+  getProfileDetail,
+  getDiscRecommendations,
+  getDiscActionPlan,
+} from "@/lib/disc-descriptions";
 
 type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
 
@@ -86,6 +98,7 @@ export default function Participantes() {
   const [selectedTestResult, setSelectedTestResult] = useState<any>(null);
   const [selectedTestTypeSlug, setSelectedTestTypeSlug] = useState<string | null>(null);
   const [isLoadingTestResult, setIsLoadingTestResult] = useState(false);
+  const [isGeneratingDiscPDF, setIsGeneratingDiscPDF] = useState(false);
 
   // Assign test dialog
   const [assigningParticipant, setAssigningParticipant] = useState<Participant | null>(null);
@@ -93,6 +106,15 @@ export default function Participantes() {
   // Test counts for table column
   const participantIds = participants.map(p => p.id);
   const testCounts = useParticipantTestCounts(participantIds);
+
+  function normalizeDimKey(dim: string): string {
+    const d = dim.toLowerCase();
+    if (d === "d" || d.includes("domin")) return "D";
+    if (d === "i" || d.includes("influen")) return "I";
+    if (d === "s" || d.includes("estabil")) return "S";
+    if (d === "c" || d.includes("conform") || d.includes("cautela")) return "C";
+    return dim;
+  }
 
   const fetchData = async () => {
     if (!user) return;
@@ -542,10 +564,64 @@ export default function Participantes() {
               {selectedTestResult && !isLoadingTestResult && (
                 <div className="mt-4">
                   {selectedTestTypeSlug === "disc" ? (
-                    <DiscResults
-                      participantName={selectedParticipant.name}
-                      existingResult={selectedTestResult}
-                    />
+                    <>
+                      <div className="flex justify-end mb-4">
+                        <Button
+                          onClick={async () => {
+                            setIsGeneratingDiscPDF(true);
+                            try {
+                              const dimScores: DiscDimensionScore[] = Object.entries(
+                                (selectedTestResult.dimension_scores || {}) as Record<string, any>
+                              ).map(([dim, score]: [string, any]) => {
+                                const normKey = normalizeDimKey(dim);
+                                return {
+                                  dimension: normKey,
+                                  dimensionLabel: DISC_DIMENSIONS[normKey]?.name || dim,
+                                  score: Number(score),
+                                  maxScore: 5,
+                                  percentage: Number(((Number(score) / 5) * 100).toFixed(1)),
+                                  color: DISC_DIMENSIONS[normKey]?.color || "#6B7280",
+                                };
+                              });
+                              const sorted = [...dimScores].sort((a, b) => b.score - a.score);
+                              const primary = sorted[0]?.dimension || "S";
+                              const secondary = sorted[1]?.dimension || "I";
+                              const profile = {
+                                primary,
+                                secondary,
+                                label: `${DISC_DIMENSIONS[primary]?.name} ${DISC_DIMENSIONS[secondary]?.name}`,
+                                description: "",
+                              };
+                              const profileDetail = getProfileDetail(primary, secondary);
+                              const recommendations = getDiscRecommendations(primary, secondary, dimScores);
+                              const actionPlan = getDiscActionPlan(primary, secondary);
+                              await generateDiscPDF({
+                                participantName: selectedParticipant.name,
+                                dimensionScores: dimScores,
+                                profile,
+                                profileDetail,
+                                recommendations,
+                                actionPlan,
+                              });
+                              toast.success("PDF gerado com sucesso!");
+                            } catch (err) {
+                              console.error("Error generating PDF:", err);
+                              toast.error("Erro ao gerar PDF. Tente novamente.");
+                            } finally {
+                              setIsGeneratingDiscPDF(false);
+                            }
+                          }}
+                          disabled={isGeneratingDiscPDF}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          {isGeneratingDiscPDF ? "Gerando..." : "Exportar PDF"}
+                        </Button>
+                      </div>
+                      <DiscResults
+                        participantName={selectedParticipant.name}
+                        existingResult={selectedTestResult}
+                      />
+                    </>
                   ) : (
                     <ParticipantResultModal
                       participantName={selectedParticipant.name}
