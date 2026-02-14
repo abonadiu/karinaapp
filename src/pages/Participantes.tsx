@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Search, Building2, Loader2, Download, UserPlus, Upload } from "lucide-react";
+import { Search, Building2, Loader2, Download, UserPlus, Upload, Link2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
@@ -8,6 +8,7 @@ import { ParticipantForm, ParticipantFormData } from "@/components/participants/
 import { ParticipantResultModal } from "@/components/participants/ParticipantResultModal";
 import { CsvImport } from "@/components/participants/CsvImport";
 import { AssignTestDialog } from "@/components/participants/AssignTestDialog";
+import { SelfRegisterLinkDialog } from "@/components/participants/SelfRegisterLinkDialog";
 import { ParticipantTestsList, useParticipantTestCounts } from "@/components/participants/ParticipantTestsList";
 import { Input } from "@/components/ui/input";
 import {
@@ -75,6 +76,7 @@ interface Participant {
 interface Company {
   id: string;
   name: string;
+  self_register_token?: string;
 }
 
 export default function Participantes() {
@@ -129,9 +131,9 @@ export default function Participantes() {
         .from("participants")
         .select("*, companies(name)")
         .order("created_at", { ascending: false }),
-      supabase
+      (supabase as any)
         .from("companies")
-        .select("id, name")
+        .select("id, name, self_register_token")
         .order("name"),
     ]);
 
@@ -457,7 +459,16 @@ export default function Participantes() {
     >
       {/* Action buttons */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex justify-end gap-2 flex-wrap">
+         <div className="flex justify-end gap-2 flex-wrap">
+          {companyFilter !== "all" && (() => {
+            const selectedCompany = companies.find(c => c.id === companyFilter);
+            return selectedCompany?.self_register_token ? (
+              <SelfRegisterLinkDialog
+                selfRegisterToken={selectedCompany.self_register_token}
+                companyName={selectedCompany.name}
+              />
+            ) : null;
+          })()}
           <Button
             variant="outline"
             size="sm"

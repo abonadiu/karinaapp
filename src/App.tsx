@@ -32,6 +32,7 @@ import LoginParticipante from "./pages/participante/LoginParticipante";
 import CadastroParticipante from "./pages/participante/CadastroParticipante";
 import PortalParticipante from "./pages/participante/PortalParticipante";
 import { ParticipantRoute } from "./components/auth/ParticipantRoute";
+import AutocadastroParticipante from "./pages/AutocadastroParticipante";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,9 @@ const App = () => (
             {/* Participant Portal (public routes) */}
             <Route path="/participante/login" element={<LoginParticipante />} />
             <Route path="/participante/cadastro/:token" element={<CadastroParticipante />} />
+            
+            {/* Self-registration */}
+            <Route path="/autocadastro/:token" element={<AutocadastroParticipante />} />
             
             {/* Company Manager Portal (protected) */}
             <Route path="/empresa/dashboard" element={
