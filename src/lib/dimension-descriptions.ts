@@ -68,3 +68,53 @@ export function getOverallScoreMessage(score: number): string {
   if (score >= 2) return "Seu resultado indica um estágio moderado de desenvolvimento. Este diagnóstico é um ponto de partida valioso — ele revela áreas específicas onde pequenas mudanças de hábito podem gerar grandes transformações.";
   return "Seu resultado mostra que você está no início de uma jornada importante de autoconhecimento. Cada dimensão avaliada representa uma oportunidade de crescimento. O primeiro passo já foi dado ao realizar este diagnóstico.";
 }
+
+// Dimension color mappings for the design system
+export const DIMENSION_COLORS: Record<string, { border: string; bg: string; text: string; bgSubtle: string }> = {
+  "Consciência Interior": {
+    border: "border-l-[hsl(var(--dimension-consciousness))]",
+    bg: "bg-[hsl(var(--dimension-consciousness))]",
+    text: "text-[hsl(var(--dimension-consciousness))]",
+    bgSubtle: "bg-[hsl(var(--dimension-consciousness)/0.1)]",
+  },
+  "Coerência Emocional": {
+    border: "border-l-[hsl(var(--dimension-coherence))]",
+    bg: "bg-[hsl(var(--dimension-coherence))]",
+    text: "text-[hsl(var(--dimension-coherence))]",
+    bgSubtle: "bg-[hsl(var(--dimension-coherence)/0.1)]",
+  },
+  "Conexão e Propósito": {
+    border: "border-l-[hsl(var(--dimension-purpose))]",
+    bg: "bg-[hsl(var(--dimension-purpose))]",
+    text: "text-[hsl(var(--dimension-purpose))]",
+    bgSubtle: "bg-[hsl(var(--dimension-purpose)/0.1)]",
+  },
+  "Relações e Compaixão": {
+    border: "border-l-[hsl(var(--dimension-compassion))]",
+    bg: "bg-[hsl(var(--dimension-compassion))]",
+    text: "text-[hsl(var(--dimension-compassion))]",
+    bgSubtle: "bg-[hsl(var(--dimension-compassion)/0.1)]",
+  },
+  "Transformação": {
+    border: "border-l-[hsl(var(--dimension-growth))]",
+    bg: "bg-[hsl(var(--dimension-growth))]",
+    text: "text-[hsl(var(--dimension-growth))]",
+    bgSubtle: "bg-[hsl(var(--dimension-growth)/0.1)]",
+  },
+};
+
+export function getDimensionColor(dimension: string) {
+  return DIMENSION_COLORS[dimension] || {
+    border: "border-l-primary",
+    bg: "bg-primary",
+    text: "text-primary",
+    bgSubtle: "bg-primary/10",
+  };
+}
+
+export function getScoreLevelBadge(score: number): { label: string; className: string } {
+  if (score >= 4) return { label: "Excelente", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" };
+  if (score >= 3) return { label: "Bom desenvolvimento", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" };
+  if (score >= 2) return { label: "Em progresso", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
+  return { label: "Início da jornada", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" };
+}

@@ -1,11 +1,12 @@
 import React, { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Share2, TrendingUp, TrendingDown, Loader2, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Award, Download, Share2, Loader2, BookOpen, Calendar, BarChart3 } from "lucide-react";
 import { DiagnosticScores, getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateDiagnosticPDF } from "@/lib/pdf-generator";
-import { DIAGNOSTIC_INTRO, getOverallScoreMessage } from "@/lib/dimension-descriptions";
+import { DIAGNOSTIC_INTRO, getOverallScoreMessage, getScoreLevelBadge } from "@/lib/dimension-descriptions";
 import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
@@ -13,6 +14,9 @@ import { ScheduleFeedbackCard } from "./ScheduleFeedbackCard";
 import { CreateAccountCTA } from "./CreateAccountCTA";
 import { toast } from "sonner";
 import { FacilitatorProfile } from "@/hooks/useDiagnostic";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Separator } from "@/components/ui/separator";
 
 interface DiagnosticResultsProps {
   participantName: string;
@@ -28,7 +32,6 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const firstName = participantName.split(" ")[0];
   
-  // Se temos resultado existente, reconstruir scores dele
   const displayScores = existingResult ? {
     dimensionScores: Object.entries(existingResult.dimension_scores || {}).map(([dimension, score], index) => ({
       dimension,
@@ -47,11 +50,20 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
     weakDimensions.map(d => d.dimension)
   );
 
+  const strongSet = new Set(strongDimensions.map(d => d.dimension));
+  const weakSet = new Set(weakDimensions.map(d => d.dimension));
 
+  const scoreBadge = getScoreLevelBadge(displayScores.totalScore);
+  const percentage = (displayScores.totalScore / 5) * 100;
+  const circumference = 2 * Math.PI * 44;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  const completedDate = existingResult?.completed_at 
+    ? format(new Date(existingResult.completed_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    : format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
   const handleDownloadPDF = async () => {
     if (!contentRef.current) return;
-    
     setIsGeneratingPDF(true);
     try {
       await generateDiagnosticPDF(contentRef.current, {
@@ -74,7 +86,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted py-8 px-4">
       <div ref={contentRef} className="max-w-4xl mx-auto space-y-8">
-        {/* Logo do facilitador no topo dos resultados */}
+        {/* Facilitator logo */}
         {facilitatorProfile?.logo_url && (
           <div className="flex justify-center">
             <img 
@@ -85,51 +97,74 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
           </div>
         )}
 
-        {/* Header */}
-        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader className="text-center">
-            <div className="mx-auto bg-primary/20 p-4 rounded-full w-fit mb-4">
-              <Award className="h-10 w-10 text-primary" />
+        {/* Score Header - Impactful */}
+        <div className="rounded-xl gradient-warm-subtle p-8 space-y-5">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Large circular gauge */}
+            <div className="relative flex-shrink-0">
+              <svg width="110" height="110" viewBox="0 0 110 110" className="transform -rotate-90">
+                <circle cx="55" cy="55" r="44" fill="none" stroke="hsl(var(--border))" strokeWidth="5" />
+                <circle
+                  cx="55" cy="55" r="44"
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  style={{ transition: "stroke-dashoffset 0.8s ease" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold text-foreground">{displayScores.totalScore.toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground">/5</span>
+              </div>
             </div>
-            <CardTitle className="text-3xl">
-              Parabéns, {firstName}!
-            </CardTitle>
-            <CardDescription className="text-lg">
-              Você completou o Diagnóstico IQ+IS
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 bg-background rounded-full px-6 py-3 shadow-sm">
-              <span className="text-muted-foreground">Score Geral:</span>
-              <span className="text-3xl font-bold text-primary">
-                {displayScores.totalScore.toFixed(1)}
-              </span>
-              <span className="text-muted-foreground">/5</span>
-            </div>
-             <p className="text-muted-foreground max-w-md mx-auto">
-              {getOverallScoreMessage(displayScores.totalScore)}
-            </p>
-          </CardContent>
-        </Card>
 
-        {/* Sobre o Diagnóstico */}
+            {/* Name, date, badge */}
+            <div className="text-center sm:text-left">
+              <h1 className="font-display text-2xl font-semibold text-foreground">
+                Parabéns, {firstName}!
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Você completou o Diagnóstico IQ+IS
+              </p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1 justify-center sm:justify-start">
+                <Calendar className="h-3 w-3" />
+                {completedDate}
+              </p>
+              <Badge variant="secondary" className={`mt-2 text-xs ${scoreBadge.className}`}>
+                {scoreBadge.label}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Interpretive message */}
+          <p className="text-sm text-foreground/80 italic leading-relaxed max-w-2xl">
+            "{getOverallScoreMessage(displayScores.totalScore)}"
+          </p>
+        </div>
+
+        {/* Sobre o Diagnóstico - Visual block */}
+        <div className="rounded-xl border border-border p-6 flex gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
+          </div>
+        </div>
+
+        {/* Radar Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Sobre o Diagnóstico IQ+IS
+              <BarChart3 className="h-5 w-5" />
+              Visão Geral das 5 Dimensões
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{DIAGNOSTIC_INTRO}</p>
-          </CardContent>
-        </Card>
-
-        {/* Gráfico Radar */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Visão Geral das 5 Dimensões</CardTitle>
             <CardDescription>
               Visualização do seu perfil de inteligência emocional e espiritual
             </CardDescription>
@@ -139,53 +174,28 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
           </CardContent>
         </Card>
 
-        {/* Pontos Fortes */}
-        <div className="space-y-4">
+        {/* Single unified dimension section */}
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-500" />
-            <h3 className="text-lg font-semibold">Seus Pontos Fortes</h3>
+            <Award className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Suas Dimensões</h3>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {strongDimensions.map(score => (
-              <DimensionCard key={score.dimension} score={score} isStrong />
-            ))}
-          </div>
+          {displayScores.dimensionScores.map(score => (
+            <DimensionCard 
+              key={score.dimension} 
+              score={score}
+              isWeak={weakSet.has(score.dimension)}
+              isStrong={strongSet.has(score.dimension)}
+            />
+          ))}
         </div>
 
-        {/* Áreas de Desenvolvimento */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <TrendingDown className="h-5 w-5 text-orange-500" />
-            <h3 className="text-lg font-semibold">Áreas de Desenvolvimento</h3>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {weakDimensions.map(score => (
-              <DimensionCard key={score.dimension} score={score} isWeak />
-            ))}
-          </div>
-        </div>
+        <Separator />
 
-        {/* Todas as Dimensões */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalhamento por Dimensão</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {displayScores.dimensionScores.map(score => (
-              <DimensionCard 
-                key={score.dimension} 
-                score={score}
-                isWeak={weakDimensions.some(w => w.dimension === score.dimension)}
-                isStrong={strongDimensions.some(s => s.dimension === score.dimension)}
-              />
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Recomendações */}
+        {/* Recommendations */}
         <RecommendationList recommendations={recommendations} />
 
-        {/* CTA para criar conta - só aparece se não tem resultado existente (diagnóstico foi feito agora) */}
+        {/* CTA para criar conta */}
         {!existingResult && participantEmail && accessToken && (
           <div className="pdf-hide">
             <CreateAccountCTA
@@ -206,7 +216,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
           </div>
         )}
 
-        {/* Ações */}
+        {/* Actions */}
         <Card className="pdf-hide">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

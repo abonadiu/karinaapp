@@ -25,11 +25,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/participants/StatusBadge";
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -434,15 +435,16 @@ export default function Participantes() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Result dialog */}
-      <Dialog
+      {/* Result sheet - full-width drawer */}
+      <Sheet
         open={!!selectedParticipant}
         onOpenChange={(open) => !open && setSelectedParticipant(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedParticipant?.name}</DialogTitle>
-          </DialogHeader>
+        <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto p-6">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{selectedParticipant?.name}</SheetTitle>
+            <SheetDescription>Resultado do diagnóstico</SheetDescription>
+          </SheetHeader>
 
           {selectedParticipant?.status === "completed" ? (
             isLoadingResult ? (
@@ -515,8 +517,8 @@ export default function Participantes() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }
