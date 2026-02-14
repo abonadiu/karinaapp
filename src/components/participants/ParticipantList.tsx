@@ -39,6 +39,7 @@ interface ParticipantListProps {
   onDelete: (participant: Participant) => void;
   onInvite: (participant: Participant) => void;
   onReminder?: (participant: Participant) => void;
+  onRowClick?: (participant: Participant) => void;
   isLoading?: boolean;
   showCompany?: boolean;
   sendingInviteId?: string | null;
@@ -51,6 +52,7 @@ export function ParticipantList({
   onDelete,
   onInvite,
   onReminder,
+  onRowClick,
   isLoading,
   sendingInviteId,
   sendingReminderId,
@@ -93,7 +95,11 @@ export function ParticipantList({
         </TableHeader>
         <TableBody>
           {participants.map((participant) => (
-            <TableRow key={participant.id}>
+            <TableRow 
+              key={participant.id} 
+              className={onRowClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+              onClick={() => onRowClick?.(participant)}
+            >
               <TableCell>
                 <div>
                   <p className="font-medium text-foreground">{participant.name}</p>
@@ -110,7 +116,7 @@ export function ParticipantList({
                   {participant.position || "-"}
                 </span>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <StatusBadge status={participant.status} />
               </TableCell>
               <TableCell>
