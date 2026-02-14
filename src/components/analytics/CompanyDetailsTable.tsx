@@ -20,12 +20,13 @@ interface CompanyDetail {
 interface CompanyDetailsTableProps {
   data: CompanyDetail[];
   isLoading: boolean;
+  onCompanyClick?: (companyId: string) => void;
 }
 
 type SortField = "name" | "total" | "completed" | "averageScore" | "completionRate";
 type SortDirection = "asc" | "desc";
 
-export function CompanyDetailsTable({ data, isLoading }: CompanyDetailsTableProps) {
+export function CompanyDetailsTable({ data, isLoading, onCompanyClick }: CompanyDetailsTableProps) {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -143,7 +144,11 @@ export function CompanyDetailsTable({ data, isLoading }: CompanyDetailsTableProp
             </TableHeader>
             <TableBody>
               {sortedData.map((company) => (
-                <TableRow key={company.id}>
+                <TableRow
+                  key={company.id}
+                  className={onCompanyClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""}
+                  onClick={() => onCompanyClick?.(company.id)}
+                >
                   <TableCell className="font-medium">{company.name}</TableCell>
                   <TableCell className="text-center">{company.total}</TableCell>
                   <TableCell className="text-center">
