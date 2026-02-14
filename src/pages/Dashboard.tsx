@@ -64,10 +64,10 @@ export default function Dashboard() {
     <DashboardLayout>
       {/* Welcome section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-serif font-semibold text-foreground mb-2">
+        <h1 className="text-3xl md:text-4xl font-serif font-semibold text-foreground mb-2">
           Olá, {profile?.full_name?.split(" ")[0] || "Facilitador"}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Bem-vindo ao seu painel de controle. Gerencie empresas e acompanhe avaliações.
         </p>
       </div>
@@ -84,7 +84,7 @@ export default function Dashboard() {
                 <stat.icon className={`h-5 w-5 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">
+                <div className="text-4xl font-bold text-foreground">
                   {isLoading ? "-" : stat.value}
                 </div>
               </CardContent>
@@ -96,7 +96,7 @@ export default function Dashboard() {
       {/* Quick actions */}
       <Card className="shadow-warm mb-8">
         <CardHeader>
-          <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+          <CardTitle className="text-xl">Ações Rápidas</CardTitle>
           <CardDescription>Comece a usar a plataforma</CardDescription>
         </CardHeader>
         <CardContent>
@@ -105,11 +105,11 @@ export default function Dashboard() {
               <Button
                 key={action.label}
                 variant="outline"
-                className="h-auto py-4 flex flex-col items-center gap-2"
+                className="h-auto py-5 flex flex-col items-center gap-3 text-base"
                 asChild
               >
                 <Link to={action.href}>
-                  <action.icon className="h-6 w-6 text-primary" />
+                  <action.icon className="h-7 w-7 text-primary" />
                   <span>{action.label}</span>
                 </Link>
               </Button>
@@ -125,7 +125,7 @@ export default function Dashboard() {
       {(!profile?.bio || !profile?.avatar_url) && (
         <Card className="shadow-warm border-primary/20 bg-primary/5">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-xl flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               Complete seu perfil
             </CardTitle>

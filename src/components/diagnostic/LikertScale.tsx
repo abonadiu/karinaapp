@@ -29,7 +29,7 @@ export function LikertScale({ value, onChange, disabled }: LikertScaleProps) {
             )}
           >
             <div className="text-2xl font-bold mb-1">{option.value}</div>
-            <div className="text-xs leading-tight opacity-80">{option.label}</div>
+            <div className="text-sm leading-tight opacity-80">{option.label}</div>
           </button>
         ))}
       </div>
@@ -53,7 +53,7 @@ export function LikertScale({ value, onChange, disabled }: LikertScaleProps) {
             )}
           >
             <span className="text-xl font-bold w-8">{option.value}</span>
-            <span className="text-sm">{option.label}</span>
+            <span className="text-base">{option.label}</span>
           </button>
         ))}
       </div>
