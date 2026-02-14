@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Search, Building2 } from "lucide-react";
+import { Search, Building2, Clock, Loader2 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
+import { ParticipantResultCard } from "@/components/participants/ParticipantResultCard";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -23,9 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/participants/StatusBadge";
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { DimensionScore } from "@/lib/diagnostic-scoring";
 
 type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
 
@@ -67,6 +76,9 @@ export default function Participantes() {
   const [isSaving, setIsSaving] = useState(false);
   const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+  const [selectedResult, setSelectedResult] = useState<any>(null);
+  const [isLoadingResult, setIsLoadingResult] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -255,6 +267,27 @@ export default function Participantes() {
     }
   };
 
+  const handleRowClick = async (participant: Participant) => {
+    setSelectedParticipant(participant);
+    setSelectedResult(null);
+
+    if (participant.status === "completed") {
+      setIsLoadingResult(true);
+      const { data, error } = await supabase
+        .from("diagnostic_results")
+        .select("*")
+        .eq("participant_id", participant.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching result:", error);
+      } else {
+        setSelectedResult(data);
+      }
+      setIsLoadingResult(false);
+    }
+  };
+
   const filteredParticipants = participants.filter((participant) => {
     const matchesSearch =
       participant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -346,6 +379,7 @@ export default function Participantes() {
         onDelete={(participant) => setDeletingParticipant(participant)}
         onInvite={handleInviteParticipant}
         onReminder={handleReminderParticipant}
+        onRowClick={handleRowClick}
         isLoading={isLoading}
         sendingInviteId={sendingInviteId}
         sendingReminderId={sendingReminderId}
@@ -395,6 +429,56 @@ export default function Participantes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Result dialog */}
+      <Dialog
+        open={!!selectedParticipant}
+        onOpenChange={(open) => !open && setSelectedParticipant(null)}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedParticipant?.name}</DialogTitle>
+          </DialogHeader>
+
+          {selectedParticipant?.status === "completed" ? (
+            isLoadingResult ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : selectedResult ? (
+              <ParticipantResultCard
+                participantName={selectedParticipant.name}
+                completedAt={selectedResult.completed_at}
+                totalScore={Number(selectedResult.total_score)}
+                dimensionScores={
+                  Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
+                    ([dimension, data]) => ({
+                      dimension,
+                      score: (data as any).score ?? 0,
+                      maxScore: (data as any).maxScore ?? 5,
+                      percentage: (data as any).percentage ?? 0,
+                    })
+                  ) as DimensionScore[]
+                }
+              />
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                Resultado não encontrado.
+              </p>
+            )
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+              <Clock className="h-10 w-10 text-muted-foreground" />
+              <div>
+                <p className="font-medium text-foreground">Diagnóstico ainda não concluído</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Status atual: <StatusBadge status={selectedParticipant?.status as any} />
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
