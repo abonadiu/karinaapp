@@ -81,19 +81,34 @@ export function BulkInviteDialog({
       setCurrentParticipant(participant.name);
 
       try {
-        // 1. Fetch access_token
-        const { data: participantData, error: fetchError } = await supabase
-          .from("participants")
+        // 1. Try to get participant_test token first
+        const { data: testData } = await supabase
+          .from("participant_tests")
           .select("access_token")
-          .eq("id", participant.id)
+          .eq("participant_id", participant.id)
+          .in("status", ["pending", "invited"])
+          .order("created_at", { ascending: false })
+          .limit(1)
           .single();
 
-        if (fetchError || !participantData?.access_token) {
-          throw new Error("Token não encontrado");
+        let accessToken = testData?.access_token;
+
+        // Fallback to legacy participant token
+        if (!accessToken) {
+          const { data: participantData, error: fetchError } = await supabase
+            .from("participants")
+            .select("access_token")
+            .eq("id", participant.id)
+            .single();
+
+          if (fetchError || !participantData?.access_token) {
+            throw new Error("Token não encontrado");
+          }
+          accessToken = participantData.access_token;
         }
 
         // 2. Build diagnostic URL
-        const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
+        const diagnosticUrl = `${window.location.origin}/diagnostico/${accessToken}`;
 
         // 3. Call edge function with facilitator branding
         const { error: invokeError } = await supabase.functions.invoke("send-invite", {
