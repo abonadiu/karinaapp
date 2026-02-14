@@ -1,65 +1,24 @@
 
 
-## Correcao: Links do Diagnostico nao funcionam (RLS bloqueando acesso anonimo)
+## Correcao: Desmarcar selecao ao trocar de pergunta
 
 ### Problema
 
-As novas tabelas `participant_tests`, `test_responses` e `test_results` so tem politicas RLS para **facilitadores autenticados**. Quando um participante (usuario anonimo) acessa o link `/diagnostico/:token`, a consulta a `participant_tests` falha silenciosamente por falta de permissao, e o fallback para a tabela antiga tambem nao encontra o token pois ele foi migrado para `participant_tests`.
+Quando o participante responde uma pergunta, o botao fica marcado (highlighted) e a proxima pergunta aparece com o mesmo botao ainda visualmente selecionado por um breve momento. Isso induz o participante a clicar no mesmo valor sem refletir.
+
+A causa e o delay de 200ms no `handleSelect` do `QuestionCard.tsx` -- durante esse tempo, o valor ja foi setado visualmente mas a pergunta ainda nao avancou. Alem disso, quando a pergunta ja foi respondida anteriormente (voltou e avancou de novo), o valor antigo aparece marcado, o que e correto, mas para perguntas novas nao deveria haver nenhuma selecao.
 
 ### Solucao
 
-Adicionar politicas RLS que permitam acesso anonimo nas 3 tabelas, restrito ao contexto do token/diagnostico:
+1. **Adicionar um estado local** no `QuestionCard` que controla a selecao visual, resetando para `undefined` sempre que o `question.id` mudar (nova pergunta)
+2. Manter o valor salvo (`currentValue`) apenas como valor inicial quando o participante volta a uma pergunta ja respondida
+3. Isso garante que ao avancar para uma pergunta nova, nenhum botao estara marcado
 
-| Tabela | Politica | Descricao |
-|--------|----------|-----------|
-| `participant_tests` | SELECT via `access_token` | Qualquer pessoa com o token pode ler o registro correspondente |
-| `participant_tests` | UPDATE via `access_token` | Permite atualizar status (pending -> in_progress -> completed) |
-| `test_responses` | INSERT/SELECT/UPDATE | Permite inserir e ler respostas vinculadas ao participant_test acessado via token |
-| `test_results` | INSERT/SELECT | Permite inserir e ler resultados vinculados ao participant_test |
-| `test_questions` | SELECT (ja existe) | Ja esta liberado para leitura publica |
+### Mudancas
 
-### Detalhes Tecnicos
-
-**Migracao SQL:**
-
-```sql
--- Participantes anonimos podem ler seu proprio participant_test pelo access_token
-CREATE POLICY "Anyone can read participant_test by token"
-  ON public.participant_tests FOR SELECT
-  USING (true);
-
--- Participantes anonimos podem atualizar status do seu teste
-CREATE POLICY "Anyone can update participant_test by token"
-  ON public.participant_tests FOR UPDATE
-  USING (true);
-
--- Permitir inserir respostas para qualquer participant_test
-CREATE POLICY "Anyone can insert test responses"
-  ON public.test_responses FOR INSERT
-  WITH CHECK (true);
-
--- Permitir ler respostas (para retomada do diagnostico)
-CREATE POLICY "Anyone can read test responses"
-  ON public.test_responses FOR SELECT
-  USING (true);
-
--- Permitir atualizar respostas existentes (upsert)
-CREATE POLICY "Anyone can update test responses"
-  ON public.test_responses FOR UPDATE
-  USING (true);
-
--- Permitir inserir resultados
-CREATE POLICY "Anyone can insert test results"
-  ON public.test_results FOR INSERT
-  WITH CHECK (true);
-
--- Permitir ler resultados (para exibir na tela de resultados)
-CREATE POLICY "Anyone can read test results"
-  ON public.test_results FOR SELECT
-  USING (true);
-```
-
-> Nota: As politicas sao abertas (USING true) porque o acesso ja e controlado pelo token unico (UUID) que serve como "senha" do participante — o mesmo modelo usado na tabela `participants` original. Sem conhecer o token, nao e possivel acessar os dados.
-
-**Nenhuma mudanca de codigo** e necessaria — o hook `useDiagnostic` ja esta correto, so precisa que o banco permita as consultas.
+**`src/components/diagnostic/QuestionCard.tsx`**:
+- Adicionar um `useState` local para `selectedValue`, inicializado com `currentValue`
+- Usar `useEffect` para resetar `selectedValue` para `currentValue` (ou `undefined`) quando `question.id` mudar
+- Passar `selectedValue` em vez de `currentValue` para o `LikertScale`
+- No `handleSelect`, setar o `selectedValue` imediatamente para feedback visual, e depois chamar `onAnswer` com o delay
 
