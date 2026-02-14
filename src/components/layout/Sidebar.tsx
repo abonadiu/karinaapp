@@ -10,6 +10,7 @@ import {
   Building,
   ChevronUp
 } from "lucide-react";
+import React, { useCallback, useRef } from "react";
 
 import {
   DropdownMenu,
@@ -30,11 +31,9 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
@@ -43,6 +42,88 @@ const menuItems = [
   { title: "Participantes", url: "/participantes", icon: Users },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
+
+const COLLAPSE_THRESHOLD = 120;
+const MIN_WIDTH = 48;
+const MAX_WIDTH = 450;
+const DEFAULT_WIDTH = 256;
+const DRAG_THRESHOLD = 5;
+
+function SidebarResizeHandle() {
+  const { setOpen, open, setSidebarWidth, isMobile } = useSidebar();
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+  const hasDragged = useRef(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return;
+    e.preventDefault();
+    isDragging.current = true;
+    hasDragged.current = false;
+    startX.current = e.clientX;
+
+    // Get current sidebar width from CSS variable
+    const wrapper = (e.currentTarget as HTMLElement).closest('.group\\/sidebar-wrapper') as HTMLElement;
+    const currentWidth = wrapper 
+      ? parseFloat(getComputedStyle(wrapper).getPropertyValue('--sidebar-width')) || DEFAULT_WIDTH
+      : DEFAULT_WIDTH;
+    startWidth.current = open ? currentWidth : MIN_WIDTH;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = moveEvent.clientX - startX.current;
+      if (Math.abs(delta) > DRAG_THRESHOLD) {
+        hasDragged.current = true;
+      }
+      
+      const newWidth = Math.max(MIN_WIDTH, Math.min(startWidth.current + delta, MAX_WIDTH));
+      
+      if (newWidth < COLLAPSE_THRESHOLD) {
+        setSidebarWidth(`${MIN_WIDTH}px`);
+        setOpen(false);
+      } else {
+        setSidebarWidth(`${newWidth}px`);
+        if (!open) setOpen(true);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      if (!hasDragged.current) {
+        // It was a click, not a drag — toggle
+        if (open) {
+          setOpen(false);
+        } else {
+          setSidebarWidth(`${DEFAULT_WIDTH}px`);
+          setOpen(true);
+        }
+      }
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [isMobile, open, setOpen, setSidebarWidth]);
+
+  if (isMobile) return null;
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="absolute inset-y-0 -right-[6px] z-20 hidden w-3 cursor-col-resize sm:flex items-center justify-center group/handle"
+      title="Arrastar para redimensionar ou clicar para recolher"
+    >
+      <div className="h-full w-[2px] bg-transparent transition-colors group-hover/handle:bg-sidebar-border" />
+    </div>
+  );
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -164,7 +245,7 @@ export function AppSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-      <SidebarRail />
+      <SidebarResizeHandle />
     </Sidebar>
   );
 }

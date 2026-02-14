@@ -27,6 +27,8 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  sidebarWidth: string;
+  setSidebarWidth: (width: string) => void;
 };
 
 const SidebarContext = React.createContext<SidebarContext | null>(null);
@@ -70,10 +72,32 @@ const SidebarProvider = React.forwardRef<
     [setOpenProp, open],
   );
 
-  // Helper to toggle the sidebar.
+
+  const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_WIDTH);
+  const lastWidthRef = React.useRef(SIDEBAR_WIDTH);
+
+  // Track last used width for restoration
+  React.useEffect(() => {
+    if (open && sidebarWidth !== SIDEBAR_WIDTH_ICON) {
+      lastWidthRef.current = sidebarWidth;
+    }
+  }, [sidebarWidth, open]);
+
+  // Restore last width when expanding
+  const setOpenWithRestore = React.useCallback(
+    (value: boolean | ((value: boolean) => boolean)) => {
+      const openState = typeof value === "function" ? value(open) : value;
+      if (openState && lastWidthRef.current) {
+        setSidebarWidth(lastWidthRef.current);
+      }
+      setOpen(value);
+    },
+    [setOpen, open],
+  );
+
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-  }, [isMobile, setOpen, setOpenMobile]);
+    return isMobile ? setOpenMobile((open) => !open) : setOpenWithRestore((open) => !open);
+  }, [isMobile, setOpenWithRestore, setOpenMobile]);
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
@@ -89,20 +113,21 @@ const SidebarProvider = React.forwardRef<
   }, [toggleSidebar]);
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed";
 
   const contextValue = React.useMemo<SidebarContext>(
     () => ({
       state,
       open,
-      setOpen,
+      setOpen: setOpenWithRestore,
       isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      sidebarWidth,
+      setSidebarWidth,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [state, open, setOpenWithRestore, isMobile, openMobile, setOpenMobile, toggleSidebar, sidebarWidth],
   );
 
   return (
@@ -111,7 +136,7 @@ const SidebarProvider = React.forwardRef<
         <div
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width": sidebarWidth,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
             } as React.CSSProperties
