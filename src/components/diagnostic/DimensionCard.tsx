@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { DimensionScore, getScoreLevel } from "@/lib/diagnostic-scoring";
-import { DIMENSIONS } from "@/lib/diagnostic-questions";
+import { getDimensionAbout, getInterpretation, getDimensionWhyItMatters } from "@/lib/dimension-descriptions";
 import { Brain, Heart, Compass, Users, Sparkles, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +22,10 @@ const ICONS: Record<string, LucideIcon> = {
 
 export function DimensionCard({ score, isWeak, isStrong }: DimensionCardProps) {
   const Icon = ICONS[score.dimension] || Brain;
-  const dimension = DIMENSIONS.find(d => d.name === score.dimension);
   const level = getScoreLevel(score.score);
+  const about = getDimensionAbout(score.dimension);
+  const interpretation = getInterpretation(score.dimension, score.score);
+  const whyItMatters = getDimensionWhyItMatters(score.dimension);
 
   return (
     <Card className={cn(
@@ -79,8 +81,20 @@ export function DimensionCard({ score, isWeak, isStrong }: DimensionCardProps) {
         />
         
         <p className="text-sm text-muted-foreground">
-          {dimension?.description}
+          {about}
         </p>
+
+        {interpretation && (
+          <p className="text-sm italic text-foreground/80 border-l-2 border-primary/30 pl-3">
+            {interpretation}
+          </p>
+        )}
+
+        {whyItMatters && (
+          <p className="text-xs text-muted-foreground/70">
+            💡 {whyItMatters}
+          </p>
+        )}
         
         <div className={cn("text-sm font-medium", level.color)}>
           {level.label}
