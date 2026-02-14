@@ -63,7 +63,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="offcanvas">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-3">
           <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center shrink-0">
