@@ -5,7 +5,7 @@ import { Search, Building2, Clock, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
-import { ParticipantResultCard } from "@/components/participants/ParticipantResultCard";
+import { ParticipantResultModal } from "@/components/participants/ParticipantResultModal";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -446,7 +446,7 @@ export default function Participantes() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : selectedResult ? (
-              <ParticipantResultCard
+              <ParticipantResultModal
                 participantName={selectedParticipant.name}
                 completedAt={selectedResult.completed_at}
                 totalScore={Number(selectedResult.total_score)}
@@ -454,6 +454,7 @@ export default function Participantes() {
                   Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
                     ([dimension, data]) => ({
                       dimension,
+                      dimensionOrder: (data as any).dimensionOrder ?? 0,
                       score: (data as any).score ?? 0,
                       maxScore: (data as any).maxScore ?? 5,
                       percentage: (data as any).percentage ?? 0,
