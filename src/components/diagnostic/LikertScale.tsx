@@ -19,12 +19,12 @@ export function LikertScale({ value, onChange, disabled }: LikertScaleProps) {
             onClick={() => onChange(option.value)}
             disabled={disabled}
             className={cn(
-              "flex-1 py-4 px-2 rounded-lg border-2 transition-all text-sm font-medium",
+              "flex-1 py-4 px-2 rounded-lg border-2 transition-colors duration-150 text-sm font-medium",
               "hover:border-primary hover:bg-primary/5",
               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
               value === option.value
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-muted bg-background",
+                : "border-muted bg-background text-foreground",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -42,13 +42,13 @@ export function LikertScale({ value, onChange, disabled }: LikertScaleProps) {
             onClick={() => onChange(option.value)}
             disabled={disabled}
             className={cn(
-              "w-full py-3 px-4 rounded-lg border-2 transition-all",
+              "w-full py-3 px-4 rounded-lg border-2 transition-colors duration-150",
               "flex items-center gap-4",
               "hover:border-primary hover:bg-primary/5",
               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
               value === option.value
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-muted bg-background",
+                : "border-muted bg-background text-foreground",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           >
