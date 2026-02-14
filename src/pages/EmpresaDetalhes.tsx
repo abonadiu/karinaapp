@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ParticipantList } from "@/components/participants/ParticipantList";
+import { ParticipantManager } from "@/components/participants/ParticipantManager";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
 import { CsvImport } from "@/components/participants/CsvImport";
 import { CompanyForm, CompanyFormData } from "@/components/companies/CompanyForm";
@@ -27,23 +27,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
 import { Json } from "@/integrations/supabase/types";
-
-type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
+import { Participant } from "@/hooks/useParticipantActions";
 
 interface Company {
   id: string;
@@ -56,18 +45,6 @@ interface Company {
   notes: string | null;
   created_at: string;
   self_register_token?: string;
-}
-
-interface Participant {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  department: string | null;
-  position: string | null;
-  status: ParticipantStatus;
-  company_id: string;
-  created_at: string;
 }
 
 interface DiagnosticResult {
@@ -107,8 +84,6 @@ export default function EmpresaDetalhes() {
   const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [isInviteManagerOpen, setIsInviteManagerOpen] = useState(false);
-  const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
-  const [deletingParticipant, setDeletingParticipant] = useState<Participant | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchCompany = async () => {
@@ -181,7 +156,6 @@ export default function EmpresaDetalhes() {
       toast.error("Erro ao carregar resultados");
       console.error(error);
     } else if (data) {
-      // Map results to participant names
       const mappedResults: ParticipantResultData[] = (data as DiagnosticResult[]).map(result => {
         const participant = participants.find(p => p.id === result.participant_id);
         const dimScores = result.dimension_scores as Record<string, number>;
@@ -227,7 +201,6 @@ export default function EmpresaDetalhes() {
     fetchFacilitatorProfile();
   }, [id, user]);
 
-  // Fetch results when participants are loaded
   useEffect(() => {
     if (participants.length > 0) {
       fetchResults();
@@ -257,123 +230,6 @@ export default function EmpresaDetalhes() {
       updateUsedLicenses(participants.length + 1);
     }
     setIsSaving(false);
-  };
-
-  const handleEditParticipant = async (data: ParticipantFormData) => {
-    if (!editingParticipant) return;
-
-    setIsSaving(true);
-    const { error } = await supabase
-      .from("participants")
-      .update({
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        department: data.department || null,
-        position: data.position || null,
-      })
-      .eq("id", editingParticipant.id);
-
-    if (error) {
-      toast.error("Erro ao atualizar participante");
-      console.error(error);
-    } else {
-      toast.success("Participante atualizado!");
-      fetchParticipants();
-    }
-    setIsSaving(false);
-    setEditingParticipant(null);
-  };
-
-  const handleDeleteParticipant = async () => {
-    if (!deletingParticipant) return;
-
-    const { error } = await supabase
-      .from("participants")
-      .delete()
-      .eq("id", deletingParticipant.id);
-
-    if (error) {
-      toast.error("Erro ao excluir participante");
-      console.error(error);
-    } else {
-      toast.success("Participante excluído!");
-      fetchParticipants();
-      updateUsedLicenses(participants.length - 1);
-    }
-    setDeletingParticipant(null);
-  };
-
-  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null);
-
-  const handleInviteParticipant = async (participant: Participant) => {
-    setSendingInviteId(participant.id);
-    
-    try {
-      // 1. Try to get the most recent participant_test token
-      const { data: testData } = await supabase
-        .from("participant_tests")
-        .select("access_token")
-        .eq("participant_id", participant.id)
-        .in("status", ["pending", "invited"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      let accessToken = testData?.access_token;
-
-      // Fallback to legacy participant token
-      if (!accessToken) {
-        const { data: participantData, error: fetchError } = await supabase
-          .from("participants")
-          .select("access_token")
-          .eq("id", participant.id)
-          .single();
-
-        if (fetchError || !participantData?.access_token) {
-          throw new Error("Não foi possível obter o token do participante");
-        }
-        accessToken = participantData.access_token;
-      }
-
-      // 2. Build diagnostic URL
-      const diagnosticUrl = `${window.location.origin}/diagnostico/${accessToken}`;
-
-      // 3. Call edge function to send email with facilitator branding
-      const { error: invokeError } = await supabase.functions.invoke("send-invite", {
-        body: {
-          participantName: participant.name,
-          participantEmail: participant.email,
-          diagnosticUrl,
-          facilitatorId: user?.id,
-        },
-      });
-
-      if (invokeError) {
-        throw invokeError;
-      }
-
-      // 4. Update participant status
-      const { error: updateError } = await supabase
-        .from("participants")
-        .update({ 
-          status: "invited",
-          invited_at: new Date().toISOString(),
-        })
-        .eq("id", participant.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      toast.success(`Convite enviado para ${participant.name}!`);
-      fetchParticipants();
-    } catch (error: any) {
-      console.error("Error sending invite:", error);
-      toast.error(error.message || "Erro ao enviar convite");
-    } finally {
-      setSendingInviteId(null);
-    }
   };
 
   const handleCsvImport = async (importedParticipants: { name: string; email: string; phone?: string; department?: string; position?: string }[]) => {
@@ -594,20 +450,11 @@ export default function EmpresaDetalhes() {
         </TabsList>
 
         <TabsContent value="participants">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Participantes</h2>
-            <p className="text-sm text-muted-foreground">
-              {participants.length} participante{participants.length !== 1 ? "s" : ""} cadastrado{participants.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-
-          <ParticipantList
+          <ParticipantManager
             participants={participants}
-            onEdit={(participant) => setEditingParticipant(participant)}
-            onDelete={(participant) => setDeletingParticipant(participant)}
-            onInvite={handleInviteParticipant}
+            onRefresh={fetchParticipants}
             isLoading={isLoadingParticipants}
-            sendingInviteId={sendingInviteId}
+            companyId={id}
           />
         </TabsContent>
 
@@ -631,22 +478,6 @@ export default function EmpresaDetalhes() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleCreateParticipant}
-        isLoading={isSaving}
-      />
-
-      {/* Edit participant form */}
-      <ParticipantForm
-        open={!!editingParticipant}
-        onOpenChange={(open) => !open && setEditingParticipant(null)}
-        onSubmit={handleEditParticipant}
-        defaultValues={editingParticipant ? {
-          name: editingParticipant.name,
-          email: editingParticipant.email,
-          phone: editingParticipant.phone || "",
-          department: editingParticipant.department || "",
-          position: editingParticipant.position || "",
-        } : undefined}
-        isEditing
         isLoading={isSaving}
       />
 
@@ -694,25 +525,6 @@ export default function EmpresaDetalhes() {
           facilitatorId={user.id}
         />
       )}
-
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deletingParticipant} onOpenChange={(open) => !open && setDeletingParticipant(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir participante?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir "{deletingParticipant?.name}"? 
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteParticipant} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DashboardLayout>
   );
 }
