@@ -11,8 +11,17 @@ import {
   Pencil,
   Calendar,
   Send,
-  UserPlus
+  UserPlus,
+  Link2,
+  MoreHorizontal
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantManager } from "@/components/participants/ParticipantManager";
@@ -318,33 +327,50 @@ export default function EmpresaDetalhes() {
       title={company.name}
       description="Detalhes da empresa e participantes"
       actions={
-        <div className="flex items-center gap-2 flex-wrap">
-          {(company as any).self_register_token && (
-            <SelfRegisterLinkDialog
-              selfRegisterToken={(company as any).self_register_token}
-              companyName={company.name}
-            />
-          )}
-          <Button variant="outline" onClick={() => setIsInviteManagerOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Convidar Gestor
-          </Button>
-          <Button variant="outline" onClick={() => setIsEditCompanyOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
-          <Button variant="outline" onClick={() => setIsBulkInviteOpen(true)}>
-            <Send className="mr-2 h-4 w-4" />
-            Enviar Convites
-          </Button>
-          <Button variant="outline" onClick={() => setIsCsvOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" />
-            Importar CSV
-          </Button>
+        <div className="flex items-center gap-2">
           <Button onClick={() => setIsFormOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Participante
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <MoreHorizontal className="mr-2 h-4 w-4" />
+                Ações
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {(company as any).self_register_token && (
+                <SelfRegisterLinkDialog
+                  selfRegisterToken={(company as any).self_register_token}
+                  companyName={company.name}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Link2 className="mr-2 h-4 w-4" />
+                      Link de Autocadastro
+                    </DropdownMenuItem>
+                  }
+                />
+              )}
+              <DropdownMenuItem onSelect={() => setIsCsvOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Importar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsBulkInviteOpen(true)}>
+                <Send className="mr-2 h-4 w-4" />
+                Enviar Convites
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsInviteManagerOpen(true)}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Convidar Gestor
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setIsEditCompanyOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar Empresa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       }
     >
