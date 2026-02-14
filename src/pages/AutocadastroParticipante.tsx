@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/backend/client";
 
 const formSchema = z.object({
   name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(100),
