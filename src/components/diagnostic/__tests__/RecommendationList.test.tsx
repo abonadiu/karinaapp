@@ -12,11 +12,15 @@ const mockRecommendations: Recommendation[] = [
             "Pratique meditação diariamente",
             "Faça pausas conscientes",
         ],
+        resources: ["Livro: Atenção Plena"],
+        expectedBenefits: "Maior presença.",
     },
     {
         title: "Abrace a Transformação",
         description: "Desenvolva flexibilidade.",
         practices: ["Desafie-se semanalmente"],
+        resources: ["Livro: Mindset"],
+        expectedBenefits: "Maior abertura.",
     },
 ];
 
