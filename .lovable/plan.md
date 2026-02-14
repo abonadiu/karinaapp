@@ -1,56 +1,84 @@
 
 
-## Clicar no Participante para Ver Resultado do Teste
+## Melhorar o Relatorio do Participante no Modal
 
-### O Que Muda
+### Problema Atual
 
-Na pagina `/participantes`, clicar em uma linha da tabela abre um **Dialog (modal)** com o resultado do diagnostico daquele participante. Para participantes com status "Concluido", mostra o radar chart, pontos fortes/fracos e opcao de baixar PDF. Para outros status, mostra uma mensagem informando que o diagnostico ainda nao foi concluido.
+O modal que aparece ao clicar num participante mostra um relatorio "fraco":
+- Usa o `ParticipantResultCard` que foi feito para ser um card compacto/colapsavel
+- Mostra apenas o radar chart + 2 listas simples (pontos fortes e areas de desenvolvimento) com nomes e scores
+- Nao mostra score geral destacado, descricoes das dimensoes, barra de progresso, nivel de desenvolvimento, nem recomendacoes praticas
 
-### Por Que um Dialog e Nao uma Nova Pagina
+### O Que Vai Melhorar
 
-- O resultado ja existe como componente (`ParticipantResultCard`) - reutilizamos
-- O usuario pode ver o resultado e voltar rapidamente para a lista
-- Evita criar uma nova rota/pagina
+O modal passara a ter um relatorio completo e rico, incluindo:
+
+1. **Header com score geral destacado** - Score grande com mensagem interpretativa (ex: "Bom! Ha espaco para crescimento")
+2. **Radar chart** (ja existe, manter)
+3. **Cards de cada dimensao** - Com icone, barra de progresso, descricao da dimensao e nivel (Em desenvolvimento / Moderado / Bem desenvolvido)
+4. **Pontos fortes e areas de desenvolvimento** - Com destaque visual (verde/laranja)
+5. **Recomendacoes praticas** - Praticas concretas baseadas nas dimensoes mais fracas
+6. **Botao de baixar PDF** (ja existe, manter)
 
 ### Implementacao
 
-#### 1. Tornar Linhas da Tabela Clicaveis
+#### 1. Criar componente `ParticipantResultModal` dedicado
 
-**Arquivo**: `src/components/participants/ParticipantList.tsx`
+**Novo arquivo**: `src/components/participants/ParticipantResultModal.tsx`
 
-- Adicionar prop `onRowClick?: (participant: Participant) => void`
-- Adicionar `cursor-pointer` e `hover:bg-muted/50` nas `TableRow`
-- Ao clicar na linha (exceto na coluna de acoes), chamar `onRowClick`
+Componente que renderiza dentro do Dialog um relatorio completo reutilizando componentes existentes:
+- `ResultsRadarChart` para o grafico radar
+- `DimensionCard` para cada dimensao com icone, progresso e descricao
+- `RecommendationList` para recomendacoes praticas
+- `getScoreLevel` para mensagem interpretativa do score
+- `getRecommendationsForWeakDimensions` para gerar recomendacoes
 
-#### 2. Dialog de Resultado do Participante
-
-**Arquivo**: `src/pages/Participantes.tsx`
-
-- Adicionar estado `selectedParticipant` para controlar qual participante foi clicado
-- Ao selecionar um participante com status `completed`, buscar dados de `diagnostic_results` na base
-- Exibir um `Dialog` com o `ParticipantResultCard` dentro (reutilizando componente existente)
-- Para participantes sem resultado, mostrar mensagem informativa com o status atual
-
-#### 3. Busca de Dados
-
-Quando um participante e clicado:
+Conteudo do modal:
 ```
-SELECT * FROM diagnostic_results WHERE participant_id = '<id>'
++------------------------------------------+
+|  [Nome do Participante]                  |
+|  Concluido em 13 fev 2026               |
+|                                          |
+|  Score Geral: 3.8 / 5                   |
+|  "Bom! Ha espaco para crescimento"       |
+|                                          |
+|  [========= Radar Chart =========]       |
+|                                          |
+|  --- Pontos Fortes ---                   |
+|  [DimensionCard: Consciencia Interior]   |
+|  [DimensionCard: Transformacao]          |
+|                                          |
+|  --- Areas de Desenvolvimento ---        |
+|  [DimensionCard: Coerencia Emocional]    |
+|  [DimensionCard: Relacoes e Compaixao]   |
+|                                          |
+|  --- Detalhamento por Dimensao ---       |
+|  [DimensionCard x5 com todas]            |
+|                                          |
+|  --- Recomendacoes ---                   |
+|  [RecommendationList com praticas]       |
+|                                          |
+|  [Baixar PDF]                            |
++------------------------------------------+
 ```
 
-Se encontrar resultado, renderiza o `ParticipantResultCard`. Se nao, mostra mensagem.
+#### 2. Atualizar `Participantes.tsx`
 
-### Arquivos a Modificar
+- Substituir o uso de `ParticipantResultCard` no Dialog pelo novo `ParticipantResultModal`
+- Passar os dados necessarios (nome, data, score, dimensionScores)
+
+### Arquivos a Modificar/Criar
 
 | Arquivo | Mudanca |
 |---------|---------|
-| `src/components/participants/ParticipantList.tsx` | Adicionar `onRowClick`, estilos hover/pointer nas linhas |
-| `src/pages/Participantes.tsx` | Adicionar estado + Dialog + busca de resultado ao clicar |
+| `src/components/participants/ParticipantResultModal.tsx` | **Novo** - Componente com relatorio completo |
+| `src/pages/Participantes.tsx` | Substituir `ParticipantResultCard` pelo novo componente no Dialog |
 
-### Resultado Esperado
+### Componentes Reutilizados (sem alteracao)
 
-1. Linhas da tabela de participantes mostram cursor pointer e destaque ao hover
-2. Clicar em um participante "Concluido" abre modal com radar chart, pontos fortes/fracos e botao de PDF
-3. Clicar em participante com outro status abre modal informando que o diagnostico nao foi concluido
-4. Botao de acoes (tres pontos) continua funcionando normalmente sem abrir o modal
+- `ResultsRadarChart` - Grafico radar
+- `DimensionCard` - Card de dimensao com icone, progresso, descricao
+- `RecommendationList` - Lista de recomendacoes praticas
+- `getScoreLevel`, `getStrongestDimensions`, `getWeakestDimensions` - Funcoes de scoring
+- `getRecommendationsForWeakDimensions` - Funcao de recomendacoes
 
