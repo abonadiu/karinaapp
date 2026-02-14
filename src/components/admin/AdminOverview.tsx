@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  Building2, 
-  Users, 
-  CheckCircle, 
-  Clock, 
+import { useNavigate } from "react-router-dom";
+import {
+  Building2,
+  Users,
+  CheckCircle,
+  Clock,
   TrendingUp,
   UserCheck,
   BarChart3,
@@ -29,9 +30,16 @@ interface PlatformStats {
   completion_rate: number;
 }
 
-export function AdminOverview() {
+interface AdminOverviewProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const clickableCard = "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]";
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -63,7 +71,7 @@ export function AdminOverview() {
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => navigate('/empresas')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Empresas</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -76,7 +84,7 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => navigate('/participantes')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Participantes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -89,7 +97,7 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => navigate('/relatorios')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Diagnósticos</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
@@ -102,7 +110,7 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => navigate('/relatorios')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
@@ -118,7 +126,7 @@ export function AdminOverview() {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => onNavigateToTab?.('users')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Administradores</CardTitle>
             <Crown className="h-4 w-4 text-amber-500" />
@@ -131,7 +139,7 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => onNavigateToTab?.('users')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Facilitadores</CardTitle>
             <UserCheck className="h-4 w-4 text-primary" />
@@ -144,7 +152,7 @@ export function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-warm">
+        <Card className={`shadow-warm ${clickableCard}`} onClick={() => onNavigateToTab?.('users')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Gestores</CardTitle>
             <Users className="h-4 w-4 text-blue-500" />

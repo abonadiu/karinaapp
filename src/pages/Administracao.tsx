@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -26,6 +26,11 @@ export default function Administracao() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const handleNavigateToTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -71,7 +76,7 @@ export default function Administracao() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
@@ -92,7 +97,7 @@ export default function Administracao() {
           </TabsList>
 
           <TabsContent value="overview">
-            <AdminOverview />
+            <AdminOverview onNavigateToTab={handleNavigateToTab} />
           </TabsContent>
 
           <TabsContent value="users">
