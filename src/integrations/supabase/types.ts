@@ -343,6 +343,66 @@ export type Database = {
           },
         ]
       }
+      participant_tests: {
+        Row: {
+          access_token: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          last_reminder_at: string | null
+          participant_id: string
+          reminder_count: number
+          started_at: string | null
+          status: string
+          test_type_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          last_reminder_at?: string | null
+          participant_id: string
+          reminder_count?: number
+          started_at?: string | null
+          status?: string
+          test_type_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          last_reminder_at?: string | null
+          participant_id?: string
+          reminder_count?: number
+          started_at?: string | null
+          status?: string
+          test_type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_tests_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_tests_test_type_id_fkey"
+            columns: ["test_type_id"]
+            isOneToOne: false
+            referencedRelation: "test_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           access_token: string
@@ -486,6 +546,157 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: Json
+        }
+        Relationships: []
+      }
+      test_questions: {
+        Row: {
+          created_at: string
+          dimension: string
+          dimension_order: number
+          id: string
+          question_order: number
+          question_text: string
+          reverse_scored: boolean
+          test_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          dimension: string
+          dimension_order: number
+          id?: string
+          question_order: number
+          question_text: string
+          reverse_scored?: boolean
+          test_type_id: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: string
+          dimension_order?: number
+          id?: string
+          question_order?: number
+          question_text?: string
+          reverse_scored?: boolean
+          test_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_questions_test_type_id_fkey"
+            columns: ["test_type_id"]
+            isOneToOne: false
+            referencedRelation: "test_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_responses: {
+        Row: {
+          answered_at: string
+          created_at: string
+          id: string
+          participant_test_id: string
+          question_id: string
+          score: number
+        }
+        Insert: {
+          answered_at?: string
+          created_at?: string
+          id?: string
+          participant_test_id: string
+          question_id: string
+          score: number
+        }
+        Update: {
+          answered_at?: string
+          created_at?: string
+          id?: string
+          participant_test_id?: string
+          question_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_responses_participant_test_id_fkey"
+            columns: ["participant_test_id"]
+            isOneToOne: false
+            referencedRelation: "participant_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "test_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_results: {
+        Row: {
+          completed_at: string
+          created_at: string
+          dimension_scores: Json
+          exercises_data: Json
+          id: string
+          participant_test_id: string
+          total_score: number
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          dimension_scores?: Json
+          exercises_data?: Json
+          id?: string
+          participant_test_id: string
+          total_score?: number
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          dimension_scores?: Json
+          exercises_data?: Json
+          id?: string
+          participant_test_id?: string
+          total_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_results_participant_test_id_fkey"
+            columns: ["participant_test_id"]
+            isOneToOne: true
+            referencedRelation: "participant_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      test_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
         }
         Relationships: []
       }
@@ -637,6 +848,10 @@ export type Database = {
       }
       is_facilitator_of_participant: {
         Args: { p_participant_id: string }
+        Returns: boolean
+      }
+      is_facilitator_of_participant_test: {
+        Args: { p_participant_test_id: string }
         Returns: boolean
       }
       is_manager_of_company: { Args: { _company_id: string }; Returns: boolean }
