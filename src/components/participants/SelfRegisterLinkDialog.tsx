@@ -16,12 +16,16 @@ interface SelfRegisterLinkDialogProps {
   selfRegisterToken: string;
   companyName: string;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function SelfRegisterLinkDialog({
   selfRegisterToken,
   companyName,
   trigger,
+  open,
+  onOpenChange,
 }: SelfRegisterLinkDialogProps) {
   const [copied, setCopied] = useState(false);
 
@@ -39,15 +43,12 @@ export function SelfRegisterLinkDialog({
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm">
-            <Link2 className="h-4 w-4 mr-2" />
-            Link de Autocadastro
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {trigger && (
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Link de Autocadastro</DialogTitle>

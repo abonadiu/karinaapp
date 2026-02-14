@@ -45,6 +45,7 @@ export default function Participantes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSelfRegisterOpen, setIsSelfRegisterOpen] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -172,16 +173,10 @@ export default function Participantes() {
               {companyFilter !== "all" && (() => {
                 const selectedCompany = companies.find(c => c.id === companyFilter);
                 return selectedCompany?.self_register_token ? (
-                  <SelfRegisterLinkDialog
-                    selfRegisterToken={selectedCompany.self_register_token}
-                    companyName={selectedCompany.name}
-                    trigger={
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <Link2 className="mr-2 h-4 w-4" />
-                        Link de Autocadastro
-                      </DropdownMenuItem>
-                    }
-                  />
+                  <DropdownMenuItem onSelect={() => setIsSelfRegisterOpen(true)}>
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Link de Autocadastro
+                  </DropdownMenuItem>
                 ) : null;
               })()}
               <DropdownMenuItem onSelect={() => {
@@ -234,6 +229,19 @@ export default function Participantes() {
       />
 
       {/* CSV import */}
+      {/* Self register link dialog */}
+      {companyFilter !== "all" && (() => {
+        const selectedCompany = companies.find(c => c.id === companyFilter);
+        return selectedCompany?.self_register_token ? (
+          <SelfRegisterLinkDialog
+            selfRegisterToken={selectedCompany.self_register_token}
+            companyName={selectedCompany.name}
+            open={isSelfRegisterOpen}
+            onOpenChange={setIsSelfRegisterOpen}
+          />
+        ) : null;
+      })()}
+
       <CsvImport
         open={isCsvOpen}
         onOpenChange={setIsCsvOpen}

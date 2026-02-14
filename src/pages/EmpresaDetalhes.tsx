@@ -93,6 +93,7 @@ export default function EmpresaDetalhes() {
   const [isEditCompanyOpen, setIsEditCompanyOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [isInviteManagerOpen, setIsInviteManagerOpen] = useState(false);
+  const [isSelfRegisterOpen, setIsSelfRegisterOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchCompany = async () => {
@@ -341,16 +342,10 @@ export default function EmpresaDetalhes() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {(company as any).self_register_token && (
-                <SelfRegisterLinkDialog
-                  selfRegisterToken={(company as any).self_register_token}
-                  companyName={company.name}
-                  trigger={
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Link2 className="mr-2 h-4 w-4" />
-                      Link de Autocadastro
-                    </DropdownMenuItem>
-                  }
-                />
+                <DropdownMenuItem onSelect={() => setIsSelfRegisterOpen(true)}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Link de Autocadastro
+                </DropdownMenuItem>
               )}
               <DropdownMenuItem onSelect={() => setIsCsvOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
@@ -549,6 +544,16 @@ export default function EmpresaDetalhes() {
           companyId={company.id}
           companyName={company.name}
           facilitatorId={user.id}
+        />
+      )}
+
+      {/* Self register link dialog */}
+      {(company as any).self_register_token && (
+        <SelfRegisterLinkDialog
+          selfRegisterToken={(company as any).self_register_token}
+          companyName={company.name}
+          open={isSelfRegisterOpen}
+          onOpenChange={setIsSelfRegisterOpen}
         />
       )}
     </DashboardLayout>
