@@ -6,6 +6,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ParticipantList } from "@/components/participants/ParticipantList";
 import { ParticipantForm, ParticipantFormData } from "@/components/participants/ParticipantForm";
 import { ParticipantResultModal } from "@/components/participants/ParticipantResultModal";
+import { AssignTestDialog } from "@/components/participants/AssignTestDialog";
+import { ParticipantTestsList, useParticipantTestCounts } from "@/components/participants/ParticipantTestsList";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -80,6 +82,14 @@ export default function Participantes() {
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [selectedResult, setSelectedResult] = useState<any>(null);
   const [isLoadingResult, setIsLoadingResult] = useState(false);
+
+  // Assign test dialog
+  const [assigningParticipant, setAssigningParticipant] = useState<Participant | null>(null);
+  const [existingTestTypeIds, setExistingTestTypeIds] = useState<string[]>([]);
+
+  // Test counts for table column
+  const participantIds = participants.map(p => p.id);
+  const testCounts = useParticipantTestCounts(participantIds);
 
   const fetchData = async () => {
     if (!user) return;
@@ -161,7 +171,6 @@ export default function Participantes() {
     } else {
       toast.success("Participante excluído!");
       
-      // Update used licenses count
       const { data: participantCount } = await supabase
         .from("participants")
         .select("id", { count: "exact" })
@@ -181,7 +190,6 @@ export default function Participantes() {
     setSendingInviteId(participant.id);
     
     try {
-      // 1. Fetch participant's access_token
       const { data: participantData, error: fetchError } = await supabase
         .from("participants")
         .select("access_token")
@@ -192,10 +200,8 @@ export default function Participantes() {
         throw new Error("Não foi possível obter o token do participante");
       }
 
-      // 2. Build diagnostic URL
       const diagnosticUrl = `${window.location.origin}/diagnostico/${participantData.access_token}`;
 
-      // 3. Call edge function to send email
       const { error: invokeError } = await supabase.functions.invoke("send-invite", {
         body: {
           participantName: participant.name,
@@ -204,11 +210,8 @@ export default function Participantes() {
         },
       });
 
-      if (invokeError) {
-        throw invokeError;
-      }
+      if (invokeError) throw invokeError;
 
-      // 4. Update participant status
       const { error: updateError } = await supabase
         .from("participants")
         .update({
@@ -217,9 +220,7 @@ export default function Participantes() {
         })
         .eq("id", participant.id);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       toast.success(`Convite enviado para ${participant.name}!`);
       fetchData();
@@ -235,7 +236,6 @@ export default function Participantes() {
     setSendingReminderId(participant.id);
     
     try {
-      // Calculate days since invite
       let daysSinceInvite = 0;
       if (participant.invited_at) {
         const invitedDate = new Date(participant.invited_at);
@@ -243,7 +243,6 @@ export default function Participantes() {
         daysSinceInvite = Math.floor((now.getTime() - invitedDate.getTime()) / (1000 * 60 * 60 * 24));
       }
 
-      // Call edge function to send reminder
       const { error: invokeError } = await supabase.functions.invoke("send-reminder", {
         body: {
           participantId: participant.id,
@@ -254,9 +253,7 @@ export default function Participantes() {
         },
       });
 
-      if (invokeError) {
-        throw invokeError;
-      }
+      if (invokeError) throw invokeError;
 
       toast.success(`Lembrete enviado para ${participant.name}!`);
       fetchData();
@@ -266,6 +263,17 @@ export default function Participantes() {
     } finally {
       setSendingReminderId(null);
     }
+  };
+
+  const handleAssignTest = async (participant: Participant) => {
+    // Load existing test type ids for this participant
+    const { data } = await supabase
+      .from("participant_tests")
+      .select("test_type_id")
+      .eq("participant_id", participant.id);
+
+    setExistingTestTypeIds((data || []).map(d => d.test_type_id));
+    setAssigningParticipant(participant);
   };
 
   const [allResults, setAllResults] = useState<any[]>([]);
@@ -385,9 +393,11 @@ export default function Participantes() {
         onInvite={handleInviteParticipant}
         onReminder={handleReminderParticipant}
         onRowClick={handleRowClick}
+        onAssignTest={handleAssignTest}
         isLoading={isLoading}
         sendingInviteId={sendingInviteId}
         sendingReminderId={sendingReminderId}
+        testCounts={testCounts}
       />
 
       {/* Edit participant form */}
@@ -435,7 +445,19 @@ export default function Participantes() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Result sheet - full-width drawer */}
+      {/* Assign test dialog */}
+      {assigningParticipant && (
+        <AssignTestDialog
+          open={!!assigningParticipant}
+          onOpenChange={(open) => !open && setAssigningParticipant(null)}
+          participantId={assigningParticipant.id}
+          participantName={assigningParticipant.name}
+          existingTestTypeIds={existingTestTypeIds}
+          onAssigned={fetchData}
+        />
+      )}
+
+      {/* Result sheet */}
       <Sheet
         open={!!selectedParticipant}
         onOpenChange={(open) => !open && setSelectedParticipant(null)}
@@ -443,78 +465,95 @@ export default function Participantes() {
         <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto p-6">
           <SheetHeader className="sr-only">
             <SheetTitle>{selectedParticipant?.name}</SheetTitle>
-            <SheetDescription>Resultado do diagnóstico</SheetDescription>
+            <SheetDescription>Detalhes do participante</SheetDescription>
           </SheetHeader>
 
-          {selectedParticipant?.status === "completed" ? (
-            isLoadingResult ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : selectedResult ? (
-              <>
-                {allResults.length > 1 && (
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                      Selecionar diagnóstico ({allResults.length} realizados)
-                    </label>
-                    <Select
-                      value={selectedResult.id}
-                      onValueChange={(id) => {
-                        const found = allResults.find((r: any) => r.id === id);
-                        if (found) setSelectedResult(found);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allResults.map((r: any, idx: number) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {new Date(r.completed_at).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}{" "}
-                            — Score: {Number(r.total_score).toFixed(1)}
-                            {idx === 0 ? " (mais recente)" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <ParticipantResultModal
-                  participantName={selectedParticipant.name}
-                  completedAt={selectedResult.completed_at}
-                  totalScore={Number(selectedResult.total_score)}
-                  dimensionScores={
-                    Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
-                      ([dimension, data]) => ({
-                        dimension,
-                        dimensionOrder: (data as any).dimensionOrder ?? 0,
-                        score: (data as any).score ?? 0,
-                        maxScore: (data as any).maxScore ?? 5,
-                        percentage: (data as any).percentage ?? 0,
-                      })
-                    ) as DimensionScore[]
-                  }
-                />
-              </>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                Resultado não encontrado.
-              </p>
-            )
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-              <Clock className="h-10 w-10 text-muted-foreground" />
+          {selectedParticipant && (
+            <div className="space-y-6">
+              {/* Participant info header */}
               <div>
-                <p className="font-medium text-foreground">Diagnóstico ainda não concluído</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Status atual: <StatusBadge status={selectedParticipant?.status as any} />
-                </p>
+                <h2 className="text-xl font-semibold text-foreground">{selectedParticipant.name}</h2>
+                <p className="text-sm text-muted-foreground">{selectedParticipant.email}</p>
               </div>
+
+              {/* Tests list */}
+              <ParticipantTestsList
+                participantId={selectedParticipant.id}
+                participantName={selectedParticipant.name}
+              />
+
+              {/* Legacy result view */}
+              {selectedParticipant.status === "completed" ? (
+                isLoadingResult ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : selectedResult ? (
+                  <>
+                    {allResults.length > 1 && (
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                          Selecionar diagnóstico ({allResults.length} realizados)
+                        </label>
+                        <Select
+                          value={selectedResult.id}
+                          onValueChange={(id) => {
+                            const found = allResults.find((r: any) => r.id === id);
+                            if (found) setSelectedResult(found);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allResults.map((r: any, idx: number) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {new Date(r.completed_at).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}{" "}
+                                — Score: {Number(r.total_score).toFixed(1)}
+                                {idx === 0 ? " (mais recente)" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <ParticipantResultModal
+                      participantName={selectedParticipant.name}
+                      completedAt={selectedResult.completed_at}
+                      totalScore={Number(selectedResult.total_score)}
+                      dimensionScores={
+                        Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
+                          ([dimension, data]) => ({
+                            dimension,
+                            dimensionOrder: (data as any).dimensionOrder ?? 0,
+                            score: (data as any).score ?? 0,
+                            maxScore: (data as any).maxScore ?? 5,
+                            percentage: (data as any).percentage ?? 0,
+                          })
+                        ) as DimensionScore[]
+                      }
+                    />
+                  </>
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Resultado não encontrado.
+                  </p>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                  <Clock className="h-10 w-10 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-foreground">Diagnóstico ainda não concluído</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Status atual: <StatusBadge status={selectedParticipant?.status as any} />
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
