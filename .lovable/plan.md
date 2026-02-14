@@ -1,29 +1,41 @@
 
 
-## Tornar os cards de KPI clicaveis na pagina de Participantes
+## Adicionar botoes "Novo Participante" e "Importar CSV" na pagina Participantes
 
-### O que mudar
+### Resumo
 
-Os 4 cards de resumo (Total, Pendentes, Em andamento, Concluidos) atualmente sao estaticos. Ao clicar em cada um, devem filtrar a lista de participantes pelo status correspondente:
+Adicionar dois botoes no topo da pagina de Participantes para criar participantes individualmente (com selecao de empresa) e importar em lote via CSV.
 
-- **Total**: limpa o filtro (mostra todos)
-- **Pendentes**: filtra por `pending`
-- **Em andamento**: filtra por `in_progress`
-- **Concluidos**: filtra por `completed`
+### Alteracoes
 
-O card ativo deve ter um destaque visual (borda colorida ou fundo diferenciado) para indicar qual filtro esta selecionado. Ao clicar no card que ja esta ativo, o filtro e removido (volta para "all").
+**1. `src/components/participants/ParticipantForm.tsx`**
 
-### Detalhes tecnicos
+- Adicionar prop opcional `companies` (array de `{id, name}`)
+- Adicionar campo `company_id` ao schema zod (opcional por padrao)
+- Quando `companies` e fornecido e nao esta editando, exibir um `<Select>` de empresa no topo do formulario com validacao obrigatoria
+- Quando nao fornecido (uso em EmpresaDetalhes), funciona como hoje sem mudancas
 
-**`src/pages/Participantes.tsx`** (linhas 436-459):
+**2. `src/pages/Participantes.tsx`**
 
-- Transformar cada `<div>` de card em um `<button>` (ou `<div>` com `onClick` e `cursor-pointer`)
-- No click:
-  - Card "Total": `setStatusFilter("all")`
-  - Card "Pendentes": `setStatusFilter(statusFilter === "pending" ? "all" : "pending")`
-  - Card "Em andamento": `setStatusFilter(statusFilter === "in_progress" ? "all" : "in_progress")`
-  - Card "Concluidos": `setStatusFilter(statusFilter === "completed" ? "all" : "completed")`
-- Adicionar estilo condicional: quando `statusFilter` coincide com o status do card, aplicar uma borda destacada (ex: `border-primary` ou `ring-2 ring-primary`)
-- Adicionar `cursor-pointer` e `hover:border-primary/50 transition-colors` a todos os cards
-- Manter o `<Select>` de status sincronizado (ja usa `statusFilter`, entao funciona automaticamente)
+- Adicionar estados: `isFormOpen`, `isCsvOpen`, `csvCompanyId`
+- Adicionar imports: `CsvImport`, `UserPlus`, `Upload`
+- Adicionar dois botoes ao lado dos filtros:
+  - "Importar CSV" (variante outline, icone Upload)
+  - "Novo Participante" (variante default, icone UserPlus)
+- Implementar `handleCreateParticipant`:
+  - Usa `data.company_id` do formulario (vem do select de empresa)
+  - Insere na tabela `participants` com `facilitator_id = user.id`
+  - Chama `fetchData()` para atualizar
+- Implementar `handleCsvImport`:
+  - Se `companyFilter !== "all"`, usa essa empresa automaticamente
+  - Senao, exibe toast pedindo para filtrar por empresa primeiro
+  - Insere participantes em lote e chama `fetchData()`
+- Adicionar `<ParticipantForm>` para criacao (com prop `companies`)
+- Adicionar `<CsvImport>` para importacao em lote
+
+### Fluxo do usuario
+
+1. Clica "Novo Participante" -> abre formulario com select de empresa + campos de dados
+2. Clica "Importar CSV" -> se uma empresa esta selecionada no filtro, abre direto o dialog CSV; senao, mostra toast pedindo para selecionar empresa primeiro
+3. Apos criar/importar, a lista atualiza automaticamente
 
