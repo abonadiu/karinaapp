@@ -18,6 +18,8 @@ import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateParticipantPDF } from "@/lib/pdf-generator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { DIAGNOSTIC_INTRO, getOverallScoreMessage } from "@/lib/dimension-descriptions";
+import { BookOpen } from "lucide-react";
 
 interface ParticipantResultModalProps {
   participantName: string;
@@ -93,6 +95,20 @@ export function ParticipantResultModal({
         </div>
 
         <Progress value={(totalScore / 5) * 100} className="h-2 max-w-xs mt-1" />
+      </div>
+
+      <Separator />
+
+      {/* Sobre o Diagnóstico */}
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+          <BookOpen className="h-4 w-4" />
+          Sobre o Diagnóstico IQ+IS
+        </h4>
+        <p className="text-sm text-muted-foreground">{DIAGNOSTIC_INTRO}</p>
+        <p className="text-sm text-foreground/80 italic border-l-2 border-primary/30 pl-3">
+          {getOverallScoreMessage(totalScore)}
+        </p>
       </div>
 
       <Separator />

@@ -1,10 +1,11 @@
 import React, { useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Share2, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Award, Download, Share2, TrendingUp, TrendingDown, Loader2, BookOpen } from "lucide-react";
 import { DiagnosticScores, getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateDiagnosticPDF } from "@/lib/pdf-generator";
+import { DIAGNOSTIC_INTRO, getOverallScoreMessage } from "@/lib/dimension-descriptions";
 import { ResultsRadarChart } from "./ResultsRadarChart";
 import { DimensionCard } from "./DimensionCard";
 import { RecommendationList } from "./RecommendationList";
@@ -46,12 +47,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
     weakDimensions.map(d => d.dimension)
   );
 
-  const getScoreMessage = (score: number) => {
-    if (score >= 4) return "Excelente! Você demonstra alto nível de desenvolvimento.";
-    if (score >= 3) return "Bom! Há espaço para crescimento em algumas áreas.";
-    if (score >= 2) return "Moderado. Recomendamos focar nas práticas sugeridas.";
-    return "Em desenvolvimento. Este diagnóstico é o primeiro passo!";
-  };
+
 
   const handleDownloadPDF = async () => {
     if (!contentRef.current) return;
@@ -111,9 +107,22 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </span>
               <span className="text-muted-foreground">/5</span>
             </div>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              {getScoreMessage(displayScores.totalScore)}
+             <p className="text-muted-foreground max-w-md mx-auto">
+              {getOverallScoreMessage(displayScores.totalScore)}
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Sobre o Diagnóstico */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Sobre o Diagnóstico IQ+IS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{DIAGNOSTIC_INTRO}</p>
           </CardContent>
         </Card>
 
