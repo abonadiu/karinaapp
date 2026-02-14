@@ -434,28 +434,44 @@ export default function Participantes() {
 
       {/* Stats summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card rounded-lg border p-4">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={`bg-card rounded-lg border p-4 text-left cursor-pointer hover:border-primary/50 transition-colors ${statusFilter === "all" ? "ring-2 ring-primary" : ""}`}
+        >
           <p className="text-sm text-muted-foreground">Total</p>
           <p className="text-2xl font-bold text-foreground">{participants.length}</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "pending" ? "all" : "pending")}
+          className={`bg-card rounded-lg border p-4 text-left cursor-pointer hover:border-primary/50 transition-colors ${statusFilter === "pending" ? "ring-2 ring-primary" : ""}`}
+        >
           <p className="text-sm text-muted-foreground">Pendentes</p>
           <p className="text-2xl font-bold text-foreground">
             {participants.filter((p) => p.status === "pending").length}
           </p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "in_progress" ? "all" : "in_progress")}
+          className={`bg-card rounded-lg border p-4 text-left cursor-pointer hover:border-primary/50 transition-colors ${statusFilter === "in_progress" ? "ring-2 ring-primary" : ""}`}
+        >
           <p className="text-sm text-muted-foreground">Em andamento</p>
           <p className="text-2xl font-bold text-foreground">
             {participants.filter((p) => p.status === "in_progress").length}
           </p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter(statusFilter === "completed" ? "all" : "completed")}
+          className={`bg-card rounded-lg border p-4 text-left cursor-pointer hover:border-primary/50 transition-colors ${statusFilter === "completed" ? "ring-2 ring-primary" : ""}`}
+        >
           <p className="text-sm text-muted-foreground">Concluídos</p>
           <p className="text-2xl font-bold text-foreground">
             {participants.filter((p) => p.status === "completed").length}
           </p>
-        </div>
+        </button>
       </div>
 
       {/* Participant list */}
