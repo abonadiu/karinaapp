@@ -267,9 +267,12 @@ export default function Participantes() {
     }
   };
 
+  const [allResults, setAllResults] = useState<any[]>([]);
+
   const handleRowClick = async (participant: Participant) => {
     setSelectedParticipant(participant);
     setSelectedResult(null);
+    setAllResults([]);
 
     if (participant.status === "completed") {
       setIsLoadingResult(true);
@@ -277,12 +280,13 @@ export default function Participantes() {
         .from("diagnostic_results")
         .select("*")
         .eq("participant_id", participant.id)
-        .maybeSingle();
+        .order("completed_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching result:", error);
-      } else {
-        setSelectedResult(data);
+      } else if (data && data.length > 0) {
+        setAllResults(data);
+        setSelectedResult(data[0]);
       }
       setIsLoadingResult(false);
     }
@@ -446,22 +450,55 @@ export default function Participantes() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : selectedResult ? (
-              <ParticipantResultModal
-                participantName={selectedParticipant.name}
-                completedAt={selectedResult.completed_at}
-                totalScore={Number(selectedResult.total_score)}
-                dimensionScores={
-                  Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
-                    ([dimension, data]) => ({
-                      dimension,
-                      dimensionOrder: (data as any).dimensionOrder ?? 0,
-                      score: (data as any).score ?? 0,
-                      maxScore: (data as any).maxScore ?? 5,
-                      percentage: (data as any).percentage ?? 0,
-                    })
-                  ) as DimensionScore[]
-                }
-              />
+              <>
+                {allResults.length > 1 && (
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                      Selecionar diagnóstico ({allResults.length} realizados)
+                    </label>
+                    <Select
+                      value={selectedResult.id}
+                      onValueChange={(id) => {
+                        const found = allResults.find((r: any) => r.id === id);
+                        if (found) setSelectedResult(found);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allResults.map((r: any, idx: number) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {new Date(r.completed_at).toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}{" "}
+                            — Score: {Number(r.total_score).toFixed(1)}
+                            {idx === 0 ? " (mais recente)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <ParticipantResultModal
+                  participantName={selectedParticipant.name}
+                  completedAt={selectedResult.completed_at}
+                  totalScore={Number(selectedResult.total_score)}
+                  dimensionScores={
+                    Object.entries(selectedResult.dimension_scores as Record<string, any>).map(
+                      ([dimension, data]) => ({
+                        dimension,
+                        dimensionOrder: (data as any).dimensionOrder ?? 0,
+                        score: (data as any).score ?? 0,
+                        maxScore: (data as any).maxScore ?? 5,
+                        percentage: (data as any).percentage ?? 0,
+                      })
+                    ) as DimensionScore[]
+                  }
+                />
+              </>
             ) : (
               <p className="text-center text-muted-foreground py-8">
                 Resultado não encontrado.
