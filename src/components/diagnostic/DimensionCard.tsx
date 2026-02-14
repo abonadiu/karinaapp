@@ -1,15 +1,16 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { DimensionScore, getScoreLevel } from "@/lib/diagnostic-scoring";
-import { getDimensionAbout, getInterpretation, getDimensionWhyItMatters } from "@/lib/dimension-descriptions";
-import { Brain, Heart, Compass, Users, Sparkles, LucideIcon } from "lucide-react";
+import { getDimensionAbout, getInterpretation, getDimensionWhyItMatters, getDimensionColor } from "@/lib/dimension-descriptions";
+import { Brain, Heart, Compass, Users, Sparkles, LucideIcon, ChevronDown, Lightbulb, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface DimensionCardProps {
   score: DimensionScore;
   isWeak?: boolean;
   isStrong?: boolean;
+  defaultOpen?: boolean;
 }
 
 const ICONS: Record<string, LucideIcon> = {
@@ -20,86 +21,124 @@ const ICONS: Record<string, LucideIcon> = {
   "Transformação": Sparkles
 };
 
-export function DimensionCard({ score, isWeak, isStrong }: DimensionCardProps) {
+export function DimensionCard({ score, isWeak, isStrong, defaultOpen = false }: DimensionCardProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const Icon = ICONS[score.dimension] || Brain;
   const level = getScoreLevel(score.score);
   const about = getDimensionAbout(score.dimension);
   const interpretation = getInterpretation(score.dimension, score.score);
   const whyItMatters = getDimensionWhyItMatters(score.dimension);
+  const colors = getDimensionColor(score.dimension);
+
+  const circumference = 2 * Math.PI * 18;
+  const strokeDashoffset = circumference - (score.percentage / 100) * circumference;
 
   return (
-    <Card className={cn(
-      "transition-all",
-      isWeak && "border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20",
-      isStrong && "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-950/20"
-    )}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-2 rounded-lg",
-              isWeak && "bg-orange-100 dark:bg-orange-900/30",
-              isStrong && "bg-green-100 dark:bg-green-900/30",
-              !isWeak && !isStrong && "bg-primary/10"
-            )}>
-              <Icon className={cn(
-                "h-5 w-5",
-                isWeak && "text-orange-600",
-                isStrong && "text-green-600",
-                !isWeak && !isStrong && "text-primary"
-              )} />
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className={cn(
+        "rounded-lg border border-border overflow-hidden transition-all shadow-warm-sm hover:shadow-warm",
+        colors.border,
+        "border-l-4"
+      )}>
+        {/* Header - always visible */}
+        <CollapsibleTrigger asChild>
+          <button className="w-full p-4 flex items-center gap-4 text-left hover:bg-muted/30 transition-colors">
+            {/* Mini circular gauge */}
+            <div className="relative flex-shrink-0">
+              <svg width="48" height="48" viewBox="0 0 48 48" className="transform -rotate-90">
+                <circle cx="24" cy="24" r="18" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
+                <circle
+                  cx="24" cy="24" r="18"
+                  fill="none"
+                  className={colors.text}
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-bold">{score.score.toFixed(1)}</span>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-base">{score.dimension}</CardTitle>
-              {isWeak && (
-                <span className="text-xs text-orange-600 font-medium">
-                  Área de desenvolvimento
-                </span>
-              )}
+
+            {/* Dimension info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <Icon className={cn("h-4 w-4 flex-shrink-0", colors.text)} />
+                <h4 className="font-semibold text-sm truncate">{score.dimension}</h4>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Progress
+                  value={score.percentage}
+                  className={cn("h-1.5 flex-1")}
+                />
+                <span className="text-xs text-muted-foreground flex-shrink-0">{Math.round(score.percentage)}%</span>
+              </div>
+            </div>
+
+            {/* Badges + chevron */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               {isStrong && (
-                <span className="text-xs text-green-600 font-medium">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap">
                   Ponto forte
                 </span>
               )}
+              {isWeak && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 whitespace-nowrap">
+                  A desenvolver
+                </span>
+              )}
+              <ChevronDown className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform",
+                isOpen && "rotate-180"
+              )} />
+            </div>
+          </button>
+        </CollapsibleTrigger>
+
+        {/* Expandable content */}
+        <CollapsibleContent>
+          <div className="px-4 pb-4 pt-0 space-y-3 animate-fade-in border-t border-border">
+            {/* About */}
+            <p className="text-sm text-muted-foreground pt-3">
+              {about}
+            </p>
+
+            {/* Interpretation */}
+            {interpretation && (
+              <div className={cn("rounded-md p-3", colors.bgSubtle)}>
+                <div className="flex gap-2">
+                  <Quote className={cn("h-4 w-4 flex-shrink-0 mt-0.5", colors.text)} />
+                  <p className="text-sm italic text-foreground/80">
+                    {interpretation}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Why it matters */}
+            {whyItMatters && (
+              <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-accent" />
+                <span><strong>Por que importa:</strong> {whyItMatters}</span>
+              </div>
+            )}
+
+            {/* Level badge */}
+            <div className="flex items-center justify-between pt-1">
+              <span className={cn("text-xs font-medium", level.color)}>
+                {level.label}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {score.score.toFixed(1)} de {score.maxScore}
+              </span>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-2xl font-bold">{score.score.toFixed(1)}</span>
-            <span className="text-muted-foreground">/5</span>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-3">
-        <Progress 
-          value={score.percentage} 
-          className={cn(
-            "h-2",
-            isWeak && "[&>div]:bg-orange-500",
-            isStrong && "[&>div]:bg-green-500"
-          )}
-        />
-        
-        <p className="text-sm text-muted-foreground">
-          {about}
-        </p>
-
-        {interpretation && (
-          <p className="text-sm italic text-foreground/80 border-l-2 border-primary/30 pl-3">
-            {interpretation}
-          </p>
-        )}
-
-        {whyItMatters && (
-          <p className="text-xs text-muted-foreground/70">
-            💡 {whyItMatters}
-          </p>
-        )}
-        
-        <div className={cn("text-sm font-medium", level.color)}>
-          {level.label}
-        </div>
-      </CardContent>
-    </Card>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 }
