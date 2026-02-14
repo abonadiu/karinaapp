@@ -816,6 +816,14 @@ export type Database = {
         Args: { _participant_id: string }
         Returns: Json
       }
+      get_participant_portal_full_data: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
+      get_participant_portal_full_data_by_id: {
+        Args: { _participant_id: string }
+        Returns: Json
+      }
       get_pending_reminders: {
         Args: {
           p_batch_limit?: number
