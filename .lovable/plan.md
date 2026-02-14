@@ -1,106 +1,119 @@
 
 
-## Autocadastro de participantes via link generico por empresa
+## Padronizar lista de participantes entre paginas (com modularizacao)
 
-### Como vai funcionar
+### Problema atual
 
-O facilitador podera gerar e copiar um link unico por empresa (ex: `seusite.com/autocadastro/abc123`). Qualquer pessoa que acessar esse link vera um formulario publico onde preenchera nome, email, telefone, departamento e cargo. Ao enviar, o participante sera automaticamente registrado na empresa correspondente, sem que o facilitador precise cadastra-lo manualmente.
+A pagina `EmpresaDetalhes` tem uma versao simplificada da lista de participantes comparada com a pagina `Participantes`. Faltam:
+- Busca e filtro por status
+- Cards de KPI clicaveis (Total, Pendentes, Em andamento, Concluidos)
+- Clique na linha para abrir Sheet lateral com resultados e testes
+- Funcionalidade de lembrete
+- Atribuir teste
+- Contagem de testes na tabela
+- Geracao de PDF DISC
 
-### Alteracoes
+### Solucao: Criar um hook + componente modular reutilizavel
 
-**1. Banco de dados - Nova coluna na tabela `companies`**
+Em vez de duplicar codigo, vamos extrair toda a logica de interacao com participantes em um **hook customizado** (`useParticipantActions`) e um **componente wrapper** (`ParticipantManager`) que encapsula filtros, KPIs, tabela e Sheet de resultados.
 
-- Adicionar coluna `self_register_token` (text, unique, default `gen_random_uuid()`) na tabela `companies`
-- Isso gera automaticamente um token unico para cada empresa existente e futura
-- Criar indice unico na coluna para buscas rapidas
+### Arquivos a criar
 
-**2. Nova pagina publica: `src/pages/AutocadastroParticipante.tsx`**
+**1. `src/hooks/useParticipantActions.ts`** - Hook que encapsula toda a logica de:
+- Enviar convite
+- Enviar lembrete
+- Editar participante
+- Excluir participante
+- Atribuir teste
+- Ver resultado (abrir Sheet)
+- Gerar PDF DISC
+- Estados de loading para cada acao
 
-- Rota: `/autocadastro/:token`
-- Pagina publica (sem autenticacao) usando o `AuthLayout` existente
-- Fluxo:
-  1. Busca a empresa pelo `self_register_token` e exibe o nome da empresa
-  2. Formulario com campos: Nome, Email, Telefone (opcional), Departamento (opcional), Cargo (opcional)
-  3. Ao submeter, insere o participante na tabela `participants` vinculado a empresa e ao facilitador correto
-  4. Exibe mensagem de sucesso
+**2. `src/components/participants/ParticipantManager.tsx`** - Componente que renderiza:
+- Barra de busca + filtro de status
+- Cards de KPI clicaveis (Total, Pendentes, Em andamento, Concluidos)
+- `ParticipantList` com todas as props conectadas
+- Sheet lateral de resultados com `ParticipantTestsList`, `DiscResults`, `ParticipantResultModal`
+- Dialogs de editar, excluir, atribuir teste
+- Recebe como props: `participants`, `onRefresh`, `isLoading`, e opcionalmente `showSearch` (default true)
 
-**3. RLS - Permitir insert anonimo via autocadastro**
+### Arquivos a modificar
 
-- Nova politica INSERT na tabela `participants` para permitir insercao anonima quando os dados sao validos (o insert sera feito via uma funcao `SECURITY DEFINER` para garantir seguranca)
-- Criar funcao `self_register_participant(p_token text, p_name text, p_email text, p_phone text, p_department text, p_position text)` que:
-  - Valida o token
-  - Busca a empresa e o facilitador
-  - Insere o participante
-  - Retorna o ID do participante criado
+**3. `src/pages/Participantes.tsx`** - Simplificar drasticamente:
+- Manter apenas: fetch de dados, filtro por empresa, botoes de acao (CSV, Novo Participante)
+- Delegar tudo de participantes ao `ParticipantManager`
+- Remover ~400 linhas de codigo duplicado
 
-**4. Botao "Link de Autocadastro" na pagina `EmpresaDetalhes.tsx`**
+**4. `src/pages/EmpresaDetalhes.tsx`** - Substituir a aba "Participantes":
+- Trocar o `ParticipantList` simples pelo `ParticipantManager`
+- Ganhar automaticamente todas as funcionalidades: busca, filtros, KPIs, Sheet de resultados, lembretes, atribuir teste
 
-- Adicionar um botao ao lado dos botoes existentes (Convidar Gestor, Editar, etc.)
-- Ao clicar, abre um dialog/popover mostrando o link e um botao "Copiar"
-- O link e montado com `window.location.origin + /autocadastro/ + company.self_register_token`
+### Estrutura do componente modular
 
-**5. Botao similar na pagina `Participantes.tsx`**
+```text
+ParticipantManager
++--------------------------------------------------+
+| [Buscar...]              [Status v]              |
++--------------------------------------------------+
+| [Total: 14] [Pendentes: 3] [Andamento: 1] [OK: 10] |
++--------------------------------------------------+
+| ParticipantList (tabela com popover de acoes)     |
+|   - Ver resultados                                |
+|   - Atribuir teste                                |
+|   - Enviar convite / lembrete                     |
+|   - Editar / Excluir                              |
++--------------------------------------------------+
+| Sheet lateral (ao clicar "Ver resultados")        |
+|   - ParticipantTestsList                          |
+|   - DiscResults ou ParticipantResultModal         |
++--------------------------------------------------+
+| AlertDialog (confirmar exclusao)                  |
+| AssignTestDialog                                  |
+| ParticipantForm (edicao)                          |
++--------------------------------------------------+
+```
 
-- Quando uma empresa estiver selecionada no filtro, mostrar botao "Link de Autocadastro" que copia o link da empresa selecionada
+### Beneficios da modularizacao
 
-**6. Rota no `App.tsx`**
-
-- Adicionar rota publica: `<Route path="/autocadastro/:token" element={<AutocadastroParticipante />} />`
+- Qualquer nova funcionalidade adicionada ao `ParticipantManager` aparece automaticamente em ambas as paginas
+- Codigo de participantes centralizado em um unico lugar
+- Paginas ficam mais leves e focadas no seu contexto especifico
+- Facilita testes e manutencao
 
 ### Detalhes tecnicos
 
-**Funcao do banco (SECURITY DEFINER):**
+**Props do ParticipantManager:**
 
-```sql
-CREATE OR REPLACE FUNCTION public.self_register_participant(
-  p_token text,
-  p_name text,
-  p_email text,
-  p_phone text DEFAULT NULL,
-  p_department text DEFAULT NULL,
-  p_position text DEFAULT NULL
-) RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_company_id uuid;
-  v_facilitator_id uuid;
-  v_participant_id uuid;
-BEGIN
-  SELECT id, facilitator_id INTO v_company_id, v_facilitator_id
-  FROM companies
-  WHERE self_register_token = p_token;
-
-  IF v_company_id IS NULL THEN
-    RAISE EXCEPTION 'Link invalido';
-  END IF;
-
-  -- Verificar se email ja existe nessa empresa
-  IF EXISTS (SELECT 1 FROM participants WHERE email = p_email AND company_id = v_company_id) THEN
-    RAISE EXCEPTION 'Este email ja esta cadastrado nesta empresa';
-  END IF;
-
-  INSERT INTO participants (name, email, phone, department, position, company_id, facilitator_id)
-  VALUES (p_name, p_email, p_phone, p_department, p_position, v_company_id, v_facilitator_id)
-  RETURNING id INTO v_participant_id;
-
-  RETURN v_participant_id;
-END;
-$$;
+```text
+interface ParticipantManagerProps {
+  participants: Participant[]
+  onRefresh: () => void
+  isLoading: boolean
+  companyId?: string          // quando usado dentro de EmpresaDetalhes
+  showStatusFilter?: boolean  // default true
+  showSearch?: boolean        // default true
+}
 ```
 
-**Componente de copiar link (reutilizavel):**
+**Hook useParticipantActions:**
 
-Sera um dialog simples com o link em um campo readonly e botao "Copiar" que usa `navigator.clipboard.writeText()`.
+```text
+function useParticipantActions(onRefresh: () => void) {
+  // Estados
+  sendingInviteId, sendingReminderId, editingParticipant,
+  deletingParticipant, assigningParticipant, selectedParticipant,
+  selectedResult, selectedTestResult, isGeneratingDiscPDF...
 
-### Fluxo esperado
+  // Funcoes
+  handleInviteParticipant()
+  handleReminderParticipant()
+  handleEditParticipant()
+  handleDeleteParticipant()
+  handleAssignTest()
+  handleRowClick()
+  handleViewTestResult()
 
-1. Facilitador acessa detalhes da empresa e clica em "Link de Autocadastro"
-2. Dialog mostra o link unico da empresa com botao de copiar
-3. Facilitador compartilha o link (WhatsApp, email, etc.)
-4. Participante acessa o link, ve o nome da empresa e preenche o formulario
-5. Participante e criado automaticamente com status "pending"
-6. Facilitador ve o novo participante na lista e pode enviar convite normalmente
+  return { estados, funcoes }
+}
+```
 
