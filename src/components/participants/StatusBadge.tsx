@@ -14,7 +14,7 @@ const statusConfig: Record<ParticipantStatus, { label: string; variant: "default
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.pending;
   
   return (
     <Badge 
