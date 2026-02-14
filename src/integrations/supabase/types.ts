@@ -60,6 +60,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          self_register_token: string
           total_licenses: number
           updated_at: string
           used_licenses: number
@@ -73,6 +74,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          self_register_token?: string
           total_licenses?: number
           updated_at?: string
           used_licenses?: number
@@ -86,6 +88,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          self_register_token?: string
           total_licenses?: number
           updated_at?: string
           used_licenses?: number
@@ -880,6 +883,17 @@ export type Database = {
           p_success?: boolean
         }
         Returns: boolean
+      }
+      self_register_participant: {
+        Args: {
+          p_department?: string
+          p_email: string
+          p_name: string
+          p_phone?: string
+          p_position?: string
+          p_token: string
+        }
+        Returns: string
       }
     }
     Enums: {

@@ -22,6 +22,7 @@ import { CompanyForm, CompanyFormData } from "@/components/companies/CompanyForm
 import { BulkInviteDialog } from "@/components/participants/BulkInviteDialog";
 import { ParticipantResults } from "@/components/participants/ParticipantResults";
 import { InviteManagerDialog } from "@/components/empresa/InviteManagerDialog";
+import { SelfRegisterLinkDialog } from "@/components/participants/SelfRegisterLinkDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -54,6 +55,7 @@ interface Company {
   used_licenses: number;
   notes: string | null;
   created_at: string;
+  self_register_token?: string;
 }
 
 interface Participant {
@@ -460,7 +462,13 @@ export default function EmpresaDetalhes() {
       title={company.name}
       description="Detalhes da empresa e participantes"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(company as any).self_register_token && (
+            <SelfRegisterLinkDialog
+              selfRegisterToken={(company as any).self_register_token}
+              companyName={company.name}
+            />
+          )}
           <Button variant="outline" onClick={() => setIsInviteManagerOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Convidar Gestor
