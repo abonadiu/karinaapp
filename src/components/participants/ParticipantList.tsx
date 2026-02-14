@@ -1,4 +1,5 @@
-import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell } from "lucide-react";
+import { Users, MoreHorizontal, Pencil, Trash2, Mail, Loader2, Bell, Link } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Table,
@@ -157,6 +158,18 @@ export function ParticipantList({
                           ? "Enviando..." 
                           : "Enviar lembrete"
                         }
+                      </DropdownMenuItem>
+                    )}
+                    {participant.access_token && (
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          const url = `${window.location.origin}/diagnostico/${participant.access_token}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("Link copiado!");
+                        }}
+                      >
+                        <Link className="mr-2 h-4 w-4" />
+                        Copiar link
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => onEdit(participant)}>
