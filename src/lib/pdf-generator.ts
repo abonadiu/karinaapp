@@ -40,6 +40,66 @@ export interface PDFGeneratorOptions {
 }
 
 // ============================================================
+// DIMENSION NAME NORMALIZATION
+// ============================================================
+
+/**
+ * Maps database slug names to the formatted names used in dimension-descriptions,
+ * cross-analysis, executive-summary, action-plan, and recommendations.
+ * The database stores dimensions as slugs (e.g. "conexao_proposito"),
+ * but all content modules use formatted names (e.g. "Conexão e Propósito").
+ */
+const DIMENSION_SLUG_MAP: Record<string, string> = {
+  "conexao_proposito": "Conexão e Propósito",
+  "conexao_e_proposito": "Conexão e Propósito",
+  "consciencia_interior": "Consciência Interior",
+  "coerencia_emocional": "Coerência Emocional",
+  "relacoes_compaixao": "Relações e Compaixão",
+  "relacoes_e_compaixao": "Relações e Compaixão",
+  "transformacao_crescimento": "Transformação",
+  "transformacao_e_crescimento": "Transformação",
+  "transformacao": "Transformação",
+  // Already-formatted names map to themselves
+  "Conexão e Propósito": "Conexão e Propósito",
+  "Consciência Interior": "Consciência Interior",
+  "Coerência Emocional": "Coerência Emocional",
+  "Relações e Compaixão": "Relações e Compaixão",
+  "Transformação": "Transformação",
+};
+
+/**
+ * Normalizes a dimension name from any format (slug or formatted) to the
+ * canonical formatted name used by all content modules.
+ */
+function normalizeDimensionName(name: string): string {
+  // Direct lookup
+  if (DIMENSION_SLUG_MAP[name]) return DIMENSION_SLUG_MAP[name];
+  // Try lowercase
+  const lower = name.toLowerCase().trim();
+  if (DIMENSION_SLUG_MAP[lower]) return DIMENSION_SLUG_MAP[lower];
+  // Fuzzy match: remove accents and compare
+  const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+  const normalizedInput = normalize(name);
+  for (const [key, value] of Object.entries(DIMENSION_SLUG_MAP)) {
+    if (normalize(key) === normalizedInput) return value;
+  }
+  // Last resort: return original
+  return name;
+}
+
+/**
+ * Normalizes all dimension scores, converting slug names to formatted names
+ * and recalculating percentage if it's 0.
+ */
+function normalizeDimensionScores(scores: DimensionScore[]): DimensionScore[] {
+  return scores.map((s) => ({
+    ...s,
+    dimension: normalizeDimensionName(s.dimension),
+    percentage: s.percentage > 0 ? s.percentage : (s.score / (s.maxScore || 5)) * 100,
+  }));
+}
+
+// ============================================================
 // COLOR UTILITIES
 // ============================================================
 
@@ -1347,6 +1407,15 @@ export async function generateDiagnosticPDF(
   _contentRef: HTMLElement,
   data: PDFGeneratorOptions
 ): Promise<void> {
+  // ==================== NORMALIZE DIMENSION NAMES ====================
+  // The database stores dimension names as slugs (e.g. "conexao_proposito")
+  // but all content modules expect formatted names (e.g. "Conexão e Propósito").
+  // We normalize here so every downstream function receives the correct names.
+  const normalizedData: PDFGeneratorOptions = {
+    ...data,
+    dimensionScores: normalizeDimensionScores(data.dimensionScores),
+  };
+
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
@@ -1354,8 +1423,8 @@ export async function generateDiagnosticPDF(
   const contentWidth = pageWidth - margin * 2;
 
   // Determine colors
-  const primaryColor = data.facilitatorProfile?.primary_color
-    ? hexToRgb(data.facilitatorProfile.primary_color)
+  const primaryColor = normalizedData.facilitatorProfile?.primary_color
+    ? hexToRgb(normalizedData.facilitatorProfile!.primary_color!)
     : { r: 139, g: 92, b: 246 }; // Default purple
 
   const primaryColorLight = lightenColor(primaryColor, 0.88);
@@ -1369,31 +1438,31 @@ export async function generateDiagnosticPDF(
     contentWidth,
     primaryColor,
     primaryColorLight,
-    facilitatorName: data.facilitatorProfile?.full_name || "",
-    participantName: data.participantName,
+    facilitatorName: normalizedData.facilitatorProfile?.full_name || "",
+    participantName: normalizedData.participantName,
     totalPages: 0, // Will be updated at the end
     currentPage: 1,
   };
 
   // Determine strong/weak dimensions
-  const strongDimensions = getStrongestDimensions(data.dimensionScores);
-  const weakDimensions = getWeakestDimensions(data.dimensionScores);
+  const strongDimensions = getStrongestDimensions(normalizedData.dimensionScores);
+  const weakDimensions = getWeakestDimensions(normalizedData.dimensionScores);
   const strongSet = new Set(strongDimensions.map((d) => d.dimension));
   const weakSet = new Set(weakDimensions.map((d) => d.dimension));
 
   // ==================== BUILD DOCUMENT ====================
 
   // Page 1: Cover
-  drawCoverPage(ctx, data);
+  drawCoverPage(ctx, normalizedData);
 
   // Page 2: Welcome / About
-  drawWelcomePage(ctx, data);
+  drawWelcomePage(ctx, normalizedData);
 
   // Page 3: Executive Summary + Radar
-  drawExecutiveSummaryPage(ctx, data);
+  drawExecutiveSummaryPage(ctx, normalizedData);
 
   // Pages 4-8: Dimension Details (one per dimension)
-  const sortedScores = [...data.dimensionScores].sort(
+  const sortedScores = [...normalizedData.dimensionScores].sort(
     (a, b) => a.dimensionOrder - b.dimensionOrder
   );
   sortedScores.forEach((score) => {
@@ -1401,16 +1470,16 @@ export async function generateDiagnosticPDF(
   });
 
   // Cross Analysis
-  drawCrossAnalysisPage(ctx, data);
+  drawCrossAnalysisPage(ctx, normalizedData);
 
   // Recommendations
-  drawRecommendationsPage(ctx, data);
+  drawRecommendationsPage(ctx, normalizedData);
 
   // Action Plan
-  drawActionPlanPage(ctx, data);
+  drawActionPlanPage(ctx, normalizedData);
 
   // Closing Page
-  drawClosingPage(ctx, data);
+  drawClosingPage(ctx, normalizedData);
 
   // ==================== UPDATE PAGE NUMBERS ====================
   const totalPages = pdf.getNumberOfPages();
@@ -1420,7 +1489,7 @@ export async function generateDiagnosticPDF(
   // uses currentPage which is correct for each page)
 
   // ==================== SAVE ====================
-  const sanitizedName = data.participantName
+  const sanitizedName = normalizedData.participantName
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
