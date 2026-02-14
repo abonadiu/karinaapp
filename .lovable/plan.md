@@ -1,42 +1,39 @@
 
 
-## Permitir reenvio de teste ja respondido
+## Correcao: Link do teste DISC carrega fluxo errado (IQ+IS)
 
-### Problema atual
+### Problema
 
-Existem dois bloqueios impedindo que um participante receba o mesmo tipo de teste novamente:
+Quando o participante acessa o link do teste DISC (`/diagnostico/:token`), o sistema encontra corretamente o `participant_test` do tipo DISC e carrega as 40 perguntas DISC. Porem, apos responder todas as perguntas, o fluxo segue para os exercicios de respiracao, mapa corporal e reflexao — que sao especificos do diagnostico IQ+IS. Alem disso, a tela de resultados renderiza o `DiagnosticResults` (IQ+IS) em vez do `DiscResults`.
 
-1. **Constraint UNIQUE no banco**: A tabela `participant_tests` tem um indice unico em `(participant_id, test_type_id)`, impedindo a insercao de uma segunda atribuicao do mesmo tipo
-2. **Bloqueio na UI**: O `AssignTestDialog` marca testes ja atribuidos como "Ja atribuido" e desabilita o botao
+### Causa raiz
+
+O hook `useDiagnostic.ts` e a pagina `Diagnostico.tsx` nao diferenciam o tipo de teste. O fluxo de steps e sempre:
+```text
+welcome -> questions -> breathing -> bodymap -> reflection -> processing -> results
+```
+
+Para DISC, o fluxo correto seria:
+```text
+welcome -> questions -> processing -> results (DiscResults)
+```
 
 ### Solucao
 
-1. **Migracao SQL**: Remover o constraint unico `participant_tests_participant_id_test_type_id_key` para permitir multiplas atribuicoes do mesmo tipo de teste ao mesmo participante
+1. **`src/hooks/useDiagnostic.ts`**: Expor o `slug` do teste (ex: "disc" vs "iq-is") e, quando o slug for "disc", pular os exercicios — ir direto de `questions` para `processing`/`results`
 
-2. **Atualizar `AssignTestDialog.tsx`**:
-   - Remover a logica de `alreadyAssigned` que desabilita o botao
-   - Remover a prop `existingTestTypeIds` (nao sera mais necessaria)
-   - Mostrar um indicador informativo caso o teste ja tenha sido atribuido antes (ex: badge "Atribuido X vezes"), mas sem bloquear
+2. **`src/pages/Diagnostico.tsx`**: Usar o slug do teste para renderizar `DiscResults` em vez de `DiagnosticResults` quando o teste for DISC
 
-3. **Atualizar `Participantes.tsx`**:
-   - Remover a busca de `existingTestTypeIds` antes de abrir o dialog
-   - Simplificar a funcao `handleAssignTest`
+### Mudancas
 
-### Detalhes tecnicos
+**`src/hooks/useDiagnostic.ts`**:
+- Expor uma nova propriedade `testTypeSlug` (string | null) derivada de `participantTest?.test_types?.slug`
+- Na funcao `answerQuestion`, quando a ultima pergunta for respondida e o slug for "disc", chamar `finalizeDiagnostic` diretamente em vez de ir para o step "breathing"
+- Na funcao `finalizeDiagnostic`, salvar `dimension_scores` como objetos `{ score, maxScore, percentage, dimensionOrder }` em vez de apenas `number`, para compatibilidade com o componente de resultados DISC
 
-**Migracao SQL**:
-```text
-DROP INDEX IF EXISTS participant_tests_participant_id_test_type_id_key;
-```
-
-**`src/components/participants/AssignTestDialog.tsx`**:
-- Remover prop `existingTestTypeIds` da interface
-- Remover a verificacao `alreadyAssigned` que desabilita o botao
-- Manter apenas `!tt.is_active` como condicao de desabilitar
-- Opcionalmente mostrar quantas vezes o teste ja foi atribuido (badge informativo)
-
-**`src/pages/Participantes.tsx`**:
-- Remover estado `existingTestTypeIds`
-- Simplificar `handleAssignTest` removendo a query previa de test_type_ids
-- Remover a prop `existingTestTypeIds` do componente `AssignTestDialog`
+**`src/pages/Diagnostico.tsx`**:
+- Importar `DiscResults` 
+- Receber `testTypeSlug` do hook
+- No step "results", verificar o slug: se for "disc", renderizar `DiscResults`; caso contrario, renderizar `DiagnosticResults`
+- Esconder os steps de exercicios (breathing, bodymap, reflection) quando nao aplicaveis — eles ja nao serao atingidos pelo DISC gracas a mudanca no hook
 
