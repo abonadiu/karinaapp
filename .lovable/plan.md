@@ -1,63 +1,112 @@
 
-## Plano: Corrigir Build Error + Criar Dados de Teste
+## Tornar Elementos Clicaveis na Pagina de Relatorios
 
-### 1. Corrigir Build Error no Edge Function
+### O Que Sera Clicavel
 
-**Arquivo**: `supabase/functions/admin-create-user/index.ts` (linha 124)
+| Elemento | Acao ao Clicar |
+|----------|----------------|
+| Card "Total de Participantes" | Navega para `/participantes` |
+| Card "Diagnosticos Concluidos" | Navega para `/participantes` com filtro `completed` |
+| Card "Taxa de Conclusao" | Navega para `/participantes` com filtro `in_progress` (foco nos que faltam) |
+| Card "Tempo Medio (dias)" | Navega para `/participantes` com filtro `completed` |
+| Linha da tabela "Detalhamento por Empresa" | Navega para `/empresas/{id}` (detalhes da empresa) |
 
-O erro e uma referencia a `supabase` que nao existe -- deveria ser `supabaseAdmin`. Trocar:
+---
+
+### Implementacao
+
+#### 1. KPICards com onClick
+
+**Arquivo**: `src/components/analytics/KPICards.tsx`
+
+Adicionar uma prop `onCardClick` opcional ao componente. Cada card recebera um identificador e, ao clicar, dispara a navegacao.
 
 ```typescript
-// DE:
-const { error: roleError } = await supabase.rpc("admin_set_user_role", ...);
+interface KPICardsProps {
+  // ... props existentes
+  onCardClick?: (cardId: string) => void;
+}
+```
 
-// PARA:
-const { error: roleError } = await supabaseAdmin.rpc("admin_set_user_role", ...);
+Cada card tera:
+- Cursor pointer
+- Efeito hover (scale + shadow)
+- Indicador visual sutil de que e clicavel
+
+---
+
+#### 2. Relatorios.tsx - Navegacao nos Cards
+
+**Arquivo**: `src/pages/Relatorios.tsx`
+
+Usar `useNavigate` do React Router. Ao clicar em um card KPI, navegar para `/participantes` passando o filtro de status como query parameter ou state:
+
+```typescript
+const navigate = useNavigate();
+
+const handleKPIClick = (cardId: string) => {
+  switch (cardId) {
+    case "total":
+      navigate("/participantes");
+      break;
+    case "completed":
+      navigate("/participantes", { state: { statusFilter: "completed" } });
+      break;
+    case "completion_rate":
+      navigate("/participantes", { state: { statusFilter: "in_progress" } });
+      break;
+    case "avg_days":
+      navigate("/participantes", { state: { statusFilter: "completed" } });
+      break;
+  }
+};
 ```
 
 ---
 
-### 2. Criar Dados de Teste
+#### 3. CompanyDetailsTable - Linhas Clicaveis
 
-O banco ja possui 23 resultados de diagnostico e 5 empresas. Para enriquecer a analise, vou adicionar resultados para os participantes que estao como `pending`/`invited` sem resultados, simulando perfis variados:
+**Arquivo**: `src/components/analytics/CompanyDetailsTable.tsx`
 
-**Participantes que receberao resultados** (10 novos):
+Adicionar prop `onCompanyClick` e tornar cada linha da tabela clicavel, navegando para `/empresas/{id}`:
 
-| Participante | Empresa | Perfil |
-|---|---|---|
-| Amanda Torres | TechCorp Brasil | Scores altos (4.0-4.8) |
-| Gabriela Souza | TechCorp Brasil | Scores medios (2.8-3.5) |
-| Joao Silva | TechCorp Brasil | Scores baixos (1.5-2.5) |
-| Juliana Souza | Banco Horizonte | Scores altos (4.2-4.7) |
-| Henrique Lopes | Banco Horizonte | Scores medios-baixos (2.3-3.2) |
-| Rogerio Nascimento | Industrias Nova Era | Scores medios (3.0-3.8) |
-| Renata Dias | Consultoria Estrategica | Scores altos (4.0-4.5) |
-| Isabela Cunha | Consultoria Estrategica | Scores baixos (1.8-2.8) |
-| Participante Teste | TechCorp Brasil | Scores medios (3.0-3.5) |
-| Participante Teste Calendly | Empresa Teste IQIS | Scores altos (3.8-4.5) |
+- Cursor pointer nas linhas
+- Hover com destaque de fundo
+- Ao clicar, navega para detalhes da empresa
 
-**Para cada participante**:
-1. Atualizar `status` para `completed`, definir `completed_at` e `started_at`
-2. Inserir um registro em `diagnostic_results` com `dimension_scores` variados (5 dimensoes) e `total_score`
+---
 
-**Formato dos dimension_scores** (baseado no formato existente):
-```json
-{
-  "consciencia_interior": {"label": "Consciencia Interior", "score": X.X},
-  "coerencia_emocional": {"label": "Coerencia Emocional", "score": X.X},
-  "conexao_proposito": {"label": "Conexao e Proposito", "score": X.X},
-  "relacoes_compaixao": {"label": "Relacoes e Compaixao", "score": X.X},
-  "transformacao_crescimento": {"label": "Transformacao e Crescimento", "score": X.X}
-}
+#### 4. Participantes.tsx - Receber Filtro via State
+
+**Arquivo**: `src/pages/Participantes.tsx`
+
+Usar `useLocation` para ler o state de navegacao e aplicar o filtro automaticamente:
+
+```typescript
+const location = useLocation();
+useEffect(() => {
+  if (location.state?.statusFilter) {
+    setStatusFilter(location.state.statusFilter);
+  }
+}, [location.state]);
 ```
-
-Os scores serao variados para gerar graficos interessantes com distribuicoes realistas (altos, medios e baixos).
 
 ---
 
 ### Arquivos a Modificar
 
-| Acao | Detalhe |
-|------|---------|
-| Editar `supabase/functions/admin-create-user/index.ts` | Corrigir `supabase` para `supabaseAdmin` na linha 124 |
-| Inserir dados via SQL | UPDATE 10 participantes para `completed` + INSERT 10 `diagnostic_results` |
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/components/analytics/KPICards.tsx` | Adicionar `onCardClick`, estilos hover/pointer |
+| `src/pages/Relatorios.tsx` | Adicionar `useNavigate` e handler de clique nos KPIs |
+| `src/components/analytics/CompanyDetailsTable.tsx` | Linhas clicaveis com `onCompanyClick` |
+| `src/pages/Participantes.tsx` | Receber filtro via `location.state` |
+
+---
+
+### Resultado Esperado
+
+1. Cards de KPI mostram cursor pointer e efeito hover
+2. Clicar em um card navega para a pagina de Participantes com o filtro adequado
+3. Linhas da tabela de empresas sao clicaveis e levam aos detalhes da empresa
+4. Transicoes suaves e feedback visual em todos os elementos clicaveis
