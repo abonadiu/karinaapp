@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Language } from "@/i18n/translations";
 import { BrandSymbol } from "./BrandSymbol";
 import { Menu, X, ChevronDown } from "lucide-react";
 
 const WHATSAPP_URL = "https://wa.me/17864003817";
 
 export function SiteHeader() {
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
@@ -22,18 +21,6 @@ export function SiteHeader() {
         : "text-[#335072]/70 hover:text-[#335072]"
     }`;
 
-  const langBtn = (lang: Language) => (
-    <button
-      onClick={() => setLanguage(lang)}
-      className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
-        language === lang
-          ? "bg-[#335072] text-white"
-          : "text-[#8695AC] hover:text-[#335072]"
-      }`}
-    >
-      {lang.toUpperCase()}
-    </button>
-  );
 
   return (
     <header className="sticky top-0 z-50 bg-[#F2E9E4]/95 backdrop-blur-md border-b border-[#D4BCB2]/30">
@@ -106,11 +93,6 @@ export function SiteHeader() {
 
           {/* Right side: Language + CTA + Login */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-1 mr-2">
-              {langBtn("pt")}
-              {langBtn("en")}
-              {langBtn("es")}
-            </div>
             <Link
               to="/login"
               className="text-xs font-medium text-[#335072]/60 hover:text-[#335072] transition-colors"
@@ -175,11 +157,6 @@ export function SiteHeader() {
           >
             {t.nav.contact}
           </Link>
-          <div className="flex items-center gap-2 pt-2">
-            {langBtn("pt")}
-            {langBtn("en")}
-            {langBtn("es")}
-          </div>
           <div className="flex items-center gap-3 pt-2">
             <Link
               to="/login"

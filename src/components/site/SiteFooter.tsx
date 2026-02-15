@@ -1,10 +1,24 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { Language } from "@/i18n/translations";
 import { BrandSymbol } from "./BrandSymbol";
 
 export function SiteFooter() {
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
+
+  const langBtn = (lang: Language) => (
+    <button
+      onClick={() => setLanguage(lang)}
+      className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
+        language === lang
+          ? "bg-[#F2E9E4] text-[#335072]"
+          : "text-[#8695AC] hover:text-[#F2E9E4]"
+      }`}
+    >
+      {lang.toUpperCase()}
+    </button>
+  );
 
   return (
     <footer className="bg-[#335072] text-[#D4BCB2]">
@@ -26,8 +40,13 @@ export function SiteFooter() {
             &copy; {new Date().getFullYear()} Karina Bonadiu. {t.footer.rights}
           </p>
 
-          {/* Links */}
+          {/* Language + Links */}
           <div className="flex items-center gap-6">
+            <div className="flex items-center gap-1">
+              {langBtn("pt")}
+              {langBtn("en")}
+              {langBtn("es")}
+            </div>
             <a
               href="#"
               className="text-sm font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
