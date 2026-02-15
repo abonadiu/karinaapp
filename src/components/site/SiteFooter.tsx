@@ -22,7 +22,7 @@ export function SiteFooter() {
           </div>
 
           {/* Copyright */}
-          <p className="text-sm text-[#8695AC]">
+          <p className="text-sm font-medium text-[#8695AC]">
             &copy; {new Date().getFullYear()} Karina Bonadiu. {t.footer.rights}
           </p>
 
@@ -30,13 +30,13 @@ export function SiteFooter() {
           <div className="flex items-center gap-6">
             <a
               href="#"
-              className="text-sm text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
+              className="text-sm font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
             >
               {t.footer.privacy}
             </a>
             <a
               href="#"
-              className="text-sm text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
+              className="text-sm font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
             >
               {t.footer.terms}
             </a>

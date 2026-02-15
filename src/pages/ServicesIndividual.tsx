@@ -16,8 +16,8 @@ const ServicesIndividual = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <BrandSymbol size={48} color="#B38F8F" className="mx-auto mb-6" />
           <p
-            className="text-[#B38F8F] tracking-[0.3em] text-sm uppercase mb-4"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#B38F8F] tracking-[0.3em] text-sm font-medium uppercase mb-4"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.individual.subtitle}
           </p>
@@ -28,8 +28,8 @@ const ServicesIndividual = () => {
             {t.individual.title}
           </h1>
           <p
-            className="text-[#335072]/80 text-lg leading-relaxed max-w-2xl mx-auto"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#335072]/80 text-lg leading-relaxed font-normal max-w-2xl mx-auto"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.individual.intro}
           </p>
@@ -51,8 +51,8 @@ const ServicesIndividual = () => {
                 {t.individual.mentoring.title}
               </h2>
               <p
-                className="text-[#335072]/80 text-base leading-relaxed mb-6"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#335072]/80 text-base leading-relaxed font-normal mb-6"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.individual.mentoring.description}
               </p>
@@ -61,8 +61,8 @@ const ServicesIndividual = () => {
                   <li key={i} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-[#B38F8F] mt-0.5 flex-shrink-0" />
                     <span
-                      className="text-[#335072]/80 text-sm"
-                      style={{ fontFamily: "'Quicksand', sans-serif" }}
+                      className="text-[#335072]/80 text-sm font-medium"
+                      style={{ fontFamily: "'Roboto', sans-serif" }}
                     >
                       {item}
                     </span>
@@ -99,8 +99,8 @@ const ServicesIndividual = () => {
                 {t.individual.retreats.title}
               </h2>
               <p
-                className="text-[#335072]/80 text-base leading-relaxed mb-6"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#335072]/80 text-base leading-relaxed font-normal mb-6"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.individual.retreats.description}
               </p>
@@ -109,8 +109,8 @@ const ServicesIndividual = () => {
                   <li key={i} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-[#B38F8F] mt-0.5 flex-shrink-0" />
                     <span
-                      className="text-[#335072]/80 text-sm"
-                      style={{ fontFamily: "'Quicksand', sans-serif" }}
+                      className="text-[#335072]/80 text-sm font-medium"
+                      style={{ fontFamily: "'Roboto', sans-serif" }}
                     >
                       {item}
                     </span>
@@ -135,8 +135,8 @@ const ServicesIndividual = () => {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-[#F2E9E4] text-[#335072] px-8 py-3 rounded-full hover:bg-white transition-colors text-sm tracking-wide"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="inline-flex items-center justify-center gap-2 bg-[#F2E9E4] text-[#335072] px-8 py-3 rounded-full hover:bg-white transition-colors text-sm font-medium tracking-wide"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.home.cta}
             <ArrowRight className="w-4 h-4" />

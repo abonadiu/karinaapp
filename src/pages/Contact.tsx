@@ -25,14 +25,14 @@ const Contact = () => {
             {t.contact.title}
           </h1>
           <p
-            className="text-[#B38F8F] tracking-[0.3em] text-sm uppercase mb-8"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#B38F8F] tracking-[0.3em] text-sm font-medium uppercase mb-8"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.contact.subtitle}
           </p>
           <p
-            className="text-[#335072]/80 text-lg leading-relaxed max-w-2xl mx-auto"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#335072]/80 text-lg leading-relaxed font-normal max-w-2xl mx-auto"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.contact.text}
           </p>
@@ -60,8 +60,8 @@ const Contact = () => {
                 WhatsApp
               </h3>
               <p
-                className="text-[#D4BCB2] text-sm"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#D4BCB2] text-sm font-medium"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.contact.whatsapp}
               </p>
@@ -82,8 +82,8 @@ const Contact = () => {
                 Email
               </h3>
               <p
-                className="text-[#335072]/70 text-sm"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#335072]/70 text-sm font-medium"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.contact.email}
               </p>
@@ -94,8 +94,8 @@ const Contact = () => {
           <div className="mt-8 bg-[#F2E9E4] rounded-2xl p-6 flex items-center justify-center gap-3 border border-[#D4BCB2]/30">
             <MapPin className="w-5 h-5 text-[#B38F8F]" />
             <p
-              className="text-[#335072]/80 text-sm"
-              style={{ fontFamily: "'Quicksand', sans-serif" }}
+              className="text-[#335072]/80 text-sm font-medium"
+              style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.contact.location}
             </p>
@@ -148,8 +148,8 @@ const Contact = () => {
             "{t.home.quote}"
           </p>
           <p
-            className="text-[#D4BCB2] text-sm tracking-widest uppercase"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#D4BCB2] text-sm font-medium tracking-widest uppercase"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             — Karina Bonadiu
           </p>

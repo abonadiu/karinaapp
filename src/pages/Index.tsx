@@ -35,8 +35,8 @@ const Index = () => {
             {/* Text */}
             <div className="order-2 md:order-1">
               <p
-                className="text-[#B38F8F] tracking-[0.3em] text-sm uppercase mb-4"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#B38F8F] tracking-[0.3em] text-sm font-medium uppercase mb-4"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.home.subtitle}
               </p>
@@ -46,7 +46,7 @@ const Index = () => {
               >
                 Karina Bonadiu
               </h1>
-              <p className="text-[#335072]/80 text-lg leading-relaxed mb-6" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+              <p className="text-[#335072]/80 text-lg leading-relaxed mb-6 font-normal" style={{ fontFamily: "'Roboto', sans-serif" }}>
                 {t.home.description}
               </p>
               <blockquote className="border-l-2 border-[#B38F8F] pl-4 mb-8">
@@ -62,16 +62,16 @@ const Index = () => {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm tracking-wide"
-                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                  className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm font-medium tracking-wide"
+                  style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {t.home.cta}
                   <ArrowRight className="w-4 h-4" />
                 </a>
                 <Link
                   to="/about"
-                  className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm tracking-wide"
-                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                  className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm font-medium tracking-wide"
+                  style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {t.home.learnMore}
                 </Link>
@@ -105,8 +105,8 @@ const Index = () => {
               {t.home.philosophyTitle}
             </h2>
             <p
-              className="text-[#D4BCB2] text-lg leading-relaxed"
-              style={{ fontFamily: "'Quicksand', sans-serif" }}
+              className="text-[#D4BCB2] text-lg leading-relaxed font-normal"
+              style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.home.philosophyText}
             </p>
@@ -122,12 +122,12 @@ const Index = () => {
                   <pillar.icon className="w-6 h-6 text-[#D4BCB2]" />
                 </div>
                 <h3
-                  className="text-[#F2E9E4] text-sm font-semibold mb-1"
-                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                  className="text-[#F2E9E4] text-sm font-bold mb-1"
+                  style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {pillar.title}
                 </h3>
-                <p className="text-[#8695AC] text-xs" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                <p className="text-[#8695AC] text-xs font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                   {pillar.desc}
                 </p>
               </div>
@@ -153,8 +153,8 @@ const Index = () => {
               >
                 <item.icon className="w-8 h-8 text-[#B38F8F] mb-4" />
                 <p
-                  className="text-[#335072] text-sm leading-relaxed"
-                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                  className="text-[#335072] text-sm font-medium leading-relaxed"
+                  style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {item.text}
                 </p>
@@ -186,8 +186,8 @@ const Index = () => {
             {t.home.ctaTitle}
           </h2>
           <p
-            className="text-[#335072]/70 text-lg mb-10"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#335072]/70 text-lg font-normal mb-10"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.home.ctaText}
           </p>
@@ -197,7 +197,7 @@ const Index = () => {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm tracking-wide"
-              style={{ fontFamily: "'Quicksand', sans-serif" }}
+              style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.home.cta}
               <ArrowRight className="w-4 h-4" />
@@ -205,14 +205,14 @@ const Index = () => {
             <Link
               to="/services/individual"
               className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm tracking-wide"
-              style={{ fontFamily: "'Quicksand', sans-serif" }}
+              style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.nav.servicesIndividual}
             </Link>
             <Link
               to="/services/corporate"
               className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm tracking-wide"
-              style={{ fontFamily: "'Quicksand', sans-serif" }}
+              style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.nav.servicesCorporate}
             </Link>

@@ -29,8 +29,8 @@ const About = () => {
             {/* Text */}
             <div>
               <p
-                className="text-[#B38F8F] tracking-[0.3em] text-sm uppercase mb-4"
-                style={{ fontFamily: "'Quicksand', sans-serif" }}
+                className="text-[#B38F8F] tracking-[0.3em] text-sm font-medium uppercase mb-4"
+                style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.about.subtitle}
               </p>
@@ -40,11 +40,11 @@ const About = () => {
               >
                 {t.about.title}
               </h1>
-              <div className="space-y-5" style={{ fontFamily: "'Quicksand', sans-serif" }}>
-                <p className="text-[#335072]/80 text-base leading-relaxed">
+              <div className="space-y-5" style={{ fontFamily: "'Roboto', sans-serif" }}>
+                <p className="text-[#335072]/80 text-base leading-relaxed font-normal">
                   {t.about.intro}
                 </p>
-                <p className="text-[#335072]/80 text-base leading-relaxed">
+                <p className="text-[#335072]/80 text-base leading-relaxed font-normal">
                   {t.about.transition}
                 </p>
               </div>
@@ -56,14 +56,14 @@ const About = () => {
       {/* Story continued */}
       <section className="py-16 md:py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-6" style={{ fontFamily: "'Quicksand', sans-serif" }}>
-            <p className="text-[#335072]/80 text-base leading-relaxed">
+          <div className="space-y-6" style={{ fontFamily: "'Roboto', sans-serif" }}>
+            <p className="text-[#335072]/80 text-base leading-relaxed font-normal">
               {t.about.dedication}
             </p>
-            <p className="text-[#335072]/80 text-base leading-relaxed">
+            <p className="text-[#335072]/80 text-base leading-relaxed font-normal">
               {t.about.retreats}
             </p>
-            <p className="text-[#335072]/80 text-base leading-relaxed">
+            <p className="text-[#335072]/80 text-base leading-relaxed font-normal">
               {t.about.today}
             </p>
             <blockquote className="border-l-2 border-[#B38F8F] pl-6 my-8">
@@ -95,12 +95,12 @@ const About = () => {
               </div>
               <div className="space-y-4">
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-[#D4BCB2]/30">
-                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                     {t.about.education.mba}
                   </p>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-[#D4BCB2]/30">
-                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                     {t.about.education.iin}
                   </p>
                 </div>
@@ -120,17 +120,17 @@ const About = () => {
               </div>
               <div className="space-y-4">
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-[#D4BCB2]/30">
-                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                     {t.about.experience.consultant}
                   </p>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-[#D4BCB2]/30">
-                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                     {t.about.experience.mentor}
                   </p>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-[#D4BCB2]/30">
-                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>
+                  <p className="text-[#335072] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                     {t.about.experience.jpmorgan}
                   </p>
                 </div>
@@ -152,8 +152,8 @@ const About = () => {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-[#F2E9E4] text-[#335072] px-8 py-3 rounded-full hover:bg-white transition-colors text-sm tracking-wide"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="inline-flex items-center justify-center gap-2 bg-[#F2E9E4] text-[#335072] px-8 py-3 rounded-full hover:bg-white transition-colors text-sm font-medium tracking-wide"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.home.cta}
             <ArrowRight className="w-4 h-4" />

@@ -16,16 +16,16 @@ export function SiteHeader() {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinkClass = (path: string) =>
-    `text-sm tracking-wide transition-colors duration-200 ${
+    `text-sm font-medium tracking-wide transition-colors duration-200 ${
       isActive(path)
-        ? "text-[#335072] font-semibold"
-        : "text-[#8695AC] hover:text-[#335072]"
+        ? "text-[#335072] font-bold"
+        : "text-[#335072]/70 hover:text-[#335072]"
     }`;
 
   const langBtn = (lang: Language) => (
     <button
       onClick={() => setLanguage(lang)}
-      className={`text-xs font-medium px-2 py-1 rounded transition-colors ${
+      className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
         language === lang
           ? "bg-[#335072] text-white"
           : "text-[#8695AC] hover:text-[#335072]"
@@ -64,10 +64,10 @@ export function SiteHeader() {
             {/* Services Dropdown */}
             <div className="relative group">
               <button
-                className={`text-sm tracking-wide transition-colors duration-200 flex items-center gap-1 ${
+                className={`text-sm font-medium tracking-wide transition-colors duration-200 flex items-center gap-1 ${
                   isActive("/services/individual") || isActive("/services/corporate")
-                    ? "text-[#335072] font-semibold"
-                    : "text-[#8695AC] hover:text-[#335072]"
+                    ? "text-[#335072] font-bold"
+                    : "text-[#335072]/70 hover:text-[#335072]"
                 }`}
                 onMouseEnter={() => setServicesOpen(true)}
                 onMouseLeave={() => setServicesOpen(false)}
@@ -86,13 +86,13 @@ export function SiteHeader() {
               >
                 <Link
                   to="/services/individual"
-                  className="block px-4 py-2 text-sm text-[#8695AC] hover:text-[#335072] hover:bg-[#F2E9E4]/50 transition-colors"
+                  className="block px-4 py-2 text-sm font-medium text-[#335072]/70 hover:text-[#335072] hover:bg-[#F2E9E4]/50 transition-colors"
                 >
                   {t.nav.servicesIndividual}
                 </Link>
                 <Link
                   to="/services/corporate"
-                  className="block px-4 py-2 text-sm text-[#8695AC] hover:text-[#335072] hover:bg-[#F2E9E4]/50 transition-colors"
+                  className="block px-4 py-2 text-sm font-medium text-[#335072]/70 hover:text-[#335072] hover:bg-[#F2E9E4]/50 transition-colors"
                 >
                   {t.nav.servicesCorporate}
                 </Link>
@@ -113,7 +113,7 @@ export function SiteHeader() {
             </div>
             <Link
               to="/login"
-              className="text-xs text-[#8695AC] hover:text-[#335072] transition-colors"
+              className="text-xs font-medium text-[#335072]/60 hover:text-[#335072] transition-colors"
             >
               {t.nav.login}
             </Link>
@@ -121,7 +121,7 @@ export function SiteHeader() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#335072] text-white text-sm px-5 py-2 rounded-full hover:bg-[#2a4260] transition-colors tracking-wide"
+              className="bg-[#335072] text-white text-sm font-medium px-5 py-2 rounded-full hover:bg-[#2a4260] transition-colors tracking-wide"
             >
               {t.nav.talkToMe}
             </a>
@@ -143,35 +143,35 @@ export function SiteHeader() {
           <Link
             to="/"
             onClick={() => setMobileOpen(false)}
-            className="block text-[#335072] text-base"
+            className="block text-[#335072] text-base font-medium"
           >
             {t.nav.home}
           </Link>
           <Link
             to="/about"
             onClick={() => setMobileOpen(false)}
-            className="block text-[#335072] text-base"
+            className="block text-[#335072] text-base font-medium"
           >
             {t.nav.about}
           </Link>
           <Link
             to="/services/individual"
             onClick={() => setMobileOpen(false)}
-            className="block text-[#335072] text-base"
+            className="block text-[#335072] text-base font-medium"
           >
             {t.nav.servicesIndividual}
           </Link>
           <Link
             to="/services/corporate"
             onClick={() => setMobileOpen(false)}
-            className="block text-[#335072] text-base"
+            className="block text-[#335072] text-base font-medium"
           >
             {t.nav.servicesCorporate}
           </Link>
           <Link
             to="/contact"
             onClick={() => setMobileOpen(false)}
-            className="block text-[#335072] text-base"
+            className="block text-[#335072] text-base font-medium"
           >
             {t.nav.contact}
           </Link>
@@ -184,7 +184,7 @@ export function SiteHeader() {
             <Link
               to="/login"
               onClick={() => setMobileOpen(false)}
-              className="text-sm text-[#8695AC]"
+              className="text-sm font-medium text-[#335072]/60"
             >
               {t.nav.login}
             </Link>
@@ -192,7 +192,7 @@ export function SiteHeader() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#335072] text-white text-sm px-5 py-2 rounded-full"
+              className="bg-[#335072] text-white text-sm font-medium px-5 py-2 rounded-full"
             >
               {t.nav.talkToMe}
             </a>

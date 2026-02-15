@@ -39,8 +39,8 @@ const ServicesCorporate = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <BrandSymbol size={48} color="#D4BCB2" className="mx-auto mb-6" />
           <p
-            className="text-[#D4BCB2] tracking-[0.3em] text-sm uppercase mb-4"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#D4BCB2] tracking-[0.3em] text-sm font-medium uppercase mb-4"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.corporate.subtitle}
           </p>
@@ -51,8 +51,8 @@ const ServicesCorporate = () => {
             {t.corporate.title}
           </h1>
           <p
-            className="text-[#D4BCB2] text-lg leading-relaxed max-w-2xl mx-auto"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#D4BCB2] text-lg leading-relaxed font-normal max-w-2xl mx-auto"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.corporate.intro}
           </p>
@@ -78,8 +78,8 @@ const ServicesCorporate = () => {
                   {service.title}
                 </h3>
                 <p
-                  className="text-[#335072]/70 text-sm leading-relaxed"
-                  style={{ fontFamily: "'Quicksand', sans-serif" }}
+                  className="text-[#335072]/70 text-sm font-medium leading-relaxed"
+                  style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {service.description}
                 </p>
@@ -99,8 +99,8 @@ const ServicesCorporate = () => {
             "As someone who has lived the demands and intensity of the corporate world, I know how critical it is to integrate performance with presence, and strategy with soul."
           </p>
           <p
-            className="text-[#F2E9E4] text-sm tracking-widest uppercase"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="text-[#F2E9E4] text-sm font-medium tracking-widest uppercase"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             — Karina Bonadiu
           </p>
@@ -120,8 +120,8 @@ const ServicesCorporate = () => {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm tracking-wide"
-            style={{ fontFamily: "'Quicksand', sans-serif" }}
+            className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm font-medium tracking-wide"
+            style={{ fontFamily: "'Roboto', sans-serif" }}
           >
             {t.home.cta}
             <ArrowRight className="w-4 h-4" />
