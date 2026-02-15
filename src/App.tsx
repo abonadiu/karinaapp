@@ -9,7 +9,12 @@ import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CompanyManagerRoute } from "@/components/auth/CompanyManagerRoute";
+import { LanguageProvider } from "@/i18n/LanguageContext";
 import Index from "./pages/Index";
+import About from "./pages/About";
+import ServicesIndividual from "./pages/ServicesIndividual";
+import ServicesCorporate from "./pages/ServicesCorporate";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
@@ -38,6 +43,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <LanguageProvider>
     <AuthProvider>
       <ImpersonationProvider>
         <TooltipProvider>
@@ -46,8 +52,14 @@ const App = () => (
           <BrowserRouter>
             <ImpersonationBanner />
           <Routes>
-            {/* Public routes */}
+            {/* Public site pages */}
             <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services/individual" element={<ServicesIndividual />} />
+            <Route path="/services/corporate" element={<ServicesCorporate />} />
+            <Route path="/contact" element={<Contact />} />
+            
+            {/* Auth routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
@@ -147,6 +159,7 @@ const App = () => (
       </TooltipProvider>
     </ImpersonationProvider>
   </AuthProvider>
+    </LanguageProvider>
 </QueryClientProvider>
 );
 
