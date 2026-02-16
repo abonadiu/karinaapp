@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye } from "lucide-react";
+import { Users, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye, Link2 } from "lucide-react";
 
 import {
   Table,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
+import { toast } from "sonner";
 
 type ParticipantStatus = "pending" | "invited" | "in_progress" | "completed";
 
@@ -31,6 +32,7 @@ interface Participant {
   created_at: string;
   access_token?: string;
   invited_at?: string | null;
+  user_id?: string | null;
 }
 
 interface ParticipantListProps {
@@ -200,6 +202,20 @@ export function ParticipantList({
                           <Bell className="h-4 w-4" />
                         )}
                         {sendingReminderId === participant.id ? "Enviando..." : "Enviar lembrete"}
+                      </button>
+                    )}
+                    {!participant.user_id && participant.access_token && (
+                      <button
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                        onClick={() => {
+                          const url = `${window.location.origin}/participante/cadastro/${participant.access_token}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("Link de cadastro copiado!");
+                          setOpenPopoverId(null);
+                        }}
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Link para criar conta
                       </button>
                     )}
                     <div className="border-t my-1" />
