@@ -4,6 +4,7 @@ import { Question } from "@/lib/diagnostic-questions";
 import { calculateScores, DiagnosticScores } from "@/lib/diagnostic-scoring";
 import { calculateDiscScores, DiscScores } from "@/lib/disc-scoring";
 import { calculateSoulPlan, SoulPlanResult } from "@/lib/soul-plan-calculator";
+import { calculateAstralChart, AstralChartResult, BirthData } from "@/lib/astral-chart-calculator";
 import { useToast } from "@/hooks/use-toast";
 
 export type DiagnosticStep = 
@@ -80,12 +81,14 @@ export function useDiagnostic(token: string) {
   const [scores, setScores] = useState<DiagnosticScores | null>(null);
   const [discScores, setDiscScores] = useState<DiscScores | null>(null);
   const [soulPlanResult, setSoulPlanResult] = useState<SoulPlanResult | null>(null);
+  const [astralChartResult, setAstralChartResult] = useState<AstralChartResult | null>(null);
   const [existingResult, setExistingResult] = useState<any>(null);
   const [testTypeSlug, setTestTypeSlug] = useState<string | null>(null);
 
   // Helper to determine test type
   const isDiscTest = testTypeSlug === "disc";
   const isSoulPlanTest = testTypeSlug === "mapa_da_alma";
+  const isAstralChartTest = testTypeSlug === "mapa_astral";
 
   useEffect(() => {
     async function initialize() {
@@ -291,6 +294,8 @@ export function useDiagnostic(token: string) {
       setParticipant({ ...participant, status: "in_progress" });
       if (isSoulPlanTest) {
         setStep("name_input");
+      } else if (isAstralChartTest) {
+        setStep("name_input"); // Reuse name_input step for birth data input
       } else {
         setStep("questions");
       }
@@ -491,6 +496,60 @@ export function useDiagnostic(token: string) {
     }
   }, [participant, participantTest, toast]);
 
+  // Astral Chart: submit birth data and calculate
+  const submitAstralChartData = useCallback(async (birthData: BirthData) => {
+    if (!participant || !participantTest) return;
+
+    setStep("processing");
+
+    try {
+      const result = calculateAstralChart(birthData);
+      setAstralChartResult(result);
+
+      // Build dimension_scores object with chart data
+      const dimensionScoresObj: Record<string, any> = {
+        birthData,
+        sunSign: result.sunSign,
+        moonSign: result.moonSign,
+        ascendantSign: result.ascendantSign,
+        midheavenSign: result.midheavenSign,
+        planets: result.planets.map(p => ({
+          key: p.key,
+          sign: p.sign,
+          house: p.house,
+          degree: p.eclipticDegree,
+          isRetrograde: p.isRetrograde,
+        })),
+        houses: result.houses.map(h => ({
+          id: h.id,
+          sign: h.sign,
+          degreeStart: h.eclipticDegreeStart,
+        })),
+        aspectsCount: result.aspects.length,
+      };
+
+      await supabase
+        .from("test_results")
+        .insert([{
+          participant_test_id: participantTest.id,
+          dimension_scores: dimensionScoresObj as any,
+          total_score: 0,
+          exercises_data: { birthData, fullResult: result } as any,
+          completed_at: new Date().toISOString()
+        }]);
+
+      await supabase
+        .from("participant_tests")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", participantTest.id);
+
+      setStep("results");
+    } catch (err: any) {
+      toast({ title: "Erro ao calcular Mapa Astral", description: "Tente novamente", variant: "destructive" });
+      setStep("name_input");
+    }
+  }, [participant, participantTest, toast]);
+
   const skipExercise = useCallback(() => {
     if (step === "breathing") setStep("bodymap");
     else if (step === "bodymap") setStep("reflection");
@@ -510,10 +569,12 @@ export function useDiagnostic(token: string) {
     scores,
     discScores,
     soulPlanResult,
+    astralChartResult,
     existingResult,
     testTypeSlug,
     isDiscTest,
     isSoulPlanTest,
+    isAstralChartTest,
     progress: questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0,
     startDiagnostic,
     answerQuestion,
@@ -522,6 +583,7 @@ export function useDiagnostic(token: string) {
     completeBodyMapExercise,
     completeReflectionExercise,
     submitSoulPlanName,
+    submitAstralChartData,
     skipExercise,
     setStep
   };

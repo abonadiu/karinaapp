@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
 import { DiagnosticWelcome } from "@/components/diagnostic/DiagnosticWelcome";
@@ -11,12 +11,16 @@ import { DiagnosticResults } from "@/components/diagnostic/DiagnosticResults";
 import { DiscResults } from "@/components/disc/DiscResults";
 import { SoulPlanNameInput } from "@/components/soul-plan/SoulPlanNameInput";
 import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
+import { AstralChartInput } from "@/components/astral-chart/AstralChartInput";
+import { AstralChartResults } from "@/components/astral-chart/AstralChartResults";
+import { generateAstralChartPDF } from "@/lib/astral-chart-pdf-generator";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function Diagnostico() {
   const { token } = useParams<{ token: string }>();
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   const {
     loading,
@@ -31,10 +35,12 @@ export default function Diagnostico() {
     scores,
     discScores,
     soulPlanResult,
+    astralChartResult,
     existingResult,
     testTypeSlug,
     isDiscTest,
     isSoulPlanTest,
+    isAstralChartTest,
     startDiagnostic,
     answerQuestion,
     previousQuestion,
@@ -42,6 +48,7 @@ export default function Diagnostico() {
     completeBodyMapExercise,
     completeReflectionExercise,
     submitSoulPlanName,
+    submitAstralChartData,
     skipExercise
   } = useDiagnostic(token || "");
 
@@ -65,6 +72,25 @@ export default function Diagnostico() {
       root.style.removeProperty('--brand-secondary');
     };
   }, [facilitatorProfile]);
+
+  // Handle astral chart PDF download
+  const handleAstralChartPDF = async () => {
+    const chartResult = astralChartResult || (existingResult?.exercises_data?.fullResult as any);
+    if (!chartResult) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      await generateAstralChartPDF({
+        result: chartResult,
+        participantName: participant?.name || "Participante",
+        facilitatorName: facilitatorProfile?.full_name || undefined,
+      });
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -108,6 +134,7 @@ export default function Diagnostico() {
   const getTestType = () => {
     if (isDiscTest) return "disc";
     if (isSoulPlanTest) return "mapa_da_alma";
+    if (isAstralChartTest) return "mapa_astral";
     return "iq_is";
   };
 
@@ -124,6 +151,14 @@ export default function Diagnostico() {
       );
 
     case "name_input":
+      if (isAstralChartTest) {
+        return (
+          <AstralChartInput
+            participantName={participant?.name || "Participante"}
+            onCalculate={submitAstralChartData}
+          />
+        );
+      }
       return (
         <SoulPlanNameInput
           participantName={participant?.name || "Participante"}
@@ -173,6 +208,19 @@ export default function Diagnostico() {
       return <ProcessingScreen />;
 
     case "results":
+      if (isAstralChartTest) {
+        const chartResult = astralChartResult || (existingResult?.exercises_data?.fullResult as any);
+        if (chartResult) {
+          return (
+            <AstralChartResults
+              result={chartResult}
+              participantName={participant?.name || "Participante"}
+              onDownloadPDF={handleAstralChartPDF}
+              isGeneratingPDF={isGeneratingPDF}
+            />
+          );
+        }
+      }
       if (isSoulPlanTest) {
         return (
           <SoulPlanResults

@@ -1,14 +1,14 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Heart, Compass, Users, Sparkles, Clock, CheckCircle, Target, Shield, Smile, Search, Star, Sun, Moon, Flame } from "lucide-react";
+import { Brain, Heart, Compass, Users, Sparkles, Clock, CheckCircle, Target, Shield, Smile, Search, Star, Sun, Moon, Flame, Globe } from "lucide-react";
 import { FacilitatorProfile } from "@/hooks/useDiagnostic";
 
 interface DiagnosticWelcomeProps {
   participantName: string;
   facilitatorProfile?: FacilitatorProfile | null;
   onStart: () => void;
-  testType?: "iq_is" | "disc" | "mapa_da_alma";
+  testType?: "iq_is" | "disc" | "mapa_da_alma" | "mapa_astral";
 }
 
 const iqIsDimensions = [
@@ -33,20 +33,39 @@ const soulPlanPositions = [
   { icon: Star, name: "Destino da Alma — propósito central", color: "text-violet-500" },
 ];
 
+const astralChartFeatures = [
+  { icon: Sun, name: "Sol, Lua e Ascendente — a tríade fundamental", color: "text-amber-500" },
+  { icon: Globe, name: "10 Planetas em signos e casas", color: "text-indigo-500" },
+  { icon: Star, name: "Aspectos planetários — harmonias e tensões", color: "text-purple-500" },
+  { icon: Compass, name: "12 Casas astrológicas — áreas da vida", color: "text-blue-500" },
+  { icon: Sparkles, name: "Equilíbrio de elementos e modalidades", color: "text-emerald-500" },
+];
+
 export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart, testType = "iq_is" }: DiagnosticWelcomeProps) {
   const firstName = participantName.split(" ")[0];
   const isDisc = testType === "disc";
   const isSoulPlan = testType === "mapa_da_alma";
+  const isAstralChart = testType === "mapa_astral";
 
-  const dimensions = isSoulPlan ? soulPlanPositions : isDisc ? discDimensions : iqIsDimensions;
+  const dimensions = isAstralChart
+    ? astralChartFeatures
+    : isSoulPlan
+    ? soulPlanPositions
+    : isDisc
+    ? discDimensions
+    : iqIsDimensions;
   
-  const title = isSoulPlan
+  const title = isAstralChart
+    ? "Bem-vindo(a) ao Mapa Astral"
+    : isSoulPlan
     ? "Bem-vindo(a) ao Mapa da Alma"
     : isDisc
     ? "Bem-vindo(a) ao Perfil DISC"
     : "Bem-vindo(a) ao Diagnóstico de Inteligência Emocional e Espiritual";
   
-  const description = isSoulPlan
+  const description = isAstralChart
+    ? "O Mapa Astral é uma ferramenta de autoconhecimento baseada na posição dos astros no momento do seu nascimento. A partir dos seus dados de nascimento, calculamos sua carta natal completa com:"
+    : isSoulPlan
     ? "O Mapa da Alma é uma ferramenta de autoconhecimento profundo baseada no sistema Soul Plan de Blue Marsden. A partir do seu nome completo de nascimento, revelamos as energias que compõem o seu plano de alma:"
     : isDisc
     ? "Este diagnóstico foi desenvolvido para mapear seu perfil comportamental em 4 dimensões fundamentais:"
@@ -59,6 +78,13 @@ export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart
         '--dynamic-secondary': facilitatorProfile.secondary_color || facilitatorProfile.primary_color,
       } as React.CSSProperties
     : {};
+
+  const getButtonLabel = () => {
+    if (isAstralChart) return "Iniciar Mapa Astral";
+    if (isSoulPlan) return "Iniciar Mapa da Alma";
+    if (isDisc) return "Iniciar Perfil DISC";
+    return "Iniciar Diagnóstico";
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4" style={brandStyle}>
@@ -111,7 +137,26 @@ export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart
               O que esperar:
             </h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              {isSoulPlan ? (
+              {isAstralChart ? (
+                <>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Você informará sua data, hora e local de nascimento</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>O sistema calculará automaticamente sua carta natal completa</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Você receberá a roda zodiacal com todas as posições planetárias</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
+                    <span>Relatório interpretativo completo em PDF disponível para download</span>
+                  </li>
+                </>
+              ) : isSoulPlan ? (
                 <>
                   <li className="flex items-start gap-2">
                     <CheckCircle className="h-4 w-4 mt-0.5 text-green-500" />
@@ -155,7 +200,15 @@ export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart
             </ul>
           </div>
 
-          {isSoulPlan ? (
+          {isAstralChart ? (
+            <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+              <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                <strong>Importante:</strong> Para um mapa astral preciso, é essencial saber a hora exata de nascimento. 
+                Se não souber, consulte sua certidão de nascimento ou pergunte a familiares. 
+                A hora influencia diretamente o ascendente e as casas astrológicas.
+              </p>
+            </div>
+          ) : isSoulPlan ? (
             <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-lg p-4">
               <p className="text-sm text-violet-800 dark:text-violet-200">
                 <strong>Importante:</strong> Use o nome completo exatamente como consta na sua certidão de nascimento. 
@@ -178,7 +231,7 @@ export function DiagnosticWelcome({ participantName, facilitatorProfile, onStart
             size="lg" 
             className="w-full text-lg py-6"
           >
-            {isSoulPlan ? "Iniciar Mapa da Alma" : isDisc ? "Iniciar Perfil DISC" : "Iniciar Diagnóstico"}
+            {getButtonLabel()}
           </Button>
         </CardContent>
       </Card>
