@@ -1,4 +1,4 @@
-// Definição das 5 dimensões do diagnóstico IQ+IS
+// Definição das 5 dimensões do Diagnóstico de Consciência Integral
 
 export interface DiagnosticDimension {
   id: number;

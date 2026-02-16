@@ -120,7 +120,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
             </div>
             <div className="text-center sm:text-left">
               <h1 className="font-display text-2xl font-semibold text-foreground">Resultado de {firstName}</h1>
-              <p className="text-base text-muted-foreground mt-1">Diagnóstico IQ+IS — Inteligência Emocional + Espiritual</p>
+              <p className="text-base text-muted-foreground mt-1">Diagnóstico de Consciência Integral</p>
               <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2 justify-center sm:justify-start">
                 <Calendar className="h-3.5 w-3.5" />Concluído em {completedDate}
               </p>
@@ -172,7 +172,7 @@ export function DiagnosticResults({ participantName, participantEmail, accessTok
               </div>
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h3>
+              <h3 className="font-display text-lg font-semibold mb-1">Sobre o Diagnóstico de Consciência Integral</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
             </div>
           </div>

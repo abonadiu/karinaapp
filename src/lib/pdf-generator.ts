@@ -145,7 +145,7 @@ function addHeaderAndFooter(ctx: PageContext, sectionTitle?: string): void {
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
-  pdf.text("DIAGNÓSTICO IQ+IS", margin, 9);
+  pdf.text("DIAGNÓSTICO DE CONSCIÊNCIA INTEGRAL", margin, 9);
 
   if (sectionTitle) {
     pdf.setFont("helvetica", "normal");
@@ -210,7 +210,7 @@ function drawCoverPage(ctx: PageContext, data: PDFGeneratorOptions): void {
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(28);
   pdf.setFont("helvetica", "bold");
-  pdf.text("DIAGNÓSTICO IQ+IS", pageWidth / 2, 40, { align: "center" });
+  pdf.text("DIAGNÓSTICO DE CONSCIÊNCIA INTEGRAL", pageWidth / 2, 40, { align: "center" });
 
   // Subtitle
   pdf.setFontSize(13);
@@ -356,7 +356,7 @@ function drawWelcomePage(ctx: PageContext, data: PDFGeneratorOptions): void {
   pdf.setFontSize(18);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b);
-  pdf.text("Sobre o Diagnóstico IQ+IS", margin, y);
+  pdf.text("Sobre o Diagnóstico de Consciência Integral", margin, y);
   y += 10;
 
   // Decorative line
@@ -1436,7 +1436,7 @@ export async function generateDiagnosticPDF(
     .replace(/[^a-z0-9-]/g, "");
 
   const dateStr = new Date().toISOString().split("T")[0];
-  const fileName = `diagnostico-iq-is-${sanitizedName}-${dateStr}.pdf`;
+  const fileName = `diagnostico-consciencia-integral-${sanitizedName}-${dateStr}.pdf`;
 
   pdf.save(fileName);
 }

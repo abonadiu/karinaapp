@@ -173,7 +173,7 @@ export function ParticipantResultModal({
             </div>
           </div>
           <div>
-            <h4 className="font-display text-base font-semibold mb-1">Sobre o Diagnóstico IQ+IS</h4>
+            <h4 className="font-display text-base font-semibold mb-1">Sobre o Diagnóstico de Consciência Integral</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">{DIAGNOSTIC_INTRO}</p>
           </div>
         </div>

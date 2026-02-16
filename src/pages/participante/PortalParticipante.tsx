@@ -278,7 +278,7 @@ function LegacyResultView({
       <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="pt-6 text-center">
           <Award className="h-10 w-10 text-primary mx-auto mb-3" />
-          <h2 className="text-xl font-semibold mb-1">Diagnóstico IQ+IS</h2>
+          <h2 className="text-xl font-semibold mb-1">Diagnóstico de Consciência Integral</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Concluído em {new Date(result.completed_at).toLocaleDateString("pt-BR")}
           </p>

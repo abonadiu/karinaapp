@@ -73,7 +73,7 @@ export async function generateTeamPDF(data: TeamReportData): Promise<void> {
   
   pdf.setFontSize(16);
   pdf.setFont("helvetica", "normal");
-  pdf.text("Diagnóstico IQ+IS", pageWidth / 2, 48, { align: "center" });
+  pdf.text("Diagnóstico de Consciência Integral", pageWidth / 2, 48, { align: "center" });
   
   pdf.setFontSize(12);
   pdf.text(data.companyName, pageWidth / 2, 65, { align: "center" });
