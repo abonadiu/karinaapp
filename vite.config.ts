@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "circular-natal-horoscope-js": path.resolve(__dirname, "./node_modules/circular-natal-horoscope-js/dist/index.js"),
     },
   },
 }));
