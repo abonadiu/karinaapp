@@ -6,10 +6,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ResultsRadarChart } from "@/components/diagnostic/ResultsRadarChart";
 import { DimensionCard } from "@/components/diagnostic/DimensionCard";
 import { RecommendationList } from "@/components/diagnostic/RecommendationList";
+import { DiscResults } from "@/components/disc/DiscResults";
+import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
+import { AstralChartResults } from "@/components/astral-chart/AstralChartResults";
 import { getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
+import { generateAstralChartPDF } from "@/lib/astral-chart-pdf-generator";
+import { AstralChartResult } from "@/lib/astral-chart-calculator";
 import {
-  Brain, Target, Heart, ChevronDown, ChevronUp, Award,
+  Brain, Target, Heart, Star, Globe, ChevronDown, ChevronUp, Award,
   Calendar, Clock, CheckCircle2, AlertCircle, TrendingUp, TrendingDown, Download, Loader2,
 } from "lucide-react";
 import { generateDiagnosticPDF } from "@/lib/pdf-generator";
@@ -27,7 +32,8 @@ export interface TestData {
   result: {
     id: string;
     total_score: number;
-    dimension_scores: Record<string, { score: number }>;
+    dimension_scores: Record<string, any>;
+    exercises_data?: Record<string, any>;
     completed_at: string;
   } | null;
 }
@@ -42,6 +48,8 @@ const iconMap: Record<string, React.ElementType> = {
   brain: Brain,
   target: Target,
   heart: Heart,
+  star: Star,
+  globe: Globe,
 };
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: React.ElementType }> = {
@@ -68,34 +76,50 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
   const StatusIcon = status.icon;
   const isCompleted = test.status === "completed" && test.result;
 
-  const dimensionScores = test.result
+  const isDiscTest = test.test_slug === "disc";
+  const isSoulPlanTest = test.test_slug === "mapa_da_alma";
+  const isAstralChartTest = test.test_slug === "mapa_astral";
+  const isSpecialTest = isDiscTest || isSoulPlanTest || isAstralChartTest;
+
+  // For IQ+IS (generic) tests, build dimension scores
+  const dimensionScores = (!isSpecialTest && test.result)
     ? Object.entries(test.result.dimension_scores).map(([dimension, data], index) => ({
         dimension,
         dimensionOrder: index + 1,
-        score: data.score,
+        score: typeof data === "object" && data !== null ? (data as any).score : Number(data),
         maxScore: 5,
-        percentage: (data.score / 5) * 100,
+        percentage: ((typeof data === "object" && data !== null ? (data as any).score : Number(data)) / 5) * 100,
       }))
     : [];
 
-  const weakDimensions = isCompleted ? getWeakestDimensions(dimensionScores) : [];
-  const strongDimensions = isCompleted ? getStrongestDimensions(dimensionScores) : [];
-  const recommendations = isCompleted
+  const weakDimensions = (!isSpecialTest && isCompleted) ? getWeakestDimensions(dimensionScores) : [];
+  const strongDimensions = (!isSpecialTest && isCompleted) ? getStrongestDimensions(dimensionScores) : [];
+  const recommendations = (!isSpecialTest && isCompleted)
     ? getRecommendationsForWeakDimensions(weakDimensions.map((d) => d.dimension))
     : [];
 
   const handleDownloadPDF = async () => {
-    if (!contentRef.current || !test.result) return;
+    if (!test.result) return;
     setIsGeneratingPDF(true);
     try {
-      await generateDiagnosticPDF(contentRef.current, {
-        participantName,
-        totalScore: test.result.total_score,
-        dimensionScores,
-        recommendations,
-        completedAt: test.result.completed_at,
-        facilitatorProfile: facilitatorLogoUrl ? { logo_url: facilitatorLogoUrl } : undefined,
-      });
+      if (isAstralChartTest) {
+        const chartResult = test.result.exercises_data?.fullResult;
+        if (chartResult) {
+          await generateAstralChartPDF({
+            participantName,
+            result: chartResult as AstralChartResult,
+          });
+        }
+      } else if (!isSpecialTest && contentRef.current) {
+        await generateDiagnosticPDF(contentRef.current, {
+          participantName,
+          totalScore: test.result.total_score,
+          dimensionScores,
+          recommendations,
+          completedAt: test.result.completed_at,
+          facilitatorProfile: facilitatorLogoUrl ? { logo_url: facilitatorLogoUrl } : undefined,
+        });
+      }
       toast.success("PDF gerado com sucesso!");
     } catch {
       toast.error("Erro ao gerar PDF");
@@ -103,6 +127,53 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
       setIsGeneratingPDF(false);
     }
   };
+
+  // Render special test results (DISC, Soul Plan, Astral Chart)
+  const renderSpecialTestResults = () => {
+    if (!test.result) return null;
+
+    if (isDiscTest) {
+      return (
+        <DiscResults
+          participantName={participantName}
+          existingResult={{
+            dimension_scores: test.result.dimension_scores,
+            total_score: test.result.total_score,
+          }}
+        />
+      );
+    }
+
+    if (isSoulPlanTest) {
+      return (
+        <SoulPlanResults
+          participantName={participantName}
+          existingResult={{
+            dimension_scores: test.result.dimension_scores,
+            total_score: test.result.total_score,
+          }}
+        />
+      );
+    }
+
+    if (isAstralChartTest) {
+      const chartResult = test.result.exercises_data?.fullResult;
+      if (chartResult) {
+        return (
+          <AstralChartResults
+            participantName={participantName}
+            result={chartResult as AstralChartResult}
+            onDownloadPDF={handleDownloadPDF}
+          />
+        );
+      }
+    }
+
+    return null;
+  };
+
+  // Show score for non-special tests
+  const showScore = isCompleted && !isSpecialTest;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -121,7 +192,7 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
                       <StatusIcon className="h-3 w-3" />
                       {status.label}
                     </Badge>
-                    {isCompleted && test.result && (
+                    {showScore && test.result && (
                       <span className="text-sm font-medium text-primary">
                         Score: {test.result.total_score.toFixed(1)}/5
                       </span>
@@ -179,77 +250,83 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
         {isCompleted && test.result && (
           <CollapsibleContent>
             <CardContent ref={contentRef} className="pt-0 space-y-6">
-              {/* Score highlight */}
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-5 text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Award className="h-6 w-6 text-primary" />
-                  <span className="text-sm text-muted-foreground">Score Geral</span>
-                </div>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-4xl font-bold text-primary">{test.result.total_score.toFixed(1)}</span>
-                  <span className="text-lg text-muted-foreground">/5</span>
-                </div>
-              </div>
-
-              {/* Radar Chart */}
-              <div>
-                <h4 className="font-semibold mb-3">Visão Geral das Dimensões</h4>
-                <ResultsRadarChart scores={dimensionScores} />
-              </div>
-
-              {/* Strong Points */}
-              {strongDimensions.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <h4 className="font-semibold text-sm">Pontos Fortes</h4>
+              {isSpecialTest ? (
+                renderSpecialTestResults()
+              ) : (
+                <>
+                  {/* Score highlight */}
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-5 text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Award className="h-6 w-6 text-primary" />
+                      <span className="text-sm text-muted-foreground">Score Geral</span>
+                    </div>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-4xl font-bold text-primary">{test.result.total_score.toFixed(1)}</span>
+                      <span className="text-lg text-muted-foreground">/5</span>
+                    </div>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {strongDimensions.map((s) => (
-                      <DimensionCard key={s.dimension} score={s} isStrong />
+
+                  {/* Radar Chart */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Visão Geral das Dimensões</h4>
+                    <ResultsRadarChart scores={dimensionScores} />
+                  </div>
+
+                  {/* Strong Points */}
+                  {strongDimensions.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <h4 className="font-semibold text-sm">Pontos Fortes</h4>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {strongDimensions.map((s) => (
+                          <DimensionCard key={s.dimension} score={s} isStrong />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Weak Points */}
+                  {weakDimensions.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <TrendingDown className="h-4 w-4 text-destructive" />
+                        <h4 className="font-semibold text-sm">Áreas de Desenvolvimento</h4>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {weakDimensions.map((s) => (
+                          <DimensionCard key={s.dimension} score={s} isWeak />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* All dimensions */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm">Detalhamento por Dimensão</h4>
+                    {dimensionScores.map((s) => (
+                      <DimensionCard
+                        key={s.dimension}
+                        score={s}
+                        isWeak={weakDimensions.some((w) => w.dimension === s.dimension)}
+                        isStrong={strongDimensions.some((st) => st.dimension === s.dimension)}
+                      />
                     ))}
                   </div>
-                </div>
-              )}
 
-              {/* Weak Points */}
-              {weakDimensions.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <TrendingDown className="h-4 w-4 text-destructive" />
-                    <h4 className="font-semibold text-sm">Áreas de Desenvolvimento</h4>
+                  {/* Recommendations */}
+                  {recommendations.length > 0 && <RecommendationList recommendations={recommendations} />}
+
+                  {/* Download PDF */}
+                  <div className="flex justify-center pdf-hide">
+                    <Button variant="outline" className="gap-2" onClick={handleDownloadPDF} disabled={isGeneratingPDF}>
+                      {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      {isGeneratingPDF ? "Gerando PDF..." : "Baixar PDF"}
+                    </Button>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {weakDimensions.map((s) => (
-                      <DimensionCard key={s.dimension} score={s} isWeak />
-                    ))}
-                  </div>
-                </div>
+                </>
               )}
-
-              {/* All dimensions */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Detalhamento por Dimensão</h4>
-                {dimensionScores.map((s) => (
-                  <DimensionCard
-                    key={s.dimension}
-                    score={s}
-                    isWeak={weakDimensions.some((w) => w.dimension === s.dimension)}
-                    isStrong={strongDimensions.some((st) => st.dimension === s.dimension)}
-                  />
-                ))}
-              </div>
-
-              {/* Recommendations */}
-              {recommendations.length > 0 && <RecommendationList recommendations={recommendations} />}
-
-              {/* Download PDF */}
-              <div className="flex justify-center pdf-hide">
-                <Button variant="outline" className="gap-2" onClick={handleDownloadPDF} disabled={isGeneratingPDF}>
-                  {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                  {isGeneratingPDF ? "Gerando PDF..." : "Baixar PDF"}
-                </Button>
-              </div>
             </CardContent>
           </CollapsibleContent>
         )}

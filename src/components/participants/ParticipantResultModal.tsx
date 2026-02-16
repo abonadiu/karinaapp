@@ -13,6 +13,9 @@ import { CrossAnalysis } from "@/components/diagnostic/CrossAnalysis";
 import { ActionPlan } from "@/components/diagnostic/ActionPlan";
 import { DiscResults } from "@/components/disc/DiscResults";
 import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
+import { AstralChartResults } from "@/components/astral-chart/AstralChartResults";
+import { generateAstralChartPDF } from "@/lib/astral-chart-pdf-generator";
+import { AstralChartResult } from "@/lib/astral-chart-calculator";
 import {
   DimensionScore,
   getStrongestDimensions,
@@ -68,6 +71,37 @@ export function ParticipantResultModal({
           ),
           total_score: totalScore,
         }}
+      />
+    );
+  }
+
+  // If Astral Chart test, render AstralChartResults component
+  if (testTypeSlug === "mapa_astral") {
+    // The full chart result is stored in exercises_data.fullResult
+    // We reconstruct it from dimension_scores which contains the chart data
+    const chartDataObj = Object.fromEntries(
+      rawDimensionScores.map(d => [d.dimension, d.score])
+    );
+    const chartResult = (chartDataObj as any)?.fullResult || chartDataObj;
+
+    const handleAstralPDF = async () => {
+      try {
+        await generateAstralChartPDF({
+          participantName,
+          result: chartResult as AstralChartResult,
+        });
+        toast.success("PDF do Mapa Astral gerado com sucesso!");
+      } catch (error) {
+        console.error("Erro ao gerar PDF:", error);
+        toast.error("Erro ao gerar PDF. Tente novamente.");
+      }
+    };
+
+    return (
+      <AstralChartResults
+        participantName={participantName}
+        result={chartResult as AstralChartResult}
+        onDownloadPDF={handleAstralPDF}
       />
     );
   }
