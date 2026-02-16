@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { renderZodiacWheelToDataURL } from './astral-chart-wheel-renderer';
 import type {
   AstralChartResult,
   PlanetPosition,
@@ -121,65 +122,62 @@ function checkPageBreak(doc: jsPDF, y: number, needed: number, section: string, 
 // COVER PAGE
 // ============================================================
 
-function addCoverPage(doc: jsPDF, data: AstralChartPDFData) {
+function addCoverPage(doc: jsPDF, data: AstralChartPDFData, wheelDataURL?: string) {
   const { result, participantName } = data;
+  const cx = PAGE_WIDTH / 2;
 
   // Background
   doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
 
-  // Decorative circle
-  doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(0.5);
-  const cx = PAGE_WIDTH / 2;
-  doc.circle(cx, 100, 40);
-  doc.circle(cx, 100, 35);
-
-  // Zodiac symbols around the circle
-  const zodiacSymbols = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
-  doc.setFontSize(10);
-  doc.setTextColor(255, 255, 255);
-  zodiacSymbols.forEach((symbol, i) => {
-    const angle = (i * 30 - 90) * (Math.PI / 180);
-    const x = cx + 45 * Math.cos(angle);
-    const y = 100 + 45 * Math.sin(angle);
-    doc.text(symbol, x, y, { align: 'center' });
-  });
-
-  // Globe symbol in center
-  doc.setFontSize(28);
-  doc.text('☉', cx, 98, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text('☽', cx - 12, 105, { align: 'center' });
-  doc.text('↑', cx + 12, 105, { align: 'center' });
-
-  // Title
+  // Title at top
   doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
-  doc.text('MAPA ASTRAL', cx, 165, { align: 'center' });
+  doc.setTextColor(255, 255, 255);
+  doc.text('MAPA ASTRAL', cx, 25, { align: 'center' });
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.text('Carta Natal Completa', cx, 178, { align: 'center' });
+  doc.text('Carta Natal Completa', cx, 37, { align: 'center' });
+
+  // Zodiac wheel image (centered)
+  if (wheelDataURL) {
+    const wheelSize = 140;
+    const wheelX = cx - wheelSize / 2;
+    const wheelY = 48;
+    doc.addImage(wheelDataURL, 'PNG', wheelX, wheelY, wheelSize, wheelSize);
+  } else {
+    // Fallback: simple decorative circles
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.5);
+    doc.circle(cx, 120, 40);
+    doc.circle(cx, 120, 35);
+  }
 
   // Participant name
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text(participantName.toUpperCase(), cx, 200, { align: 'center' });
+  doc.setTextColor(255, 255, 255);
+  doc.text(participantName.toUpperCase(), cx, 205, { align: 'center' });
 
   // Birth data
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   const birthLine = `${result.birthData.day}/${result.birthData.month}/${result.birthData.year} - ${String(result.birthData.hour).padStart(2, '0')}:${String(result.birthData.minute).padStart(2, '0')}`;
-  doc.text(birthLine, cx, 215, { align: 'center' });
-  doc.text(result.birthData.cityName, cx, 223, { align: 'center' });
+  doc.text(birthLine, cx, 218, { align: 'center' });
+  doc.text(result.birthData.cityName, cx, 226, { align: 'center' });
 
   // Big Three summary
   doc.setFontSize(10);
-  const y = 245;
-  doc.text(`Sol: ${SIGN_SYMBOLS[result.sunSign]} ${result.sunSignLabel}`, cx - 40, y, { align: 'center' });
-  doc.text(`Lua: ${SIGN_SYMBOLS[result.moonSign]} ${result.moonSignLabel}`, cx, y, { align: 'center' });
-  doc.text(`ASC: ${SIGN_SYMBOLS[result.ascendantSign]} ${result.ascendantSignLabel}`, cx + 40, y, { align: 'center' });
+  const signLabels: Record<string, string> = {
+    aries: 'Aries', taurus: 'Touro', gemini: 'Gemeos', cancer: 'Cancer',
+    leo: 'Leao', virgo: 'Virgem', libra: 'Libra', scorpio: 'Escorpiao',
+    sagittarius: 'Sagitario', capricorn: 'Capricornio', aquarius: 'Aquario', pisces: 'Peixes',
+  };
+  const y = 248;
+  doc.text(`Sol: ${signLabels[result.sunSign] || result.sunSignLabel}`, cx - 40, y, { align: 'center' });
+  doc.text(`Lua: ${signLabels[result.moonSign] || result.moonSignLabel}`, cx, y, { align: 'center' });
+  doc.text(`ASC: ${signLabels[result.ascendantSign] || result.ascendantSignLabel}`, cx + 40, y, { align: 'center' });
 
   // Footer
   doc.setFontSize(8);
@@ -207,8 +205,29 @@ export async function generateAstralChartPDF(data: AstralChartPDFData): Promise<
   // Estimate total pages
   const totalPages = 4 + Math.ceil(mainPlanets.length / 2) + 2;
 
+  // ---- RENDER ZODIAC WHEEL ----
+  let wheelDataURL: string | undefined;
+  try {
+    wheelDataURL = renderZodiacWheelToDataURL(result);
+  } catch (e) {
+    console.warn('Failed to render zodiac wheel for PDF:', e);
+  }
+
   // ---- COVER PAGE ----
-  addCoverPage(doc, data);
+  addCoverPage(doc, data, wheelDataURL);
+
+  // ---- PAGE 2: FULL ZODIAC WHEEL ----
+  doc.addPage();
+  addHeader(doc, 'Carta Natal');
+  if (wheelDataURL) {
+    const wheelPageSize = 170;
+    const wheelPageX = (PAGE_WIDTH - wheelPageSize) / 2;
+    doc.addImage(wheelDataURL, 'PNG', wheelPageX, 22, wheelPageSize, wheelPageSize);
+  }
+  doc.setFontSize(9);
+  setColor(doc, COLORS.muted);
+  doc.text('Roda zodiacal com posições planetárias, casas e aspectos', PAGE_WIDTH / 2, 198, { align: 'center' });
+  addFooter(doc, participantName, facilitatorName, 2, totalPages + 1);
 
   // ---- PAGE 2: BIG THREE + OVERVIEW ----
   doc.addPage();
