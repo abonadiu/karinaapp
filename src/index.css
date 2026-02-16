@@ -4,129 +4,131 @@
 @tailwind components;
 @tailwind utilities;
 
-/* IQ+IS Platform Design System
-   Warm, welcoming design with earthy tones and soft oranges
+/* Karina Bonadiu Platform Design System
+   Elegant, serene design aligned with the landing page identity
+   Primary: Deep blue #335072 | Accent: Soft rose #B38F8F
+   Background: Warm cream #F2E9E4 | Decorative: Sand #D4BCB2
    All colors in HSL format
 */
 
 @layer base {
   :root {
-    /* Warm cream background */
-    --background: 40 33% 98%;
-    --foreground: 25 30% 15%;
+    /* Warm cream background — aligned with landing page #F2E9E4 */
+    --background: 21 35% 96%;
+    --foreground: 212 38% 22%;
 
     /* Card with subtle warmth */
-    --card: 40 25% 97%;
-    --card-foreground: 25 30% 15%;
+    --card: 21 30% 97%;
+    --card-foreground: 212 38% 22%;
 
     /* Popover matching cards */
-    --popover: 40 25% 97%;
-    --popover-foreground: 25 30% 15%;
+    --popover: 21 30% 97%;
+    --popover-foreground: 212 38% 22%;
 
-    /* Primary: Warm terracotta */
-    --primary: 24 70% 50%;
-    --primary-foreground: 40 33% 98%;
+    /* Primary: Deep blue #335072 */
+    --primary: 212 38% 32%;
+    --primary-foreground: 21 35% 96%;
 
-    /* Secondary: Soft sage green */
-    --secondary: 45 20% 92%;
-    --secondary-foreground: 25 30% 25%;
+    /* Secondary: Soft blue-gray #8695AC */
+    --secondary: 216 19% 92%;
+    --secondary-foreground: 212 38% 25%;
 
     /* Muted: Warm gray — improved contrast */
-    --muted: 40 15% 92%;
-    --muted-foreground: 25 18% 38%;
+    --muted: 21 15% 92%;
+    --muted-foreground: 212 20% 40%;
 
-    /* Accent: Golden warmth */
-    --accent: 38 60% 55%;
-    --accent-foreground: 25 30% 15%;
+    /* Accent: Soft rose #B38F8F */
+    --accent: 0 19% 63%;
+    --accent-foreground: 212 38% 22%;
 
     /* Destructive: Warm red */
     --destructive: 0 65% 55%;
-    --destructive-foreground: 40 33% 98%;
+    --destructive-foreground: 21 35% 96%;
 
-    /* Borders and inputs */
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 24 70% 50%;
+    /* Borders and inputs — sand tone #D4BCB2 */
+    --border: 18 28% 85%;
+    --input: 18 28% 85%;
+    --ring: 212 38% 32%;
 
     --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 35 25% 96%;
-    --sidebar-foreground: 25 30% 25%;
-    --sidebar-primary: 24 70% 50%;
-    --sidebar-primary-foreground: 40 33% 98%;
-    --sidebar-accent: 40 20% 92%;
-    --sidebar-accent-foreground: 25 30% 25%;
-    --sidebar-border: 30 20% 88%;
-    --sidebar-ring: 24 70% 50%;
+    /* Sidebar — aligned with deep blue */
+    --sidebar-background: 21 25% 96%;
+    --sidebar-foreground: 212 38% 25%;
+    --sidebar-primary: 212 38% 32%;
+    --sidebar-primary-foreground: 21 35% 96%;
+    --sidebar-accent: 21 20% 92%;
+    --sidebar-accent-foreground: 212 38% 25%;
+    --sidebar-border: 18 28% 85%;
+    --sidebar-ring: 212 38% 32%;
 
-    /* Custom tokens for IQ+IS */
-    --warm-50: 40 33% 98%;
-    --warm-100: 38 30% 95%;
-    --warm-200: 35 25% 90%;
-    --warm-300: 32 22% 82%;
-    --warm-400: 28 20% 65%;
-    --warm-500: 25 18% 50%;
-    --warm-600: 22 20% 40%;
-    --warm-700: 20 25% 30%;
-    --warm-800: 18 30% 20%;
-    --warm-900: 15 35% 12%;
+    /* Custom tokens for Karina Bonadiu palette */
+    --warm-50: 21 35% 96%;
+    --warm-100: 21 30% 94%;
+    --warm-200: 18 28% 90%;
+    --warm-300: 18 25% 82%;
+    --warm-400: 212 20% 60%;
+    --warm-500: 212 30% 45%;
+    --warm-600: 212 35% 35%;
+    --warm-700: 212 38% 32%;
+    --warm-800: 213 39% 27%;
+    --warm-900: 215 40% 18%;
 
     /* Dimension colors for radar chart */
-    --dimension-consciousness: 24 70% 50%;
-    --dimension-coherence: 38 60% 55%;
+    --dimension-consciousness: 212 38% 32%;
+    --dimension-coherence: 0 19% 63%;
     --dimension-purpose: 145 40% 45%;
-    --dimension-compassion: 200 50% 50%;
+    --dimension-compassion: 216 19% 60%;
     --dimension-growth: 280 40% 55%;
 
     /* Success/Info states */
     --success: 145 50% 42%;
-    --success-foreground: 40 33% 98%;
-    --info: 200 60% 50%;
-    --info-foreground: 40 33% 98%;
+    --success-foreground: 21 35% 96%;
+    --info: 216 19% 60%;
+    --info-foreground: 21 35% 96%;
     --warning: 38 90% 50%;
-    --warning-foreground: 25 30% 15%;
+    --warning-foreground: 212 38% 22%;
   }
 
   .dark {
-    /* Dark mode with warm undertones */
-    --background: 25 20% 10%;
-    --foreground: 40 20% 92%;
+    /* Dark mode with cool blue undertones */
+    --background: 215 25% 10%;
+    --foreground: 21 20% 92%;
 
-    --card: 25 18% 14%;
-    --card-foreground: 40 20% 92%;
+    --card: 215 22% 14%;
+    --card-foreground: 21 20% 92%;
 
-    --popover: 25 18% 14%;
-    --popover-foreground: 40 20% 92%;
+    --popover: 215 22% 14%;
+    --popover-foreground: 21 20% 92%;
 
-    --primary: 24 65% 55%;
-    --primary-foreground: 25 20% 10%;
+    --primary: 212 35% 45%;
+    --primary-foreground: 215 25% 10%;
 
-    --secondary: 25 15% 20%;
-    --secondary-foreground: 40 20% 88%;
+    --secondary: 215 15% 20%;
+    --secondary-foreground: 21 20% 88%;
 
     /* Muted: improved contrast for dark mode */
-    --muted: 25 12% 22%;
-    --muted-foreground: 30 15% 65%;
+    --muted: 215 12% 22%;
+    --muted-foreground: 216 15% 65%;
 
-    --accent: 38 55% 50%;
-    --accent-foreground: 40 20% 92%;
+    --accent: 0 15% 50%;
+    --accent-foreground: 21 20% 92%;
 
     --destructive: 0 55% 45%;
-    --destructive-foreground: 40 20% 92%;
+    --destructive-foreground: 21 20% 92%;
 
-    --border: 25 15% 22%;
-    --input: 25 15% 22%;
-    --ring: 24 65% 55%;
+    --border: 215 15% 22%;
+    --input: 215 15% 22%;
+    --ring: 212 35% 45%;
 
-    --sidebar-background: 25 18% 12%;
-    --sidebar-foreground: 40 20% 88%;
-    --sidebar-primary: 24 65% 55%;
-    --sidebar-primary-foreground: 25 20% 10%;
-    --sidebar-accent: 25 12% 18%;
-    --sidebar-accent-foreground: 40 20% 88%;
-    --sidebar-border: 25 15% 22%;
-    --sidebar-ring: 24 65% 55%;
+    --sidebar-background: 215 22% 12%;
+    --sidebar-foreground: 21 20% 88%;
+    --sidebar-primary: 212 35% 45%;
+    --sidebar-primary-foreground: 215 25% 10%;
+    --sidebar-accent: 215 12% 18%;
+    --sidebar-accent-foreground: 21 20% 88%;
+    --sidebar-border: 215 15% 22%;
+    --sidebar-ring: 212 35% 45%;
   }
 }
 
@@ -164,7 +166,7 @@
 }
 
 @layer utilities {
-  /* Gradient utilities */
+  /* Gradient utilities — aligned with Karina Bonadiu brand */
   .gradient-warm {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
   }
@@ -173,7 +175,7 @@
     background: linear-gradient(135deg, hsl(var(--warm-100)) 0%, hsl(var(--warm-200)) 100%);
   }
 
-  /* Shadow utilities with warm tones */
+  /* Shadow utilities with cool-warm tones */
   .shadow-warm-sm {
     box-shadow: 0 1px 2px 0 hsl(var(--warm-400) / 0.05);
   }

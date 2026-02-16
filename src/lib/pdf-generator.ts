@@ -165,8 +165,8 @@ function addHeaderAndFooter(ctx: PageContext, sectionTitle?: string): void {
   pdf.setTextColor(150, 150, 150);
 
   const footerText = ctx.facilitatorName
-    ? `Gerado por ${ctx.facilitatorName} via IQ+IS`
-    : "Gerado via IQ+IS";
+    ? `Gerado por ${ctx.facilitatorName} via Karina Bonadiu`
+    : "Gerado via Karina Bonadiu";
   pdf.text(footerText, margin, pageHeight - 9);
 
   const pageText = `${ctx.participantName} — Página ${ctx.currentPage}`;

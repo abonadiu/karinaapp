@@ -581,7 +581,7 @@ export function DiscResults({
               </span>
             </p>
           )}
-          <p>Perfil DISC via IQ+IS &copy; {new Date().getFullYear()}</p>
+          <p>Perfil DISC via Karina Bonadiu &copy; {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>

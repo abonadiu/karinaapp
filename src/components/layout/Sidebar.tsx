@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { BrandSymbol } from "@/components/site/BrandSymbol";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -140,11 +141,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-3">
-          <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-bold text-sm font-serif">IQ</span>
-          </div>
+          <BrandSymbol size={28} color="#335072" className="shrink-0" />
           {!collapsed && (
-            <span className="text-lg font-serif font-semibold text-sidebar-foreground">IQ+IS</span>
+            <span
+              className="text-[#335072] text-sm tracking-[0.15em] leading-tight"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+            >
+              KARINA BONADIU
+            </span>
           )}
         </Link>
       </SidebarHeader>

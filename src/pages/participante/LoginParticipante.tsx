@@ -43,7 +43,7 @@ export default function LoginParticipante() {
   return (
     <AuthLayout 
       title="Portal do Participante" 
-      subtitle="Acesse seus resultados do diagnóstico IQ+IS"
+      subtitle="Acesse seus resultados de diagnóstico"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

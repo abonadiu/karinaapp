@@ -422,8 +422,8 @@ export async function generateTeamPDF(data: TeamReportData): Promise<void> {
     pdf.setFont("helvetica", "normal");
     
     const footerText = data.facilitatorName 
-      ? `Gerado por ${data.facilitatorName} via IQ+IS`
-      : "Gerado via IQ+IS";
+      ? `Gerado por ${data.facilitatorName} via Karina Bonadiu`
+      : "Gerado via Karina Bonadiu";
     pdf.text(footerText, margin, pageHeight - 8);
     
     pdf.text(`Página ${i}/${totalPages}`, pageWidth - margin - 20, pageHeight - 8);

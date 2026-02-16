@@ -176,7 +176,7 @@ export function AdminSettings() {
                 id="platformName"
                 value={platformName}
                 onChange={(e) => setPlatformName(e.target.value)}
-                placeholder="Plataforma IQ+IS"
+                placeholder="Plataforma Karina Bonadiu"
               />
             </div>
             <div className="space-y-2">
@@ -211,7 +211,7 @@ export function AdminSettings() {
                 id="inviteSubject"
                 value={inviteSubject}
                 onChange={(e) => setInviteSubject(e.target.value)}
-                placeholder="Convite para Diagnóstico IQ+IS"
+                placeholder="Convite para Diagnóstico"
               />
             </div>
             <div className="space-y-2">

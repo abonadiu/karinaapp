@@ -65,8 +65,8 @@ function addFooter(doc: jsPDF, participantName: string, facilitatorName: string 
   doc.setFontSize(7);
   setColor(doc, COLORS.muted);
   const footerLeft = facilitatorName
-    ? `Gerado por ${facilitatorName} via IQ+IS`
-    : 'Gerado via IQ+IS';
+    ? `Gerado por ${facilitatorName} via Karina Bonadiu`
+    : 'Gerado via Karina Bonadiu';
   doc.text(footerLeft, MARGIN, y);
   doc.text(participantName, PAGE_WIDTH / 2, y, { align: 'center' });
   doc.text(`${pageNum} / ${totalPages}`, PAGE_WIDTH - MARGIN, y, { align: 'right' });

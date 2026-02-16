@@ -133,8 +133,8 @@ function addFooter(
   doc.setFont("helvetica", "normal");
 
   const leftText = facilitatorName
-    ? `Gerado por ${facilitatorName} via IQ+IS`
-    : "Gerado via IQ+IS";
+    ? `Gerado por ${facilitatorName} via Karina Bonadiu`
+    : "Gerado via Karina Bonadiu";
   doc.text(leftText, PAGE.marginLeft, y);
   doc.text(participantName, PAGE.width / 2, y, { align: "center" });
   doc.text(`${pageNum} / ${totalPages}`, PAGE.width - PAGE.marginRight, y, {
@@ -1183,7 +1183,7 @@ function addClosingPage(doc: jsPDF, data: DiscPDFData) {
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.muted);
   doc.text(
-    `Perfil DISC via IQ+IS © ${new Date().getFullYear()}`,
+    `Perfil DISC via Karina Bonadiu © ${new Date().getFullYear()}`,
     PAGE.width / 2,
     PAGE.height - 20,
     { align: "center" }
