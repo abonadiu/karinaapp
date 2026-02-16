@@ -26,6 +26,7 @@ export interface Participant {
   created_at: string;
   access_token?: string;
   invited_at?: string | null;
+  user_id?: string | null;
   companies?: {
     name: string;
   };

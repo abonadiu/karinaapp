@@ -733,6 +733,10 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: boolean
       }
+      activate_participant_account: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: boolean
+      }
       admin_link_participant_to_company: {
         Args: {
           p_company_id: string
