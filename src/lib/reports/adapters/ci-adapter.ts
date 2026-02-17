@@ -25,7 +25,7 @@ const DIMENSION_TAGS: Record<string, string[]> = {
 };
 
 export const ciAdapter: TestAdapter = {
-  slug: 'iq_is',
+  slug: 'iq-is',
   displayName: 'Diagnóstico de Consciência Integral',
   icon: 'brain',
   color: '#8B5CF6',
