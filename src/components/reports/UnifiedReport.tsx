@@ -260,7 +260,7 @@ export function UnifiedReport({ participantId, participantName, onGeneratePDF }:
 /** Renders the appropriate result component based on test slug */
 function TestResultRenderer({ slug, result, participantName }: { slug: string; result: any; participantName: string }) {
   switch (slug) {
-    case 'iq_is': {
+    case 'iq-is': {
       // DiagnosticResults expects `scores: DiagnosticScores` which contains
       // { dimensionScores, totalScore, totalPercentage }.
       // It also accepts `existingResult` and reconstructs scores from it internally.

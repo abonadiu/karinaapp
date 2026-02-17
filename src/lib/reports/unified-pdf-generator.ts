@@ -544,7 +544,7 @@ export async function generateUnifiedPDF(
   currentY = addSectionHeader(doc, 'Sobre este Relatório', currentY);
   currentY += 4;
 
-  currentY = addParagraph(doc, 'Este Relatório Unificado consolida os resultados de múltiplos testes de autoconhecimento e desenvolvimento pessoal realizados pelo participante na plataforma Karina Bonadiu.');
+  currentY = addParagraph(doc, 'Este Relatório Unificado consolida os resultados de múltiplos testes de autoconhecimento e desenvolvimento pessoal realizados pelo participante na plataforma Karina Bonadiu.', currentY);
   currentY += 2;
   currentY = addParagraph(doc, 'A Análise Cruzada Integrada é gerada por inteligência artificial, combinando os insights de todos os testes para identificar padrões, pontos fortes convergentes e áreas de desenvolvimento. Esta análise é uma ferramenta complementar e deve ser interpretada em conjunto com a devolutiva do facilitador.', currentY);
   currentY += 4;
