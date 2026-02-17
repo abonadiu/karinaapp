@@ -28,6 +28,7 @@ import {
   getAspectDescription,
   getElementDescription,
   getModalityDescription,
+  getHouseMeaning,
 } from '@/lib/astral-chart-descriptions';
 import { AstralChartWheel } from './AstralChartWheel';
 
@@ -149,6 +150,15 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
+          {/* Profile Synthesis */}
+          <Card className="border-indigo-100 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
+            <CardContent className="pt-5">
+              <p className="text-sm leading-relaxed text-muted-foreground italic">
+                Com o Sol em <strong>{result.sunSignLabel}</strong>, a Lua em <strong>{result.moonSignLabel}</strong> e o Ascendente em <strong>{result.ascendantSignLabel}</strong>, seu mapa revela uma personalidade que combina a essência de {result.sunSignLabel} com a sensibilidade emocional de {result.moonSignLabel} e a projeção social de {result.ascendantSignLabel}. O elemento dominante é <strong>{getElementLabel(dominantElement)}</strong> e a modalidade dominante é <strong>{getModalityLabel(dominantModality)}</strong>, indicando como você naturalmente se expressa e interage com o mundo.
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Ascendant */}
           <Card>
             <CardHeader>
@@ -279,6 +289,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
               <div className="space-y-3">
                 {result.houses.map((house) => {
                   const planetsInHouse = mainPlanets.filter(p => p.house === house.id);
+                  const houseMeaning = getHouseMeaning(house.id);
                   return (
                     <div key={house.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -287,10 +298,18 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{house.label}</span>
+                          {houseMeaning && (
+                            <span className="text-xs text-muted-foreground italic">— {houseMeaning.theme}</span>
+                          )}
                           <Badge variant="outline" className="text-xs">
                             {SIGN_SYMBOLS[house.sign]} {house.signLabel}
                           </Badge>
                         </div>
+                        {houseMeaning && (
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                            {houseMeaning.description}
+                          </p>
+                        )}
                         {planetsInHouse.length > 0 && (
                           <div className="flex items-center gap-1 mt-1">
                             <span className="text-sm text-muted-foreground">Planetas:</span>
@@ -314,10 +333,24 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
         <TabsContent value="aspects" className="space-y-4">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-3">
                 Os aspectos são ângulos formados entre os planetas, indicando como suas energias interagem.
                 Aspectos harmoniosos (trígono, sextil) facilitam, enquanto aspectos tensos (quadratura, oposição) desafiam.
               </p>
+              <div className="flex items-center gap-4 mb-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" />
+                  <span className="text-muted-foreground">Conjunção (neutro)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
+                  <span className="text-muted-foreground">Trígono / Sextil (harmônico)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
+                  <span className="text-muted-foreground">Quadratura / Oposição (tenso)</span>
+                </div>
+              </div>
               <div className="space-y-2">
                 {result.aspects
                   .filter(a => ['conjunction', 'opposition', 'trine', 'square', 'sextile'].includes(a.type))
