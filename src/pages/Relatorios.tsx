@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, differenceInDays, startOfMonth, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BarChart3, Calendar } from "lucide-react";
+import { BarChart3, Calendar, FileText } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { KPICards } from "@/components/analytics/KPICards";
@@ -15,6 +15,7 @@ import { CompanyDetailsTable } from "@/components/analytics/CompanyDetailsTable"
 import { ScoreEvolutionChart } from "@/components/analytics/ScoreEvolutionChart";
 import { ExportPDFButton } from "@/components/analytics/ExportPDFButton";
 import { FeedbackSessionsTab } from "@/components/feedback/FeedbackSessionsTab";
+import { ReportsIndividualTab } from "@/components/analytics/ReportsIndividualTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/backend/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -311,10 +312,14 @@ export default function Relatorios() {
       description="Análise de desempenho e métricas de engajamento"
     >
       <Tabs defaultValue="metrics" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="metrics" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             Métricas
+          </TabsTrigger>
+          <TabsTrigger value="individual" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Individuais
           </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-2">
             <Calendar className="h-4 w-4" />
@@ -372,6 +377,10 @@ export default function Relatorios() {
 
           {/* Score Evolution Chart */}
           <ScoreEvolutionChart data={scoreEvolution} isLoading={isLoading} />
+        </TabsContent>
+
+        <TabsContent value="individual">
+          <ReportsIndividualTab companies={companies} />
         </TabsContent>
 
         <TabsContent value="feedback">

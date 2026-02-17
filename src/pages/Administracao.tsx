@@ -9,13 +9,15 @@ import {
   UserCheck,
   TrendingUp,
   Loader2,
-  Shield
+  Shield,
+  FileText
 } from "lucide-react";
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminUsers } from "@/components/admin/AdminUsers";
+import { AdminIndividualReports } from "@/components/admin/AdminIndividualReports";
 import { AdminAuditLogs } from "@/components/admin/AdminAuditLogs";
 import { AdminSettings } from "@/components/admin/AdminSettings";
 import { supabase } from "@/integrations/backend/client";
@@ -77,7 +79,7 @@ export default function Administracao() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Visão Geral</span>
@@ -85,6 +87,10 @@ export default function Administracao() {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Usuários</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Relatórios</span>
             </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
@@ -102,6 +108,10 @@ export default function Administracao() {
 
           <TabsContent value="users">
             <AdminUsers />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <AdminIndividualReports />
           </TabsContent>
 
           <TabsContent value="logs">
