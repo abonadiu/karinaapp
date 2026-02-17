@@ -26,6 +26,7 @@ import {
   getAspectDescription,
   getElementDescription,
   getModalityDescription,
+  getHouseMeaning,
 } from './astral-chart-descriptions';
 import { ASTRO_FONT_BASE64, ASTRO_FONT_NAME, ASTRO_FONT_FILENAME } from './astro-symbols-font';
 
@@ -241,7 +242,7 @@ function addCoverPage(doc: jsPDF, data: AstralChartPDFData, wheelDataURL?: strin
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   setColor(doc, COLORS.muted);
-  const birthLine = `${result.birthData.day}/${result.birthData.month}/${result.birthData.year}    ${String(result.birthData.hour).padStart(2, '0')}:${String(result.birthData.minute).padStart(2, '0')}`;
+  const birthLine = `${String(result.birthData.day).padStart(2, '0')}/${String(result.birthData.month).padStart(2, '0')}/${result.birthData.year} \u00e0s ${String(result.birthData.hour).padStart(2, '0')}:${String(result.birthData.minute).padStart(2, '0')}`;
   doc.text(birthLine, cx, 241, { align: 'center' });
   doc.text(result.birthData.cityName, cx, 249, { align: 'center' });
 
@@ -307,8 +308,20 @@ export async function generateAstralChartPDF(data: AstralChartPDFData): Promise<
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   setColor(doc, COLORS.primary);
-  doc.text('Visão Geral do Mapa', MARGIN, y);
-  y += 14;
+  doc.text('Vis\u00e3o Geral do Mapa', MARGIN, y);
+  y += 10;
+
+  // Profile synthesis
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  setColor(doc, COLORS.muted);
+  const synthText = `Com o Sol em ${result.sunSignLabel}, a Lua em ${result.moonSignLabel} e o Ascendente em ${result.ascendantSignLabel}, seu mapa revela uma personalidade que combina a ess\u00eancia de ${result.sunSignLabel} com a sensibilidade emocional de ${result.moonSignLabel} e a proje\u00e7\u00e3o social de ${result.ascendantSignLabel}. O elemento dominante \u00e9 ${getElementLabel(dominantElement)} e a modalidade dominante \u00e9 ${getModalityLabel(dominantModality)}, indicando como voc\u00ea naturalmente se expressa e interage com o mundo.`;
+  const synthLines = wrapText(doc, synthText, CONTENT_WIDTH);
+  synthLines.forEach(line => {
+    doc.text(line, MARGIN, y);
+    y += 4.5;
+  });
+  y += 8;
 
   // Ascendant
   doc.setFontSize(14);
@@ -501,16 +514,36 @@ export async function generateAstralChartPDF(data: AstralChartPDFData): Promise<
   y += 6;
 
   result.houses.forEach(house => {
-    y = checkPageBreak(doc, y, 15, 'Casas Astrológicas', participantName, facilitatorName, pageNum, totalPages);
-
+    const houseMeaning = getHouseMeaning(house.id);
     const planetsInHouse = mainPlanets.filter(p => p.house === house.id);
     const planetNames = planetsInHouse.map(p => `${PLANET_SYMBOLS[p.key] || ''} ${p.label}`).join(', ');
+    const neededHeight = 22 + (houseMeaning ? 12 : 0) + (planetsInHouse.length > 0 ? 6 : 0);
+
+    y = checkPageBreak(doc, y, neededHeight, 'Casas Astrol\u00f3gicas', participantName, facilitatorName, pageNum, totalPages);
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     setColor(doc, COLORS.accent);
     textWithSymbols(doc, `${house.label} — ${SIGN_SYMBOLS[house.sign]} ${house.signLabel}`, MARGIN, y);
-    y += 6;
+
+    if (houseMeaning) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      setColor(doc, COLORS.muted);
+      doc.text(houseMeaning.theme, MARGIN + 3, y + 5);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      setColor(doc, COLORS.text);
+      const descLines = wrapText(doc, houseMeaning.description, CONTENT_WIDTH - 5);
+      let descY = y + 10;
+      descLines.forEach(line => {
+        doc.text(line, MARGIN + 3, descY);
+        descY += 4.5;
+      });
+      y = descY + 1;
+    } else {
+      y += 6;
+    }
 
     if (planetsInHouse.length > 0) {
       doc.setFontSize(9.5);
@@ -520,7 +553,7 @@ export async function generateAstralChartPDF(data: AstralChartPDFData): Promise<
       y += 6;
     }
 
-    y += 3;
+    y += 4;
   });
 
   addFooter(doc, participantName, facilitatorName, pageNum.value, totalPages);
@@ -547,6 +580,24 @@ export async function generateAstralChartPDF(data: AstralChartPDFData): Promise<
     y += 5;
   });
   y += 6;
+
+  // Aspect color legend
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  const legendItems = [
+    { label: 'Conjun\u00e7\u00e3o (neutro)', color: COLORS.neutral },
+    { label: 'Tr\u00edgono / Sextil (harm\u00f4nico)', color: COLORS.harmonious },
+    { label: 'Quadratura / Oposi\u00e7\u00e3o (tenso)', color: COLORS.tense },
+  ];
+  let legendX = MARGIN;
+  legendItems.forEach(item => {
+    doc.setFillColor(item.color.r, item.color.g, item.color.b);
+    doc.circle(legendX + 2, y - 1, 1.5, 'F');
+    setColor(doc, COLORS.text);
+    doc.text(item.label, legendX + 5, y);
+    legendX += 56;
+  });
+  y += 10;
 
   // Aspect table header
   doc.setFontSize(9.5);

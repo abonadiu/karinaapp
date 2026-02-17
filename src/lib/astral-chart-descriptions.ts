@@ -327,6 +327,25 @@ export const MODALITY_DESCRIPTIONS: Record<string, string> = {
 };
 
 // ============================================================
+// House Meanings
+// ============================================================
+
+export const HOUSE_MEANINGS: Record<number, { theme: string; description: string }> = {
+  1: { theme: 'Identidade e Aparência', description: 'A Casa 1 representa o eu, a personalidade, a aparência física e a forma como você se apresenta ao mundo. É o ponto de partida do mapa.' },
+  2: { theme: 'Recursos e Valores', description: 'A Casa 2 governa os recursos materiais, finanças pessoais, talentos naturais e o que você valoriza na vida.' },
+  3: { theme: 'Comunicação e Aprendizado', description: 'A Casa 3 rege a comunicação, o pensamento, os estudos básicos, irmãos e o ambiente próximo.' },
+  4: { theme: 'Lar e Família', description: 'A Casa 4 representa o lar, a família, as raízes, a segurança emocional e o ambiente doméstico.' },
+  5: { theme: 'Criatividade e Prazer', description: 'A Casa 5 governa a criatividade, o romance, os filhos, a diversão e a autoexpressão.' },
+  6: { theme: 'Saúde e Rotina', description: 'A Casa 6 rege a saúde, o trabalho diário, as rotinas, o serviço aos outros e os hábitos.' },
+  7: { theme: 'Relacionamentos e Parcerias', description: 'A Casa 7 representa os relacionamentos, o casamento, as parcerias e a forma como você se relaciona com o outro.' },
+  8: { theme: 'Transformação e Profundidade', description: 'A Casa 8 governa a transformação, a sexualidade, os recursos compartilhados, heranças e os mistérios da vida.' },
+  9: { theme: 'Expansão e Filosofia', description: 'A Casa 9 rege a filosofia, o ensino superior, viagens longas, a espiritualidade e a busca por significado.' },
+  10: { theme: 'Carreira e Reputação', description: 'A Casa 10 representa a carreira, a vocação, a reputação pública, as ambições e o legado.' },
+  11: { theme: 'Amizades e Ideais', description: 'A Casa 11 governa as amizades, os grupos, os ideais, os projetos futuros e a contribuição social.' },
+  12: { theme: 'Espiritualidade e Inconsciente', description: 'A Casa 12 rege o inconsciente, a espiritualidade, o isolamento, os segredos e a transcendência.' },
+};
+
+// ============================================================
 // Helper functions
 // ============================================================
 
@@ -356,4 +375,8 @@ export function getElementDescription(element: string): string {
 
 export function getModalityDescription(modality: string): string {
   return MODALITY_DESCRIPTIONS[modality] || "";
+}
+
+export function getHouseMeaning(house: number): { theme: string; description: string } | undefined {
+  return HOUSE_MEANINGS[house];
 }
