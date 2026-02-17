@@ -13,7 +13,8 @@ import {
   MoreHorizontal,
   UserPlus,
   Pencil,
-  Crown
+  Crown,
+  Trash2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/backend/client";
 import { toast } from "sonner";
 import { useImpersonation, ImpersonatedRole } from "@/contexts/ImpersonationContext";
@@ -50,6 +61,8 @@ export function AdminUsers() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editRoleDialogOpen, setEditRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { startImpersonation } = useImpersonation();
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
@@ -151,6 +164,33 @@ export function AdminUsers() {
       }
     } else {
       toast.info("Este usuário não possui um perfil específico para emular");
+    }
+  };
+  
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_delete_user', {
+        p_user_id: selectedUser.user_id
+      });
+      
+      if (error) throw error;
+      
+      if (data) {
+        toast.success("Usuário excluído com sucesso");
+        fetchUsers();
+      } else {
+        toast.error("Erro ao excluir usuário");
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast.error(error.message || "Erro ao excluir usuário");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
     }
   };
 
@@ -338,6 +378,18 @@ export function AdminUsers() {
                               <Pencil className="h-4 w-4 mr-2" />
                               Editar Roles
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setDeleteDialogOpen(true);
+                              }}
+                              disabled={user.user_id === currentUser?.id}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Usuário
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -370,6 +422,38 @@ export function AdminUsers() {
         currentUserId={currentUser?.id || ""}
         onSuccess={fetchUsers}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário
+              {selectedUser?.full_name ? ` "${selectedUser.full_name}"` : ""} e todos os dados associados a ele.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteUser();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                "Sim, excluir usuário"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
