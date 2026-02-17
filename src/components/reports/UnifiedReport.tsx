@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, FileText, Download, Brain, Target, Star, Globe, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, FileText, Download, Brain, Target, Star, Globe, Sparkles, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { ParticipantTestData } from '@/lib/reports/test-adapter';
 import { fetchParticipantTestData } from '@/lib/reports/report-data-service';
 import { generateCrossAnalysis } from '@/lib/reports/cross-analysis-service';
@@ -154,11 +154,22 @@ export function UnifiedReport({ participantId, participantName, onGeneratePDF }:
       {/* Cross Analysis */}
       {data.tests.length >= 2 && (
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-lg flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               Análise Cruzada Integrada
             </CardTitle>
+            {crossAnalysis && !isGeneratingAnalysis && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => data && generateAnalysis(data)}
+                className="gap-2 text-muted-foreground hover:text-primary"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Regenerar
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {isGeneratingAnalysis ? (

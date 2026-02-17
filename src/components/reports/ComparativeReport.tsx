@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, Download, BarChart3, ArrowUpDown, Sparkles } from 'lucide-react';
+import { Loader2, Users, Download, BarChart3, ArrowUpDown, Sparkles, RefreshCw } from 'lucide-react';
 import { ComparisonData } from '@/lib/reports/test-adapter';
 import { fetchComparisonData } from '@/lib/reports/report-data-service';
 import { getTestAdapter, getAllAdapters } from '@/lib/reports/test-adapter-registry';
@@ -253,11 +253,22 @@ export function ComparativeReport({ participantIds, testSlug, onGeneratePDF }: C
 
       {/* AI Comparative Analysis */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-lg flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             Análise Comparativa com IA
           </CardTitle>
+          {aiAnalysis && !isGeneratingAnalysis && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => data && generateAnalysis(data)}
+              className="gap-2 text-muted-foreground hover:text-primary"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Regenerar
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {isGeneratingAnalysis ? (
