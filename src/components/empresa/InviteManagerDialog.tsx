@@ -82,7 +82,7 @@ export function InviteManagerDialog({
       }
 
       // 2. Send invite email via edge function
-      const inviteUrl = `${window.location.origin}/empresa/cadastro/${inviteData.invite_token}`;
+      const inviteUrl = `https://karinabonadiu.lovable.app/empresa/cadastro/${inviteData.invite_token}`;
 
       const { error: invokeError } = await supabase.functions.invoke("invite-manager", {
         body: {

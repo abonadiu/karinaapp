@@ -29,7 +29,8 @@ export function SelfRegisterLinkDialog({
 }: SelfRegisterLinkDialogProps) {
   const [copied, setCopied] = useState(false);
 
-  const link = `${window.location.origin}/autocadastro/${selfRegisterToken}`;
+  const publishedOrigin = "https://karinabonadiu.lovable.app";
+  const link = `${publishedOrigin}/autocadastro/${selfRegisterToken}`;
 
   const handleCopy = async () => {
     try {

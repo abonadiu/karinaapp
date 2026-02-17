@@ -230,7 +230,8 @@ export function ParticipantList({
                       <button
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
                         onClick={() => {
-                          const url = `${window.location.origin}/participante/cadastro/${participant.access_token}`;
+                          const publishedOrigin = "https://karinabonadiu.lovable.app";
+                          const url = `${publishedOrigin}/participante/cadastro/${participant.access_token}`;
                           navigator.clipboard.writeText(url);
                           toast.success("Link de cadastro copiado!");
                           setOpenPopoverId(null);

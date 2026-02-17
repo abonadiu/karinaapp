@@ -64,7 +64,8 @@ export function ParticipantTestsList({
   };
 
   const copyLink = (accessToken: string) => {
-    const url = `${window.location.origin}/diagnostico/${accessToken}`;
+    const publishedOrigin = "https://karinabonadiu.lovable.app";
+    const url = `${publishedOrigin}/diagnostico/${accessToken}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado!");
   };
