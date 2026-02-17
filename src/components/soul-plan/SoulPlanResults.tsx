@@ -398,11 +398,11 @@ export function SoulPlanResults({
                 className="flex flex-col items-center bg-warm-cream/50 rounded-lg px-3 py-2 min-w-[48px]"
               >
                 <span className="text-sm font-medium text-warm-brown">{lv.letter}</span>
-                <span className="text-xs text-muted-foreground">{lv.value}</span>
+                <span className="text-sm text-muted-foreground">{lv.value}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="text-sm text-muted-foreground mt-3">
             Total de valores: {result.letterValues.length}
             {isShortName ? ' (nome curto — 3 posições combinadas)' : ' (nome longo — 6 posições separadas)'}
           </p>

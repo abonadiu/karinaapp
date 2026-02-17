@@ -103,7 +103,7 @@ export function ParticipantTestsList({
             <div className="flex items-center gap-2 mt-0.5">
               <StatusBadge status={test.status as any} />
               {test.completed_at && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {new Date(test.completed_at).toLocaleDateString("pt-BR")}
                 </span>
               )}

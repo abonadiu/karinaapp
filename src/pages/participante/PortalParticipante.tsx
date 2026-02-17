@@ -152,7 +152,7 @@ export default function PortalParticipante() {
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Empresa</p>
+                  <p className="text-sm text-muted-foreground">Empresa</p>
                   <p className="font-medium">{participant.company_name}</p>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export default function PortalParticipante() {
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Facilitador</p>
+                  <p className="text-sm text-muted-foreground">Facilitador</p>
                   <p className="font-medium">{facilitator.name || "Não atribuído"}</p>
                 </div>
               </div>

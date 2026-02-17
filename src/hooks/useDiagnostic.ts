@@ -7,7 +7,7 @@ import { calculateSoulPlan, SoulPlanResult } from "@/lib/soul-plan-calculator";
 import { calculateAstralChart, AstralChartResult, BirthData } from "@/lib/astral-chart-calculator";
 import { useToast } from "@/hooks/use-toast";
 
-export type DiagnosticStep = 
+export type DiagnosticStep =
   | "welcome"
   | "questions"
   | "name_input"
@@ -65,9 +65,30 @@ interface ParticipantTest {
   };
 }
 
+// Helper: sync participants.status based on all participant_tests statuses
+async function updateParticipantStatusFromTests(participantId: string) {
+  const { data: allTests } = await supabase
+    .from("participant_tests")
+    .select("status")
+    .eq("participant_id", participantId);
+
+  if (!allTests || allTests.length === 0) return;
+
+  const allCompleted = allTests.every(t => t.status === "completed");
+  const newStatus = allCompleted ? "completed" : "in_progress";
+
+  await supabase
+    .from("participants")
+    .update({
+      status: newStatus,
+      ...(allCompleted ? { completed_at: new Date().toISOString() } : {})
+    })
+    .eq("id", participantId);
+}
+
 export function useDiagnostic(token: string) {
   const { toast } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [participant, setParticipant] = useState<Participant | null>(null);
@@ -283,6 +304,13 @@ export function useDiagnostic(token: string) {
           .from("participant_tests")
           .update({ status: "in_progress", started_at: new Date().toISOString() })
           .eq("id", participantTest.id);
+
+        // Also sync participants.status
+        await supabase
+          .from("participants")
+          .update({ status: "in_progress", started_at: new Date().toISOString() })
+          .eq("id", participant.id)
+          .in("status", ["pending", "invited"]);
       } else {
         // Old flow
         await supabase
@@ -383,7 +411,7 @@ export function useDiagnostic(token: string) {
         // DISC scoring
         const calculatedDiscScores = calculateDiscScores(questions, responses);
         setDiscScores(calculatedDiscScores);
-        
+
         calculatedDiscScores.dimensionScores.forEach(d => {
           dimensionScoresObj[d.dimension] = d.score;
         });
@@ -415,6 +443,9 @@ export function useDiagnostic(token: string) {
           .from("participant_tests")
           .update({ status: "completed", completed_at: new Date().toISOString() })
           .eq("id", participantTest.id);
+
+        // Sync participants.status based on all tests
+        await updateParticipantStatusFromTests(participant.id);
       } else {
         // Old flow (always IQ+IS)
         await supabase
@@ -489,6 +520,9 @@ export function useDiagnostic(token: string) {
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", participantTest.id);
 
+      // Sync participants.status based on all tests
+      await updateParticipantStatusFromTests(participant.id);
+
       setStep("results");
     } catch (err: any) {
       toast({ title: "Erro ao calcular Mapa da Alma", description: "Tente novamente", variant: "destructive" });
@@ -542,6 +576,9 @@ export function useDiagnostic(token: string) {
         .from("participant_tests")
         .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", participantTest.id);
+
+      // Sync participants.status based on all tests
+      await updateParticipantStatusFromTests(participant.id);
 
       setStep("results");
     } catch (err: any) {

@@ -39,9 +39,8 @@ export function DiscProfileChart({ scores, size = "md" }: DiscProfileChartProps)
             >
               {/* Percentage label */}
               <span
-                className={`font-bold mb-1 ${
-                  size === "sm" ? "text-xs" : "text-sm"
-                }`}
+                className={`font-bold mb-1 ${size === "sm" ? "text-xs" : "text-sm"
+                  }`}
                 style={{ color: score.color }}
               >
                 {Math.round(score.percentage)}%
@@ -67,9 +66,8 @@ export function DiscProfileChart({ scores, size = "md" }: DiscProfileChartProps)
 
               {/* Dimension letter */}
               <div
-                className={`mt-2 font-bold rounded-full flex items-center justify-center ${
-                  size === "sm" ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm"
-                }`}
+                className={`mt-2 font-bold rounded-full flex items-center justify-center ${size === "sm" ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm"
+                  }`}
                 style={{
                   backgroundColor: score.color + "15",
                   color: score.color,
@@ -80,7 +78,7 @@ export function DiscProfileChart({ scores, size = "md" }: DiscProfileChartProps)
 
               {/* Dimension name */}
               {size !== "sm" && (
-                <span className="text-xs text-muted-foreground mt-1 text-center">
+                <span className="text-sm text-muted-foreground mt-1 text-center">
                   {score.dimensionLabel}
                 </span>
               )}

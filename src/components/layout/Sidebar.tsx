@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Building2, 
-  Users, 
+import {
+  Building2,
+  Users,
   LayoutDashboard,
   User,
   LogOut,
@@ -65,7 +65,7 @@ function SidebarResizeHandle() {
 
     // Get current sidebar width from CSS variable
     const wrapper = (e.currentTarget as HTMLElement).closest('.group\\/sidebar-wrapper') as HTMLElement;
-    const currentWidth = wrapper 
+    const currentWidth = wrapper
       ? parseFloat(getComputedStyle(wrapper).getPropertyValue('--sidebar-width')) || DEFAULT_WIDTH
       : DEFAULT_WIDTH;
     startWidth.current = open ? currentWidth : MIN_WIDTH;
@@ -76,7 +76,7 @@ function SidebarResizeHandle() {
       if (Math.abs(delta) > DRAG_THRESHOLD) {
         hasDragged.current = true;
       }
-      
+
       const newWidth = Math.max(MIN_WIDTH, Math.min(startWidth.current + delta, MAX_WIDTH));
       setSidebarWidth(`${newWidth}px`);
       if (!open) setOpen(true);
@@ -160,8 +160,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
@@ -194,7 +194,7 @@ export function AppSidebar() {
                     <p className="text-sm font-semibold text-sidebar-foreground truncate">
                       {profile?.full_name || user?.email}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-sm text-muted-foreground truncate">
                       {isAdmin ? "Administrador" : isManager ? "Gestor" : "Facilitador"}
                     </p>
                   </div>
@@ -203,8 +203,8 @@ export function AppSidebar() {
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            side="top" 
+          <DropdownMenuContent
+            side="top"
             align="start"
             sideOffset={8}
             className="w-56"
@@ -233,7 +233,7 @@ export function AppSidebar() {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => signOut()} 
+              onClick={() => signOut()}
               className="text-destructive focus:text-destructive cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />

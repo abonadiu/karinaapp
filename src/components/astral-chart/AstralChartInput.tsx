@@ -190,7 +190,7 @@ export const AstralChartInput: React.FC<AstralChartInputProps> = ({
                 }}
                 className="text-lg"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Se não souber a hora exata, consulte a certidão de nascimento ou use 12:00 como aproximação.
               </p>
             </div>
@@ -261,7 +261,7 @@ export const AstralChartInput: React.FC<AstralChartInputProps> = ({
               )}
 
               {selectedCity && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
+                <p className="text-sm text-green-600 flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
                   Localização selecionada: {parseFloat(selectedCity.lat).toFixed(2)}°, {parseFloat(selectedCity.lon).toFixed(2)}°
                 </p>
@@ -278,8 +278,8 @@ export const AstralChartInput: React.FC<AstralChartInputProps> = ({
 
             {/* Tips */}
             <div className="bg-muted/30 rounded-lg p-3 space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">Dicas importantes:</p>
-              <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
+              <p className="text-sm text-muted-foreground font-medium">Dicas importantes:</p>
+              <ul className="text-sm text-muted-foreground space-y-0.5 list-disc list-inside">
                 <li>A <strong>hora de nascimento</strong> é essencial para calcular o Ascendente e as casas</li>
                 <li>Consulte sua <strong>certidão de nascimento</strong> para a hora exata</li>
                 <li>Se não souber a hora, o Ascendente e as casas serão aproximados</li>

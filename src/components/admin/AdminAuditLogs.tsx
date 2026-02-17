@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { 
-  ClipboardList, 
+import {
+  ClipboardList,
   User,
   Calendar,
   Filter,
@@ -116,10 +116,10 @@ export function AdminAuditLogs() {
     });
   };
 
-  const filteredLogs = logs.filter(log => 
-    (log.user_email?.toLowerCase().includes(filter.toLowerCase()) ||
-     log.action.toLowerCase().includes(filter.toLowerCase()) ||
-     log.entity_type.toLowerCase().includes(filter.toLowerCase()))
+  const filteredLogs = logs.filter(log =>
+  (log.user_email?.toLowerCase().includes(filter.toLowerCase()) ||
+    log.action.toLowerCase().includes(filter.toLowerCase()) ||
+    log.entity_type.toLowerCase().includes(filter.toLowerCase()))
   );
 
   if (isLoading) {
@@ -166,8 +166,8 @@ export function AdminAuditLogs() {
           ) : (
             <div className="divide-y">
               {filteredLogs.map((log) => (
-                <div 
-                  key={log.id} 
+                <div
+                  key={log.id}
                   className="p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-start gap-4">
@@ -192,7 +192,7 @@ export function AdminAuditLogs() {
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {formatDate(log.created_at)}
                       </div>

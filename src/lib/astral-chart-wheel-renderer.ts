@@ -11,29 +11,29 @@ import type { AstralChartResult } from './astral-chart-calculator';
 // ============================================================
 
 const COLORS = {
-  primary: '#335072',
-  accent: '#B38F8F',
-  background: '#FAFBFE',
+  primary: '#2D1B69',
+  accent: '#8C64A0',
+  background: 'transparent',
   white: '#FFFFFF',
   text: '#333333',
-  lightGray: '#E8EAF0',
-  mediumGray: '#C0C4D0',
-  darkGray: '#666680',
+  lightGray: '#D8DAE4',
+  mediumGray: '#A0A4B8',
+  darkGray: '#444460',
 };
 
 const ELEMENT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  fire: { bg: '#FFE0D6', border: '#E74C3C', text: '#C0392B' },
-  earth: { bg: '#D5F0D5', border: '#27AE60', text: '#1E8449' },
-  air: { bg: '#E8E0F0', border: '#9B59B6', text: '#7D3C98' },
-  water: { bg: '#D6EAF8', border: '#3498DB', text: '#2471A3' },
+  fire: { bg: '#FFD4C4', border: '#E74C3C', text: '#C0392B' },
+  earth: { bg: '#B8E6B8', border: '#27AE60', text: '#1E8449' },
+  air: { bg: '#D6C8E8', border: '#8E44AD', text: '#6C3483' },
+  water: { bg: '#B0D4F1', border: '#2980B9', text: '#1F618D' },
 };
 
 const ASPECT_COLORS: Record<string, { color: string; width: number }> = {
-  conjunction: { color: '#FFD700', width: 1.5 },
-  opposition: { color: '#E74C3C', width: 1.5 },
-  trine: { color: '#2ECC71', width: 1.5 },
-  square: { color: '#E74C3C', width: 1.2 },
-  sextile: { color: '#3498DB', width: 1.0 },
+  conjunction: { color: '#FFD700', width: 2.5 },
+  opposition: { color: '#E74C3C', width: 2.5 },
+  trine: { color: '#2ECC71', width: 2.5 },
+  square: { color: '#E74C3C', width: 2.0 },
+  sextile: { color: '#3498DB', width: 1.8 },
 };
 
 const SIGNS = [
@@ -57,9 +57,9 @@ const PLANET_SHORT: Record<string, string> = {
 };
 
 const PLANET_COLORS: Record<string, string> = {
-  sun: '#F39C12', moon: '#7F8C8D', mercury: '#E67E22', venus: '#E91E63',
-  mars: '#E74C3C', jupiter: '#9B59B6', saturn: '#34495E', uranus: '#00BCD4',
-  neptune: '#3F51B5', pluto: '#795548',
+  sun: '#E67E22', moon: '#5D6D7E', mercury: '#D35400', venus: '#C2185B',
+  mars: '#C0392B', jupiter: '#8E44AD', saturn: '#2C3E50', uranus: '#0097A7',
+  neptune: '#283593', pluto: '#5D4037',
 };
 
 const SIGN_ELEMENTS: Record<string, string> = {
@@ -142,15 +142,14 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
 
   const ascDeg = result.ascendant.eclipticDegree;
 
-  // ---- BACKGROUND ----
-  ctx.fillStyle = COLORS.background;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  // ---- BACKGROUND (transparent) ----
+  ctx.clearRect(0, 0, SIZE, SIZE);
 
   // ---- CIRCLES ----
-  drawCircle(ctx, CENTER, CENTER, OUTER_RADIUS, COLORS.primary, 2.5);
-  drawCircle(ctx, CENTER, CENTER, SIGN_RING_INNER, COLORS.primary, 1.5);
-  drawCircle(ctx, CENTER, CENTER, HOUSE_RING_INNER, COLORS.mediumGray, 0.8);
-  drawCircle(ctx, CENTER, CENTER, INNER_CIRCLE, COLORS.lightGray, 0.5);
+  drawCircle(ctx, CENTER, CENTER, OUTER_RADIUS, COLORS.primary, 3.5);
+  drawCircle(ctx, CENTER, CENTER, SIGN_RING_INNER, COLORS.primary, 2.5);
+  drawCircle(ctx, CENTER, CENTER, HOUSE_RING_INNER, COLORS.mediumGray, 1.2);
+  drawCircle(ctx, CENTER, CENTER, INNER_CIRCLE, COLORS.lightGray, 0.8);
 
   // ---- SIGN RING ----
   for (let i = 0; i < 12; i++) {
@@ -161,19 +160,19 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
     const endAngle = eclipticToAngle(signEndDeg, ascDeg);
     const elementColor = ELEMENT_COLORS[sign.element];
 
-    drawRingSegment(ctx, CENTER, CENTER, OUTER_RADIUS, SIGN_RING_INNER, endAngle, startAngle, elementColor.bg, elementColor.border, 0.8);
+    drawRingSegment(ctx, CENTER, CENTER, OUTER_RADIUS, SIGN_RING_INNER, endAngle, startAngle, elementColor.bg, elementColor.border, 1.5);
 
     const outerPoint = polarToCartesian(CENTER, CENTER, OUTER_RADIUS, startAngle);
     const innerPoint = polarToCartesian(CENTER, CENTER, SIGN_RING_INNER, startAngle);
-    drawLine(ctx, outerPoint.x, outerPoint.y, innerPoint.x, innerPoint.y, elementColor.border, 1);
+    drawLine(ctx, outerPoint.x, outerPoint.y, innerPoint.x, innerPoint.y, elementColor.border, 1.5);
 
     const midAngle = eclipticToAngle(signStartDeg + 15, ascDeg);
     const labelRadius = (OUTER_RADIUS + SIGN_RING_INNER) / 2;
-    drawCenteredText(ctx, sign.label, CENTER, CENTER, labelRadius, midAngle, 13, elementColor.text, true);
+    drawCenteredText(ctx, sign.label, CENTER, CENTER, labelRadius, midAngle, 20, elementColor.text, true);
   }
 
-  drawCircle(ctx, CENTER, CENTER, OUTER_RADIUS, COLORS.primary, 2.5);
-  drawCircle(ctx, CENTER, CENTER, SIGN_RING_INNER, COLORS.primary, 1.5);
+  drawCircle(ctx, CENTER, CENTER, OUTER_RADIUS, COLORS.primary, 3.5);
+  drawCircle(ctx, CENTER, CENTER, SIGN_RING_INNER, COLORS.primary, 2.5);
 
   // ---- DEGREE TICKS ----
   for (let deg = 0; deg < 360; deg++) {
@@ -185,7 +184,7 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
     const p1 = polarToCartesian(CENTER, CENTER, outerR, angle);
     const p2 = polarToCartesian(CENTER, CENTER, innerR, angle);
     const tickColor = isMajor ? COLORS.primary : isMinor5 ? COLORS.darkGray : COLORS.mediumGray;
-    const tickWidth = isMajor ? 1.5 : 0.5;
+    const tickWidth = isMajor ? 2.5 : 0.8;
     drawLine(ctx, p1.x, p1.y, p2.x, p2.y, tickColor, tickWidth);
   }
 
@@ -197,7 +196,7 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
     const isAngular = [1, 4, 7, 10].includes(house.id);
     const p1 = polarToCartesian(CENTER, CENTER, SIGN_RING_INNER, angle);
     const p2 = polarToCartesian(CENTER, CENTER, isAngular ? 25 : INNER_CIRCLE, angle);
-    drawLine(ctx, p1.x, p1.y, p2.x, p2.y, isAngular ? COLORS.primary : COLORS.mediumGray, isAngular ? 2 : 0.8);
+    drawLine(ctx, p1.x, p1.y, p2.x, p2.y, isAngular ? COLORS.primary : COLORS.mediumGray, isAngular ? 3 : 1.2);
 
     // House number
     const nextHouse = houses[(i + 1) % 12];
@@ -208,7 +207,7 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
     }
     const houseAngle = eclipticToAngle(midDeg, ascDeg);
     const houseNumRadius = (HOUSE_RING_INNER + INNER_CIRCLE) / 2;
-    drawCenteredText(ctx, `${house.id}`, CENTER, CENTER, houseNumRadius, houseAngle, 16, COLORS.darkGray, true);
+    drawCenteredText(ctx, `${house.id}`, CENTER, CENTER, houseNumRadius, houseAngle, 24, COLORS.darkGray, true);
   }
 
   // ---- ASC / MC / DSC / IC LABELS ----
@@ -225,9 +224,9 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
   ];
 
   angularLabels.forEach(({ text, angle }) => {
-    const pos = polarToCartesian(CENTER, CENTER, OUTER_RADIUS + 20, angle);
+    const pos = polarToCartesian(CENTER, CENTER, OUTER_RADIUS + 28, angle);
     ctx.save();
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 22px sans-serif';
     ctx.fillStyle = COLORS.primary;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -301,10 +300,10 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
     const pos = polarToCartesian(CENTER, CENTER, planet.displayRadius, planet.angle);
     const color = PLANET_COLORS[planet.key] || COLORS.text;
 
-    drawCircle(ctx, pos.x, pos.y, 16, color, 2, COLORS.white);
+    drawCircle(ctx, pos.x, pos.y, 22, color, 2.5, COLORS.white);
 
     ctx.save();
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 17px sans-serif';
     ctx.fillStyle = color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -313,30 +312,30 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
 
     if (planet.isRetrograde) {
       ctx.save();
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 13px sans-serif';
       ctx.fillStyle = '#E74C3C';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('R', pos.x + 14, pos.y - 14);
+      ctx.fillText('R', pos.x + 18, pos.y - 18);
       ctx.restore();
     }
 
     // Tick line
     const exactPos = polarToCartesian(CENTER, CENTER, SIGN_RING_INNER + 2, planet.angle);
-    const connectPos = polarToCartesian(CENTER, CENTER, planet.displayRadius + 16, planet.angle);
+    const connectPos = polarToCartesian(CENTER, CENTER, planet.displayRadius + 22, planet.angle);
     ctx.beginPath();
     ctx.moveTo(exactPos.x, exactPos.y);
     ctx.lineTo(connectPos.x, connectPos.y);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 0.8;
-    ctx.setLineDash([2, 2]);
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([3, 3]);
     ctx.stroke();
     ctx.setLineDash([]);
 
     // Degree label
-    const degPos = polarToCartesian(CENTER, CENTER, planet.displayRadius + 22, planet.angle);
+    const degPos = polarToCartesian(CENTER, CENTER, planet.displayRadius + 30, planet.angle);
     ctx.save();
-    ctx.font = '9px sans-serif';
+    ctx.font = '13px sans-serif';
     ctx.fillStyle = COLORS.darkGray;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -348,9 +347,9 @@ export function renderZodiacWheelToDataURL(result: AstralChartResult): string {
   const initials = result.birthData.cityName
     ? result.birthData.cityName.split(',')[0].substring(0, 2).toUpperCase()
     : 'KB';
-  drawCircle(ctx, CENTER, CENTER, 22, COLORS.primary, 2, COLORS.white);
+  drawCircle(ctx, CENTER, CENTER, 28, COLORS.primary, 3, COLORS.white);
   ctx.save();
-  ctx.font = 'bold 10px sans-serif';
+  ctx.font = 'bold 14px sans-serif';
   ctx.fillStyle = COLORS.primary;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

@@ -80,7 +80,7 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
           .from("companies")
           .select("id, name")
           .order("name");
-        
+
         if (error) throw error;
         setCompanies(data || []);
       } catch (error) {
@@ -248,7 +248,7 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
                   </SelectContent>
                 </Select>
                 {!selectedCompanyId && (
-                  <p className="text-xs text-amber-600 mt-2">
+                  <p className="text-sm text-amber-600 mt-2">
                     ⚠️ Selecione uma empresa para vincular o {watchedRole === "company_manager" ? "gestor" : "participante"}
                   </p>
                 )}

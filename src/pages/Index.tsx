@@ -35,7 +35,7 @@ const Index = () => {
             {/* Text */}
             <div className="order-2 md:order-1">
               <p
-                className="text-[#B38F8F] tracking-[0.3em] text-sm font-medium uppercase mb-4"
+                className="text-[#B38F8F] tracking-[0.3em] text-base font-medium uppercase mb-4"
                 style={{ fontFamily: "'Roboto', sans-serif" }}
               >
                 {t.home.subtitle}
@@ -62,7 +62,7 @@ const Index = () => {
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm font-medium tracking-wide"
+                  className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-base font-medium tracking-wide"
                   style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {t.home.cta}
@@ -70,7 +70,7 @@ const Index = () => {
                 </a>
                 <Link
                   to="/about"
-                  className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm font-medium tracking-wide"
+                  className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-base font-medium tracking-wide"
                   style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {t.home.learnMore}
@@ -122,12 +122,12 @@ const Index = () => {
                   <pillar.icon className="w-6 h-6 text-[#D4BCB2]" />
                 </div>
                 <h3
-                  className="text-[#F2E9E4] text-sm font-bold mb-1"
+                  className="text-[#F2E9E4] text-base font-bold mb-1"
                   style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {pillar.title}
                 </h3>
-                <p className="text-[#8695AC] text-xs font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
+                <p className="text-[#8695AC] text-sm font-medium" style={{ fontFamily: "'Roboto', sans-serif" }}>
                   {pillar.desc}
                 </p>
               </div>
@@ -153,7 +153,7 @@ const Index = () => {
               >
                 <item.icon className="w-8 h-8 text-[#B38F8F] mb-4" />
                 <p
-                  className="text-[#335072] text-sm font-medium leading-relaxed"
+                  className="text-[#335072] text-base font-medium leading-relaxed"
                   style={{ fontFamily: "'Roboto', sans-serif" }}
                 >
                   {item.text}
@@ -196,7 +196,7 @@ const Index = () => {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-sm tracking-wide"
+              className="inline-flex items-center justify-center gap-2 bg-[#335072] text-white px-8 py-3 rounded-full hover:bg-[#2a4260] transition-colors text-base tracking-wide"
               style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.home.cta}
@@ -204,14 +204,14 @@ const Index = () => {
             </a>
             <Link
               to="/services/individual"
-              className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm tracking-wide"
+              className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-base tracking-wide"
               style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.nav.servicesIndividual}
             </Link>
             <Link
               to="/services/corporate"
-              className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-sm tracking-wide"
+              className="inline-flex items-center justify-center gap-2 border border-[#335072] text-[#335072] px-8 py-3 rounded-full hover:bg-[#335072]/5 transition-colors text-base tracking-wide"
               style={{ fontFamily: "'Roboto', sans-serif" }}
             >
               {t.nav.servicesCorporate}

@@ -37,6 +37,9 @@ import { useParticipantActions, Participant } from "@/hooks/useParticipantAction
 import { DimensionScore } from "@/lib/diagnostic-scoring";
 import { DiscResults } from "@/components/disc/DiscResults";
 import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
+import { AstralChartResults } from "@/components/astral-chart/AstralChartResults";
+import { generateAstralChartPDF } from "@/lib/astral-chart-pdf-generator";
+import { AstralChartResult } from "@/lib/astral-chart-calculator";
 
 interface ParticipantManagerProps {
   participants: Participant[];
@@ -176,12 +179,12 @@ export function ParticipantManager({
         defaultValues={
           actions.editingParticipant
             ? {
-                name: actions.editingParticipant.name,
-                email: actions.editingParticipant.email,
-                phone: actions.editingParticipant.phone || "",
-                department: actions.editingParticipant.department || "",
-                position: actions.editingParticipant.position || "",
-              }
+              name: actions.editingParticipant.name,
+              email: actions.editingParticipant.email,
+              phone: actions.editingParticipant.phone || "",
+              department: actions.editingParticipant.department || "",
+              position: actions.editingParticipant.position || "",
+            }
             : undefined
         }
         isEditing
@@ -283,6 +286,34 @@ export function ParticipantManager({
                         existingResult={actions.selectedTestResult}
                       />
                     </>
+                  ) : actions.selectedTestTypeSlug === "mapa_astral" ? (
+                    (() => {
+                      const chartResult = actions.selectedTestResult?.exercises_data?.fullResult as AstralChartResult | undefined;
+                      if (!chartResult || !chartResult.planets) {
+                        return (
+                          <p className="text-center text-muted-foreground py-8">
+                            Dados do mapa astral não encontrados.
+                          </p>
+                        );
+                      }
+                      const handleAstralPDF = async () => {
+                        try {
+                          await generateAstralChartPDF({
+                            participantName: actions.selectedParticipant!.name,
+                            result: chartResult,
+                          });
+                        } catch (error) {
+                          console.error("Erro ao gerar PDF:", error);
+                        }
+                      };
+                      return (
+                        <AstralChartResults
+                          participantName={actions.selectedParticipant.name}
+                          result={chartResult}
+                          onDownloadPDF={handleAstralPDF}
+                        />
+                      );
+                    })()
                   ) : (
                     <ParticipantResultModal
                       participantName={actions.selectedParticipant.name}

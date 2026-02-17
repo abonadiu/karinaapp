@@ -39,7 +39,7 @@ export function TeamStats({
   participantResults = []
 }: TeamStatsProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  
+
   // Find strongest and weakest dimensions
   const sortedScores = [...teamDimensionScores].sort((a, b) => b.score - a.score);
   const strongest = sortedScores[0];
@@ -88,8 +88,8 @@ export function TeamStats({
             <h3 className="text-lg font-semibold text-foreground">Estatísticas da Equipe</h3>
             <p className="text-sm text-muted-foreground">Visão consolidada do diagnóstico</p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleDownloadReport}
             disabled={isGeneratingPDF}
             className="gap-2"
@@ -115,7 +115,7 @@ export function TeamStats({
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-success">{completedCount}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {inProgressCount > 0 && `${inProgressCount} em andamento`}
               {inProgressCount > 0 && pendingCount > 0 && " • "}
               {pendingCount > 0 && `${pendingCount} pendentes`}
@@ -137,7 +137,7 @@ export function TeamStats({
                   {teamAverageScore.toFixed(1)}
                   <span className="text-lg text-muted-foreground">/5</span>
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {((teamAverageScore / 5) * 100).toFixed(0)}% do máximo
                 </p>
               </>

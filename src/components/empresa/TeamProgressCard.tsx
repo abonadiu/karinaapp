@@ -35,10 +35,10 @@ const variantStyles = {
   },
 };
 
-export function TeamProgressCard({ 
-  icon: Icon, 
-  title, 
-  value, 
+export function TeamProgressCard({
+  icon: Icon,
+  title,
+  value,
   subtitle,
   variant = "default",
   onClick,
@@ -48,7 +48,7 @@ export function TeamProgressCard({
   const isClickable = !!onClick;
 
   return (
-    <Card 
+    <Card
       className={cn(
         "shadow-warm transition-all duration-200",
         isClickable && "cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/50",
@@ -67,7 +67,7 @@ export function TeamProgressCard({
               {value}
             </p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+              <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
             )}
           </div>
           {isClickable && (

@@ -78,7 +78,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_companies || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Total cadastradas
             </p>
           </CardContent>
@@ -91,7 +91,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_participants || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Em todas as empresas
             </p>
           </CardContent>
@@ -104,7 +104,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_diagnostics || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Concluídos
             </p>
           </CardContent>
@@ -117,7 +117,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.completion_rate || 0}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               De todos os participantes
             </p>
           </CardContent>
@@ -133,7 +133,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_admins || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Super-usuários
             </p>
           </CardContent>
@@ -146,7 +146,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_facilitators || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Coaches ativos
             </p>
           </CardContent>
@@ -159,7 +159,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.total_managers || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Company managers
             </p>
           </CardContent>
@@ -172,7 +172,7 @@ export function AdminOverview({ onNavigateToTab }: AdminOverviewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.avg_score || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Score médio
             </p>
           </CardContent>

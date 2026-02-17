@@ -117,8 +117,8 @@ export const SoulPlanNameInput: React.FC<SoulPlanNameInputProps> = ({
             </div>
 
             <div className="bg-warm-cream/50 rounded-lg p-3 space-y-1">
-              <p className="text-xs text-muted-foreground font-medium">Importante:</p>
-              <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
+              <p className="text-sm text-muted-foreground font-medium">Importante:</p>
+              <ul className="text-sm text-muted-foreground space-y-0.5 list-disc list-inside">
                 <li>Use o nome <strong>exatamente como está na certidão de nascimento</strong></li>
                 <li>Inclua todos os nomes e sobrenomes</li>
                 <li>Acentos serão removidos automaticamente para o cálculo</li>

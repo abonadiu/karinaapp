@@ -175,7 +175,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, onUpload, userName }: A
             </span>
           )}
         </Button>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           PNG, JPG ou WebP. Máx 2MB.
         </p>
       </div>

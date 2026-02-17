@@ -29,8 +29,8 @@ const chartConfig: ChartConfig = {
 export function ScoreEvolutionChart({ data, isLoading }: ScoreEvolutionChartProps) {
   // Calculate global average for reference line
   const globalAverage = data.length > 0
-    ? data.reduce((sum, d) => sum + d.average * d.count, 0) / 
-      data.reduce((sum, d) => sum + d.count, 0)
+    ? data.reduce((sum, d) => sum + d.average * d.count, 0) /
+    data.reduce((sum, d) => sum + d.count, 0)
     : 0;
 
   return (
@@ -57,37 +57,37 @@ export function ScoreEvolutionChart({ data, isLoading }: ScoreEvolutionChartProp
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis 
-                dataKey="month" 
+              <XAxis
+                dataKey="month"
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis 
+              <YAxis
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
                 domain={[0, 5]}
                 ticks={[0, 1, 2, 3, 4, 5]}
               />
-              <ChartTooltip 
+              <ChartTooltip
                 content={
-                  <ChartTooltipContent 
+                  <ChartTooltipContent
                     formatter={(value, name, props) => (
                       <div className="flex flex-col gap-1">
                         <span>Média: {Number(value).toFixed(2)}</span>
-                        <span className="text-muted-foreground text-xs">
+                        <span className="text-muted-foreground text-sm">
                           {props.payload?.count} diagnóstico(s)
                         </span>
                       </div>
                     )}
                   />
-                } 
+                }
               />
               {globalAverage > 0 && (
-                <ReferenceLine 
-                  y={globalAverage} 
-                  stroke="hsl(var(--muted-foreground))" 
+                <ReferenceLine
+                  y={globalAverage}
+                  stroke="hsl(var(--muted-foreground))"
                   strokeDasharray="5 5"
                   label={{
                     value: "Média",

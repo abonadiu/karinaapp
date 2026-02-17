@@ -48,11 +48,10 @@ export function ExerciseReflection({ onComplete }: ExerciseReflectionProps) {
                 <button
                   key={index}
                   onClick={() => setActivePrompt(index)}
-                  className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
-                    activePrompt === index
+                  className={`text-sm px-3 py-1.5 rounded-full transition-colors ${activePrompt === index
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted hover:bg-muted-foreground/10"
-                  }`}
+                    }`}
                 >
                   {index + 1}
                 </button>
@@ -71,23 +70,23 @@ export function ExerciseReflection({ onComplete }: ExerciseReflectionProps) {
               placeholder="Escreva suas reflexões aqui... Este é um espaço seguro para você se expressar livremente."
               className="min-h-[200px] resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right">
+            <p className="text-sm text-muted-foreground text-right">
               {insights.length} caracteres
             </p>
           </div>
 
           {/* Nota de privacidade */}
           <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-            <p className="text-xs text-blue-800 dark:text-blue-200">
-              🔒 Suas reflexões são privadas e serão salvas de forma segura. 
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              🔒 Suas reflexões são privadas e serão salvas de forma segura.
               Elas fazem parte do seu processo de autoconhecimento.
             </p>
           </div>
 
           {/* Botão */}
-          <Button 
-            onClick={handleComplete} 
-            size="lg" 
+          <Button
+            onClick={handleComplete}
+            size="lg"
             className="w-full"
           >
             Finalizar e Ver Resultados

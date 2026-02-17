@@ -43,7 +43,7 @@ function parseCSV(text: string): ParsedParticipant[] {
   if (lines.length < 2) return [];
 
   const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
-  
+
   const nameIndex = headers.findIndex(h => h.includes("nome") || h === "name");
   const emailIndex = headers.findIndex(h => h.includes("email") || h === "e-mail");
   const phoneIndex = headers.findIndex(h => h.includes("telefone") || h === "phone");
@@ -59,7 +59,7 @@ function parseCSV(text: string): ParsedParticipant[] {
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ""));
-    
+
     const name = values[nameIndex] || "";
     const email = values[emailIndex]?.toLowerCase() || "";
     const phone = phoneIndex !== -1 ? values[phoneIndex] : undefined;
@@ -67,12 +67,12 @@ function parseCSV(text: string): ParsedParticipant[] {
     const position = positionIndex !== -1 ? values[positionIndex] : undefined;
 
     const errors: string[] = [];
-    
+
     if (!name) errors.push("Nome obrigatório");
     if (!email) errors.push("Email obrigatório");
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push("Email inválido");
     else if (seenEmails.has(email)) errors.push("Email duplicado");
-    
+
     if (email) seenEmails.add(email);
 
     participants.push({
@@ -114,7 +114,7 @@ export function CsvImport({
     reader.onload = (event) => {
       const text = event.target?.result as string;
       const parsed = parseCSV(text);
-      
+
       if (parsed.length === 0) {
         setParseError("Arquivo inválido. Certifique-se de que o CSV contém colunas 'nome' e 'email'.");
         setParsedData([]);
@@ -161,7 +161,7 @@ export function CsvImport({
 
         <div className="space-y-4">
           {/* File upload area */}
-          <div 
+          <div
             className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -221,7 +221,7 @@ export function CsvImport({
                   </TableHeader>
                   <TableBody>
                     {parsedData.map((participant, index) => (
-                      <TableRow 
+                      <TableRow
                         key={index}
                         className={!participant.isValid ? "bg-destructive/5" : undefined}
                       >
@@ -236,7 +236,7 @@ export function CsvImport({
                           <div>
                             <span>{participant.name || "-"}</span>
                             {participant.errors.length > 0 && (
-                              <p className="text-xs text-destructive">
+                              <p className="text-sm text-destructive">
                                 {participant.errors.join(", ")}
                               </p>
                             )}
@@ -258,8 +258,8 @@ export function CsvImport({
           <Button variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleImport} 
+          <Button
+            onClick={handleImport}
             disabled={validCount === 0 || isLoading}
           >
             {isLoading ? "Importando..." : `Importar ${validCount} participantes`}

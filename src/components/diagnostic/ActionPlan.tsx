@@ -62,7 +62,7 @@ export function ActionPlan({ dimensionScores }: ActionPlanProps) {
                       <TimeIcon className={cn("h-4 w-4", colors.text)} />
                     </div>
                     <div>
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{practice.time}</span>
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{practice.time}</span>
                       <p className="text-sm text-foreground/85 leading-relaxed mt-0.5">{practice.activity}</p>
                     </div>
                   </div>

@@ -10,11 +10,10 @@ export function SiteFooter() {
   const langBtn = (lang: Language) => (
     <button
       onClick={() => setLanguage(lang)}
-      className={`text-xs font-bold px-2 py-1 rounded transition-colors ${
-        language === lang
+      className={`text-sm font-bold px-2 py-1 rounded transition-colors ${language === lang
           ? "bg-[#F2E9E4] text-[#335072]"
           : "text-[#8695AC] hover:text-[#F2E9E4]"
-      }`}
+        }`}
     >
       {lang.toUpperCase()}
     </button>
@@ -36,7 +35,7 @@ export function SiteFooter() {
           </div>
 
           {/* Copyright */}
-          <p className="text-sm font-medium text-[#8695AC]">
+          <p className="text-base font-medium text-[#8695AC]">
             &copy; {new Date().getFullYear()} Karina Bonadiu. {t.footer.rights}
           </p>
 
@@ -49,13 +48,13 @@ export function SiteFooter() {
             </div>
             <a
               href="#"
-              className="text-sm font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
+              className="text-base font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
             >
               {t.footer.privacy}
             </a>
             <a
               href="#"
-              className="text-sm font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
+              className="text-base font-medium text-[#8695AC] hover:text-[#F2E9E4] transition-colors"
             >
               {t.footer.terms}
             </a>

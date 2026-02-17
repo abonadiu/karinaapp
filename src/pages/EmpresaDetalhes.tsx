@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Building2, 
-  Users, 
-  Mail, 
-  Phone, 
-  Plus, 
+import {
+  ArrowLeft,
+  Building2,
+  Users,
+  Mail,
+  Phone,
+  Plus,
   Upload,
   Pencil,
   Calendar,
@@ -156,7 +156,7 @@ export default function EmpresaDetalhes() {
 
     setIsLoadingResults(true);
     const participantIds = participants.map(p => p.id);
-    
+
     const { data, error } = await supabase
       .from("diagnostic_results")
       .select("*")
@@ -169,7 +169,7 @@ export default function EmpresaDetalhes() {
       const mappedResults: ParticipantResultData[] = (data as DiagnosticResult[]).map(result => {
         const participant = participants.find(p => p.id === result.participant_id);
         const dimScores = result.dimension_scores as Record<string, number>;
-        
+
         const dimensionScores: DimensionScore[] = Object.entries(dimScores).map(
           ([dimension, score], index) => ({
             dimension,
@@ -196,12 +196,12 @@ export default function EmpresaDetalhes() {
 
   const updateUsedLicenses = async (count: number) => {
     if (!id) return;
-    
+
     await supabase
       .from("companies")
       .update({ used_licenses: count })
       .eq("id", id);
-    
+
     fetchCompany();
   };
 
@@ -370,8 +370,8 @@ export default function EmpresaDetalhes() {
       }
     >
       {/* Back link */}
-      <Link 
-        to="/empresas" 
+      <Link
+        to="/empresas"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -422,7 +422,7 @@ export default function EmpresaDetalhes() {
               <span className="text-muted-foreground">/ {company.total_licenses}</span>
             </div>
             <Progress value={usagePercent} className="h-2 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{usagePercent}% utilizado</p>
+            <p className="text-sm text-muted-foreground mt-1">{usagePercent}% utilizado</p>
           </CardContent>
         </Card>
 

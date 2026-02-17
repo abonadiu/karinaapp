@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { 
-  Settings, 
+import {
+  Settings,
   Save,
   Loader2,
   Mail,
@@ -49,7 +49,7 @@ export function AdminSettings() {
         .order('key');
 
       if (error) throw error;
-      
+
       const typedData = (data || []) as SystemSetting[];
       setSettings(typedData);
 
@@ -105,10 +105,10 @@ export function AdminSettings() {
       const results = await Promise.all([
         saveSetting('platform_name', { name: platformName, tagline: platformTagline }),
         saveSetting('email_templates', { invite_subject: inviteSubject, reminder_subject: reminderSubject }),
-        saveSetting('reminder_settings', { 
-          days_after_invite: daysAfterInvite, 
-          days_between_reminders: daysBetweenReminders, 
-          max_reminders: maxReminders 
+        saveSetting('reminder_settings', {
+          days_after_invite: daysAfterInvite,
+          days_between_reminders: daysBetweenReminders,
+          max_reminders: maxReminders
         }),
       ]);
 
@@ -250,7 +250,7 @@ export function AdminSettings() {
                 value={daysAfterInvite}
                 onChange={(e) => setDaysAfterInvite(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Dias até o primeiro lembrete
               </p>
             </div>
@@ -264,7 +264,7 @@ export function AdminSettings() {
                 value={daysBetweenReminders}
                 onChange={(e) => setDaysBetweenReminders(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Intervalo entre lembretes
               </p>
             </div>
@@ -278,7 +278,7 @@ export function AdminSettings() {
                 value={maxReminders}
                 onChange={(e) => setMaxReminders(Number(e.target.value))}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Limite de lembretes por participante
               </p>
             </div>

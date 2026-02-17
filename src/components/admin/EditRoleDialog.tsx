@@ -46,12 +46,12 @@ interface EditRoleDialogProps {
   onSuccess: () => void;
 }
 
-export function EditRoleDialog({ 
-  open, 
-  onOpenChange, 
-  user, 
+export function EditRoleDialog({
+  open,
+  onOpenChange,
+  user,
   currentUserId,
-  onSuccess 
+  onSuccess
 }: EditRoleDialogProps) {
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export function EditRoleDialog({
           .from("companies")
           .select("id, name")
           .order("name");
-        
+
         if (error) throw error;
         setCompanies(data || []);
       } catch (error) {
@@ -232,7 +232,7 @@ export function EditRoleDialog({
 
           <div className="space-y-3">
             <Label>Roles de acesso</Label>
-            
+
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Checkbox
@@ -248,7 +248,7 @@ export function EditRoleDialog({
                   >
                     Administrador
                   </label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Acesso total: gestão de usuários, configurações globais, logs de auditoria
                   </p>
                 </div>
@@ -267,7 +267,7 @@ export function EditRoleDialog({
                   >
                     Facilitador
                   </label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Coach/Consultor: gerencia empresas e aplica diagnósticos
                   </p>
                 </div>
@@ -286,7 +286,7 @@ export function EditRoleDialog({
                   >
                     Gestor de Empresa
                   </label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     RH/Gestor: visualiza dados agregados da sua empresa
                   </p>
                 </div>
@@ -305,7 +305,7 @@ export function EditRoleDialog({
                   >
                     Participante
                   </label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     Acesso ao diagnóstico e portal de resultados
                   </p>
                 </div>
@@ -335,7 +335,7 @@ export function EditRoleDialog({
                     </SelectContent>
                   </Select>
                   {!selectedCompanyId && (
-                    <p className="text-xs text-amber-600 mt-2">
+                    <p className="text-sm text-amber-600 mt-2">
                       ⚠️ Selecione uma empresa para vincular o {selectedRoles.has("company_manager") ? "gestor" : "participante"}
                     </p>
                   )}
@@ -344,7 +344,7 @@ export function EditRoleDialog({
             </div>
 
             {isSelfAdmin && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Você não pode remover sua própria role de administrador.
               </p>
             )}
@@ -360,8 +360,8 @@ export function EditRoleDialog({
           >
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={isLoading}
           >
             {isLoading ? (

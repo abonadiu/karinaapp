@@ -206,7 +206,7 @@ export function ReminderStatsCard() {
                     <Badge variant={reminder.success ? "default" : "destructive"} className="text-xs">
                       {reminder.success ? "Enviado" : "Falhou"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {formatDistanceToNow(new Date(reminder.sent_at), {
                         addSuffix: true,
                         locale: ptBR,
@@ -221,7 +221,7 @@ export function ReminderStatsCard() {
           <div className="text-center py-6 text-muted-foreground">
             <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">Nenhum lembrete enviado ainda</p>
-            <p className="text-xs">Lembretes são enviados automaticamente após 3 dias do convite</p>
+            <p className="text-sm">Lembretes são enviados automaticamente após 3 dias do convite</p>
           </div>
         )}
       </CardContent>

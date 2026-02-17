@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { 
-  Calendar, 
-  Copy, 
-  Check, 
-  Eye, 
-  EyeOff, 
+import {
+  Calendar,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
   Loader2,
   ExternalLink,
   RefreshCw,
@@ -86,7 +86,7 @@ export function AdminCalendlyIntegration() {
 
       const { error } = await supabase
         .from("system_settings")
-        .update({ 
+        .update({
           value: newSettings as unknown as Json,
           updated_at: new Date().toISOString()
         })
@@ -111,7 +111,7 @@ export function AdminCalendlyIntegration() {
 
       const { error } = await supabase
         .from("system_settings")
-        .update({ 
+        .update({
           value: newSettings as unknown as Json,
           updated_at: new Date().toISOString()
         })
@@ -183,7 +183,7 @@ export function AdminCalendlyIntegration() {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Cole esta URL nas configurações de webhook do Calendly
           </p>
         </div>
@@ -223,7 +223,7 @@ export function AdminCalendlyIntegration() {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             A signing key é usada para validar a autenticidade dos webhooks
           </p>
         </div>
@@ -242,9 +242,9 @@ export function AdminCalendlyIntegration() {
               <span className="text-sm">
                 {settings.last_sync
                   ? formatDistanceToNow(new Date(settings.last_sync), {
-                      addSuffix: true,
-                      locale: ptBR,
-                    })
+                    addSuffix: true,
+                    locale: ptBR,
+                  })
                   : "Nunca"}
               </span>
             </div>

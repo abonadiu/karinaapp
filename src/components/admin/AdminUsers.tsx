@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Users, 
-  Shield, 
-  Building2, 
+import {
+  Users,
+  Shield,
+  Building2,
   Mail,
   Calendar,
   Clock,
   Loader2,
   RefreshCw,
   Eye,
-  MoreHorizontal,
   UserPlus,
   Pencil,
   Crown,
@@ -88,13 +87,13 @@ export function AdminUsers() {
 
   const handleImpersonate = async (user: UserData) => {
     const roles = user.roles || [];
-    
+
     if (roles.includes("company_manager")) {
       // Get the company for this manager
       const { data: companyId } = await supabase.rpc("get_manager_company_id", {
         _user_id: user.user_id,
       });
-      
+
       if (companyId) {
         // Get company name
         const { data: company } = await supabase
@@ -102,7 +101,7 @@ export function AdminUsers() {
           .select("name")
           .eq("id", companyId)
           .single();
-        
+
         startImpersonation({
           userId: user.user_id,
           email: user.email,
@@ -111,8 +110,8 @@ export function AdminUsers() {
           companyId,
           companyName: company?.name || "Empresa",
         });
-        
-        toast.success(`Emulando visão de ${user.full_name || user.email}`);
+
+        toast.success(`Emulando visão de ${user.full_name || user.email} `);
         navigate("/empresa/portal");
       } else {
         toast.error("Este gestor não está vinculado a nenhuma empresa");
@@ -124,8 +123,8 @@ export function AdminUsers() {
         fullName: user.full_name,
         role: "facilitator",
       });
-      
-      toast.success(`Emulando visão de ${user.full_name || user.email}`);
+
+      toast.success(`Emulando visão de ${user.full_name || user.email} `);
       navigate("/dashboard");
     } else if (roles.includes("admin")) {
       startImpersonation({
@@ -134,8 +133,8 @@ export function AdminUsers() {
         fullName: user.full_name,
         role: "admin",
       });
-      
-      toast.success(`Emulando visão de ${user.full_name || user.email}`);
+
+      toast.success(`Emulando visão de ${user.full_name || user.email} `);
       navigate("/admin");
     } else if (roles.includes("participant")) {
       // Buscar dados do participante
@@ -144,7 +143,7 @@ export function AdminUsers() {
         .select("id, company_id, companies(name)")
         .eq("user_id", user.user_id)
         .single();
-      
+
       if (participant) {
         const companyData = participant.companies as { name: string } | null;
         startImpersonation({
@@ -156,8 +155,8 @@ export function AdminUsers() {
           companyName: companyData?.name || "Empresa",
           participantToken: participant.id,
         });
-        
-        toast.success(`Emulando visão de ${user.full_name || user.email}`);
+
+        toast.success(`Emulando visão de ${user.full_name || user.email} `);
         navigate("/participante/portal");
       } else {
         toast.error("Este participante não possui dados vinculados");
@@ -166,18 +165,18 @@ export function AdminUsers() {
       toast.info("Este usuário não possui um perfil específico para emular");
     }
   };
-  
+
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    
+
     setIsDeleting(true);
     try {
       const { data, error } = await supabase.rpc('admin_delete_user', {
         p_user_id: selectedUser.user_id
       });
-      
+
       if (error) throw error;
-      
+
       if (data) {
         toast.success("Usuário excluído com sucesso");
         fetchUsers();
@@ -276,7 +275,7 @@ export function AdminUsers() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h - 4 w - 4 mr - 2 ${isLoading ? 'animate-spin' : ''} `} />
             Atualizar
           </Button>
           <Button onClick={() => setCreateDialogOpen(true)}>
@@ -305,34 +304,68 @@ export function AdminUsers() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                     Último acesso
                   </th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">
-                    Ações
-                  </th>
+
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr 
-                    key={user.user_id} 
-                    className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                  <tr
+                    key={user.user_id}
+                    className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                   >
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-primary font-medium">
-                            {(user.full_name || user.email || "?").charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {user.full_name || "Nome não definido"}
-                          </p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </p>
-                        </div>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <div className="flex items-center gap-3 cursor-pointer">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-primary font-medium">
+                                {(user.full_name || user.email || "?").charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground hover:text-primary transition-colors">
+                                {user.full_name || "Nome não definido"}
+                              </p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {hasEmulableRole(user.roles) && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleImpersonate(user)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Emular
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setEditRoleDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Editar Roles
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setDeleteDialogOpen(true);
+                            }}
+                            disabled={user.user_id === currentUser?.id}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir Usuário
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                     <td className="py-3 px-4">
                       {getRoleBadges(user)}
@@ -349,51 +382,7 @@ export function AdminUsers() {
                         {formatDate(user.last_sign_in)}
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex justify-end gap-1">
-                        {hasEmulableRole(user.roles) && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleImpersonate(user)}
-                            className="gap-1 text-muted-foreground hover:text-foreground"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Emular
-                          </Button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setEditRoleDialogOpen(true);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Editar Roles
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setDeleteDialogOpen(true);
-                              }}
-                              disabled={user.user_id === currentUser?.id}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir Usuário
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
+
                   </tr>
                 ))}
               </tbody>
@@ -434,7 +423,7 @@ export function AdminUsers() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
                 handleDeleteUser();

@@ -90,13 +90,13 @@ export function PercentilePositionCard({ percentile, totalCompanies }: Percentil
               <div className="flex-1 bg-green-500/30" />
             </div>
             {/* Position indicator */}
-            <div 
+            <div
               className={`absolute top-0 bottom-0 w-1 ${bgColorClass} rounded-full shadow-md transition-all`}
               style={{ left: `calc(${percentile}% - 2px)` }}
             />
           </div>
           {/* Quartile labels */}
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-sm text-muted-foreground">
             <span>0%</span>
             <span>25%</span>
             <span>50%</span>
@@ -111,7 +111,7 @@ export function PercentilePositionCard({ percentile, totalCompanies }: Percentil
         </div>
 
         {totalCompanies && totalCompanies > 1 && (
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-sm text-center text-muted-foreground">
             Baseado em {totalCompanies} equipes avaliadas
           </p>
         )}

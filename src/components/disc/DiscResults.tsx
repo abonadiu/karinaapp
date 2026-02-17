@@ -61,21 +61,21 @@ export function DiscResults({
   // Use existing result or prop scores
   const dimensionScores: DiscDimensionScore[] = existingResult
     ? Object.entries(existingResult.dimension_scores || {}).map(
-        ([dim, score]: [string, any]) => {
-          const key = dim.toUpperCase().charAt(0) === "D" || dim.toUpperCase().charAt(0) === "I" || dim.toUpperCase().charAt(0) === "S" || dim.toUpperCase().charAt(0) === "C"
-            ? dim.toUpperCase().charAt(0)
-            : dim;
-          const normalizedKey = normalizeDimKey(dim);
-          return {
-            dimension: normalizedKey,
-            dimensionLabel: DISC_DIMENSIONS[normalizedKey]?.name || dim,
-            score: Number(score),
-            maxScore: 5,
-            percentage: Number(((Number(score) / 5) * 100).toFixed(1)),
-            color: DISC_DIMENSIONS[normalizedKey]?.color || "#6B7280",
-          };
-        }
-      )
+      ([dim, score]: [string, any]) => {
+        const key = dim.toUpperCase().charAt(0) === "D" || dim.toUpperCase().charAt(0) === "I" || dim.toUpperCase().charAt(0) === "S" || dim.toUpperCase().charAt(0) === "C"
+          ? dim.toUpperCase().charAt(0)
+          : dim;
+        const normalizedKey = normalizeDimKey(dim);
+        return {
+          dimension: normalizedKey,
+          dimensionLabel: DISC_DIMENSIONS[normalizedKey]?.name || dim,
+          score: Number(score),
+          maxScore: 5,
+          percentage: Number(((Number(score) / 5) * 100).toFixed(1)),
+          color: DISC_DIMENSIONS[normalizedKey]?.color || "#6B7280",
+        };
+      }
+    )
     : propScores?.dimensionScores || [];
 
   // Sort to find profile
@@ -250,7 +250,7 @@ export function DiscResults({
                       {dim}
                     </div>
                     <p className="font-semibold text-sm">{info.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {info.tagline}
                     </p>
                   </div>
@@ -485,7 +485,7 @@ export function DiscResults({
                     <Badge variant="outline" className="text-xs">
                       {rec.area}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {rec.frequency}
                     </span>
                   </div>
@@ -521,7 +521,7 @@ export function DiscResults({
                     <h4 className="font-semibold text-sm">
                       Semana {week.week}: {week.theme}
                     </h4>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Meta: {week.goal}
                     </p>
                   </div>

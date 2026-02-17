@@ -34,13 +34,13 @@ export function ColorPicker({ label, value, onChange, description }: ColorPicker
           className="w-28 font-mono text-sm"
           placeholder="#000000"
         />
-        <div 
+        <div
           className="w-20 h-10 rounded-lg border border-border"
           style={{ backgroundColor: value }}
         />
       </div>
       {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
       )}
     </div>
   );

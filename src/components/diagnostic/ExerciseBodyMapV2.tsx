@@ -37,14 +37,14 @@ const BODY_AREAS: BodyArea[] = [
   { id: "eyes", name: "Olhos", region: "head", path: "M85,30 L115,30 L115,42 L85,42 Z" },
   { id: "jaw", name: "Mandíbula", region: "head", path: "M88,42 Q100,55 112,42 L112,52 Q100,62 88,52 Z" },
   { id: "nape", name: "Nuca", region: "neck", path: "M92,52 L108,52 L108,68 L92,68 Z" },
-  
+
   // Upper body
   { id: "left_shoulder", name: "Ombro Esquerdo", region: "upper", path: "M55,68 L80,68 L80,85 L55,85 Z" },
   { id: "right_shoulder", name: "Ombro Direito", region: "upper", path: "M120,68 L145,68 L145,85 L120,85 Z" },
   { id: "trapezius", name: "Trapézio", region: "upper", path: "M80,68 L120,68 L120,85 L80,85 Z" },
   { id: "chest", name: "Peito", region: "upper", path: "M75,85 L125,85 L125,120 L75,120 Z" },
   { id: "upper_back", name: "Costas Alta", region: "upper", path: "M78,88 L122,88 L122,118 L78,118 Z", cx: 100, cy: 103 },
-  
+
   // Arms
   { id: "left_arm", name: "Braço Esquerdo", region: "arms", path: "M45,85 L55,85 L55,130 L45,130 Z" },
   { id: "right_arm", name: "Braço Direito", region: "arms", path: "M145,85 L155,85 L155,130 L145,130 Z" },
@@ -52,12 +52,12 @@ const BODY_AREAS: BodyArea[] = [
   { id: "right_forearm", name: "Antebraço Direito", region: "arms", path: "M148,130 L158,130 L160,175 L150,175 Z" },
   { id: "left_hand", name: "Mão Esquerda", region: "arms", path: "M38,175 L52,175 L52,195 L38,195 Z" },
   { id: "right_hand", name: "Mão Direita", region: "arms", path: "M148,175 L162,175 L162,195 L148,195 Z" },
-  
+
   // Core
   { id: "abdomen", name: "Abdômen", region: "core", path: "M78,120 L122,120 L122,155 L78,155 Z" },
   { id: "lower_back", name: "Lombar", region: "core", path: "M80,145 L120,145 L120,165 L80,165 Z", cx: 100, cy: 155 },
   { id: "hips", name: "Quadril", region: "core", path: "M70,155 L130,155 L135,175 L65,175 Z" },
-  
+
   // Legs
   { id: "left_thigh", name: "Coxa Esquerda", region: "legs", path: "M68,175 L92,175 L88,230 L65,230 Z" },
   { id: "right_thigh", name: "Coxa Direita", region: "legs", path: "M108,175 L132,175 L135,230 L112,230 Z" },
@@ -112,7 +112,7 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
   const getAreaColor = (areaId: string) => {
     const selection = selections.get(areaId);
     const isHovered = hoveredArea === areaId;
-    
+
     if (!selection) {
       return cn(
         "fill-muted stroke-muted-foreground/30 transition-all duration-200",
@@ -121,7 +121,7 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
     }
 
     const { type, intensity } = selection;
-    
+
     if (type === "tension") {
       const colors = {
         1: "fill-yellow-300 stroke-yellow-500",
@@ -161,7 +161,7 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
             </div>
             <CardTitle className="text-2xl">Mapeamento Corporal</CardTitle>
             <CardDescription className="flex items-center justify-center gap-2">
-              {mode === "tension" 
+              {mode === "tension"
                 ? "Clique nas áreas onde você sente TENSÃO ou desconforto"
                 : "Agora, clique nas áreas onde você sente CONFORTO ou bem-estar"
               }
@@ -199,20 +199,20 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
 
             {/* Body SVG */}
             <div className="flex justify-center">
-              <svg 
-                viewBox="0 0 200 340" 
+              <svg
+                viewBox="0 0 200 340"
                 className="w-56 h-80 md:w-64 md:h-96"
               >
                 {/* Body outline for context */}
-                <ellipse 
-                  cx="100" cy="32" rx="25" ry="28" 
+                <ellipse
+                  cx="100" cy="32" rx="25" ry="28"
                   className="fill-none stroke-muted-foreground/20 stroke-1"
                 />
-                <path 
+                <path
                   d="M75,60 L55,68 L45,85 L40,175 L55,195 L55,195 L65,175 L70,155 L68,175 L65,230 L60,310 L55,330 L85,330 L88,310 L92,175 L100,165 L108,175 L112,310 L115,330 L145,330 L140,310 L135,230 L132,175 L130,155 L130,175 L145,195 L160,175 L155,85 L145,68 L125,60 Z"
                   className="fill-none stroke-muted-foreground/20 stroke-1"
                 />
-                
+
                 {/* Interactive body areas */}
                 {BODY_AREAS.map(area => (
                   <Tooltip key={area.id}>
@@ -232,7 +232,7 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
                     <TooltipContent side="right" className="text-sm">
                       <p className="font-medium">{area.name}</p>
                       {selections.get(area.id) && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {selections.get(area.id)?.type === "tension" ? "Tensão" : "Conforto"} - {getIntensityLabel(selections.get(area.id)!.intensity)}
                         </p>
                       )}
@@ -275,11 +275,11 @@ export function ExerciseBodyMapV2({ onComplete, onSkip }: ExerciseBodyMapV2Props
             {/* Current mode indicator */}
             <div className={cn(
               "text-center py-2 px-4 rounded-lg text-sm font-medium transition-colors",
-              mode === "tension" 
+              mode === "tension"
                 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                 : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
             )}>
-              {mode === "tension" 
+              {mode === "tension"
                 ? "📍 Marque as áreas de TENSÃO (clique múltiplas vezes para intensidade)"
                 : "✨ Marque as áreas de CONFORTO (clique múltiplas vezes para intensidade)"
               }

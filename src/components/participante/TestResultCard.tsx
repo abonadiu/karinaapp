@@ -84,12 +84,12 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
   // For IQ+IS (generic) tests, build dimension scores
   const dimensionScores = (!isSpecialTest && test.result)
     ? Object.entries(test.result.dimension_scores).map(([dimension, data], index) => ({
-        dimension,
-        dimensionOrder: index + 1,
-        score: typeof data === "object" && data !== null ? (data as any).score : Number(data),
-        maxScore: 5,
-        percentage: ((typeof data === "object" && data !== null ? (data as any).score : Number(data)) / 5) * 100,
-      }))
+      dimension,
+      dimensionOrder: index + 1,
+      score: typeof data === "object" && data !== null ? (data as any).score : Number(data),
+      maxScore: 5,
+      percentage: ((typeof data === "object" && data !== null ? (data as any).score : Number(data)) / 5) * 100,
+    }))
     : [];
 
   const weakDimensions = (!isSpecialTest && isCompleted) ? getWeakestDimensions(dimensionScores) : [];
@@ -201,7 +201,7 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="text-right text-xs text-muted-foreground hidden sm:block">
+                <div className="text-right text-sm text-muted-foreground hidden sm:block">
                   {test.completed_at ? (
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3 text-primary" />
@@ -225,12 +225,12 @@ export function TestResultCard({ test, participantName, facilitatorLogoUrl }: Te
               </div>
             </div>
             {/* Mobile date */}
-            <div className="sm:hidden text-xs text-muted-foreground mt-2">
+            <div className="sm:hidden text-sm text-muted-foreground mt-2">
               {test.completed_at
                 ? `Concluído em ${formatDate(test.completed_at)}`
                 : test.started_at
-                ? `Iniciado em ${formatDate(test.started_at)}`
-                : `Atribuído em ${formatDate(test.created_at)}`}
+                  ? `Iniciado em ${formatDate(test.started_at)}`
+                  : `Atribuído em ${formatDate(test.created_at)}`}
             </div>
           </CardHeader>
         </CollapsibleTrigger>

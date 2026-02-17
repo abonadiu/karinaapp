@@ -80,31 +80,31 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
         <Card className="border-amber-200 bg-amber-50/30">
           <CardContent className="pt-4 text-center">
             <Sun className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Sol</p>
+            <p className="text-sm text-muted-foreground uppercase tracking-wide">Sol</p>
             <p className="text-xl font-bold text-amber-700">
               {SIGN_SYMBOLS[result.sunSign]} {result.sunSignLabel}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Essência e identidade</p>
+            <p className="text-sm text-muted-foreground mt-1">Essência e identidade</p>
           </CardContent>
         </Card>
         <Card className="border-blue-200 bg-blue-50/30">
           <CardContent className="pt-4 text-center">
             <Moon className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Lua</p>
+            <p className="text-sm text-muted-foreground uppercase tracking-wide">Lua</p>
             <p className="text-xl font-bold text-blue-700">
               {SIGN_SYMBOLS[result.moonSign]} {result.moonSignLabel}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Emoções e instintos</p>
+            <p className="text-sm text-muted-foreground mt-1">Emoções e instintos</p>
           </CardContent>
         </Card>
         <Card className="border-indigo-200 bg-indigo-50/30">
           <CardContent className="pt-4 text-center">
             <ArrowUp className="h-8 w-8 text-indigo-500 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Ascendente</p>
+            <p className="text-sm text-muted-foreground uppercase tracking-wide">Ascendente</p>
             <p className="text-xl font-bold text-indigo-700">
               {SIGN_SYMBOLS[result.ascendantSign]} {result.ascendantSignLabel}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Máscara social</p>
+            <p className="text-sm text-muted-foreground mt-1">Máscara social</p>
           </CardContent>
         </Card>
       </div>
@@ -125,23 +125,23 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
       {/* Tabs for detailed interpretations */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="overview" className="text-xs">
+          <TabsTrigger value="overview" className="text-sm">
             <Star className="h-3 w-3 mr-1" />
             Visão Geral
           </TabsTrigger>
-          <TabsTrigger value="planets" className="text-xs">
+          <TabsTrigger value="planets" className="text-sm">
             <Sun className="h-3 w-3 mr-1" />
             Planetas
           </TabsTrigger>
-          <TabsTrigger value="houses" className="text-xs">
+          <TabsTrigger value="houses" className="text-sm">
             <Compass className="h-3 w-3 mr-1" />
             Casas
           </TabsTrigger>
-          <TabsTrigger value="aspects" className="text-xs">
+          <TabsTrigger value="aspects" className="text-sm">
             <Sparkles className="h-3 w-3 mr-1" />
             Aspectos
           </TabsTrigger>
-          <TabsTrigger value="balance" className="text-xs">
+          <TabsTrigger value="balance" className="text-sm">
             <BarChart3 className="h-3 w-3 mr-1" />
             Equilíbrio
           </TabsTrigger>
@@ -159,7 +159,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {getAscendantDescription(result.ascendantSign) || 
+                {getAscendantDescription(result.ascendantSign) ||
                   `Seu Ascendente está em ${result.ascendantSignLabel}, influenciando como você se apresenta ao mundo.`}
               </p>
             </CardContent>
@@ -219,7 +219,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
           {mainPlanets.map((planet) => {
             const element = SIGN_ELEMENTS[planet.sign];
             const color = ELEMENT_COLORS[element] || '#335072';
-            
+
             return (
               <Card key={planet.key}>
                 <CardHeader>
@@ -240,7 +240,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
                       {planet.label} no signo de {planet.signLabel}:
                     </p>
                     <p className="text-sm leading-relaxed">
@@ -249,7 +249,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
                       {planet.label} na Casa {planet.house}:
                     </p>
                     <p className="text-sm leading-relaxed">
@@ -257,7 +257,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                         `${planet.label} na Casa ${planet.house} direciona esta energia para os temas desta casa.`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Grau: {planet.formattedDegree}</span>
                     <span>•</span>
                     <span>Eclíptica: {planet.eclipticDegree.toFixed(2)}°</span>
@@ -293,7 +293,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                         </div>
                         {planetsInHouse.length > 0 && (
                           <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs text-muted-foreground">Planetas:</span>
+                            <span className="text-sm text-muted-foreground">Planetas:</span>
                             {planetsInHouse.map(p => (
                               <Badge key={p.key} variant="secondary" className="text-xs">
                                 {PLANET_SYMBOLS[p.key]} {p.label}
@@ -325,7 +325,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                   .map((aspect, i) => {
                     const isHarmonious = ['trine', 'sextile'].includes(aspect.type);
                     const isTense = ['square', 'opposition'].includes(aspect.type);
-                    
+
                     return (
                       <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-muted/20">
                         <div className="flex items-center gap-1 min-w-[140px]">
@@ -344,7 +344,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                             {PLANET_SYMBOLS[aspect.point2] || '?'} {aspect.point2Label}
                           </span>
                         </div>
-                        <span className="text-xs text-muted-foreground ml-auto">
+                        <span className="text-sm text-muted-foreground ml-auto">
                           orbe: {aspect.orb.toFixed(1)}°
                         </span>
                       </div>
@@ -376,7 +376,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                   const color = ELEMENT_COLORS[element] || '#666';
                   const maxCount = Math.max(...Object.values(elementBalance));
                   const pct = maxCount > 0 ? (count / 10) * 100 : 0;
-                  
+
                   return (
                     <div key={element} className="space-y-1">
                       <div className="flex items-center justify-between">
@@ -396,7 +396,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                 })}
               </div>
               <div className="bg-muted/30 rounded-lg p-3">
-                <p className="text-xs font-medium mb-1">
+                <p className="text-sm font-medium mb-1">
                   Elemento dominante: <strong>{getElementLabel(dominantElement)}</strong>
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -425,7 +425,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                   };
                   const color = colors[modality] || '#666';
                   const pct = (count / 10) * 100;
-                  
+
                   return (
                     <div key={modality} className="space-y-1">
                       <div className="flex items-center justify-between">
@@ -445,7 +445,7 @@ export const AstralChartResults: React.FC<AstralChartResultsProps> = ({
                 })}
               </div>
               <div className="bg-muted/30 rounded-lg p-3">
-                <p className="text-xs font-medium mb-1">
+                <p className="text-sm font-medium mb-1">
                   Modalidade dominante: <strong>{getModalityLabel(dominantModality)}</strong>
                 </p>
                 <p className="text-sm text-muted-foreground">

@@ -39,17 +39,17 @@ export function PortalSidebar({ companyName }: PortalSidebarProps) {
             <span className="font-semibold text-sidebar-foreground truncate max-w-[150px]">
               {companyName}
             </span>
-            <span className="text-xs text-sidebar-foreground/70">Portal Empresarial</span>
+            <span className="text-sm text-sidebar-foreground/70">Portal Empresarial</span>
           </div>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton 
+                <SidebarMenuButton
                   isActive={true}
                   onClick={() => navigate("/empresa/dashboard")}
                   className="w-full"
@@ -62,10 +62,10 @@ export function PortalSidebar({ companyName }: PortalSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
           onClick={handleLogout}
         >
