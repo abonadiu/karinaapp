@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, Download, BarChart3, ArrowUpDown } from 'lucide-react';
+import { Loader2, Users, Download, BarChart3, ArrowUpDown, Sparkles } from 'lucide-react';
 import { ComparisonData } from '@/lib/reports/test-adapter';
 import { fetchComparisonData } from '@/lib/reports/report-data-service';
 import { getTestAdapter, getAllAdapters } from '@/lib/reports/test-adapter-registry';
+import { generateComparativeAnalysis } from '@/lib/reports/comparative-analysis-service';
 
 interface ComparativeReportProps {
   participantIds: string[];
@@ -19,15 +20,37 @@ export function ComparativeReport({ participantIds, testSlug, onGeneratePDF }: C
   const [sortBy, setSortBy] = useState<string>('');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // AI analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+
   useEffect(() => {
     loadData();
   }, [participantIds, testSlug]);
 
   const loadData = async () => {
     setLoading(true);
+    setAiAnalysis('');
     const result = await fetchComparisonData(participantIds, testSlug);
     setData(result);
     setLoading(false);
+
+    // Auto-generate AI analysis if 2+ participants
+    if (result && result.participants.length >= 2) {
+      generateAnalysis(result);
+    }
+  };
+
+  const generateAnalysis = async (comparisonData: ComparisonData) => {
+    setIsGeneratingAnalysis(true);
+    try {
+      const analysis = await generateComparativeAnalysis(comparisonData);
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error('Error generating comparative analysis:', error);
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
   };
 
   const handleSort = (metricKey: string) => {
@@ -225,6 +248,58 @@ export function ComparativeReport({ participantIds, testSlug, onGeneratePDF }: C
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Comparative Analysis */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Análise Comparativa com IA
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isGeneratingAnalysis ? (
+            <div className="flex items-center gap-3 py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p className="text-muted-foreground">
+                Gerando análise comparativa personalizada com inteligência artificial...
+              </p>
+            </div>
+          ) : aiAnalysis ? (
+            <div className="prose prose-sm max-w-none">
+              {aiAnalysis.split('\n').map((line, i) => {
+                if (line.startsWith('**') && line.endsWith('**')) {
+                  return <h3 key={i} className="text-base font-bold mt-4 mb-2 text-foreground">{line.replace(/\*\*/g, '')}</h3>;
+                }
+                if (line.trim() === '') return <br key={i} />;
+                // Handle inline bold
+                const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                return (
+                  <p key={i} className="text-sm text-muted-foreground leading-relaxed mb-2">
+                    {parts.map((part, j) => {
+                      if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={j} className="text-foreground">{part.replace(/\*\*/g, '')}</strong>;
+                      }
+                      return <span key={j}>{part}</span>;
+                    })}
+                  </p>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <Button
+                variant="outline"
+                onClick={() => data && generateAnalysis(data)}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Gerar Análise Comparativa
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
