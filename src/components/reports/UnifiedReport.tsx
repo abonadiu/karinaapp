@@ -250,49 +250,50 @@ export function UnifiedReport({ participantId, participantName, onGeneratePDF }:
 function TestResultRenderer({ slug, result, participantName }: { slug: string; result: any; participantName: string }) {
   switch (slug) {
     case 'iq_is': {
-      const scores = Object.entries(result.dimension_scores || {}).map(([dimension, scoreVal], index) => ({
-        dimension,
-        dimensionLabel: dimension,
-        score: Number(scoreVal),
-        maxScore: 5,
-        percentage: (Number(scoreVal) / 5) * 100,
-        color: ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'][index % 5],
-      }));
+      // DiagnosticResults expects `scores: DiagnosticScores` which contains
+      // { dimensionScores, totalScore, totalPercentage }.
+      // It also accepts `existingResult` and reconstructs scores from it internally.
+      // Passing existingResult is the simplest and most reliable approach.
+      const diagnosticScores = {
+        dimensionScores: Object.entries(result.dimension_scores || {}).map(([dimension, scoreVal], index) => ({
+          dimension,
+          dimensionOrder: index + 1,
+          score: typeof scoreVal === 'number' ? scoreVal : (scoreVal as any)?.score ?? 0,
+          maxScore: 5,
+          percentage: ((typeof scoreVal === 'number' ? scoreVal : (scoreVal as any)?.score ?? 0) / 5) * 100,
+        })),
+        totalScore: Number(result.total_score),
+        totalPercentage: (Number(result.total_score) / 5) * 100,
+      };
       return (
         <DiagnosticResults
           participantName={participantName}
-          dimensionScores={scores}
-          totalScore={Number(result.total_score)}
-          totalPercentage={(Number(result.total_score) / 5) * 100}
+          scores={diagnosticScores}
           existingResult={result}
         />
       );
     }
     case 'disc': {
-      const scores = Object.entries(result.dimension_scores || {}).map(([dim, score]) => ({
-        dimension: dim,
-        dimensionLabel: dim,
-        score: Number(score),
-        maxScore: 5,
-        percentage: (Number(score) / 5) * 100,
-        color: '#6B7280',
-      }));
+      // DiscResults accepts `existingResult` and reconstructs dimension scores internally.
+      // No need to pass dimensionScores/totalScore separately.
       return (
         <DiscResults
           participantName={participantName}
-          dimensionScores={scores}
-          totalScore={Number(result.total_score)}
-          totalPercentage={(Number(result.total_score) / 5) * 100}
           existingResult={result}
         />
       );
     }
     case 'mapa_da_alma': {
-      const soulPlanResult = result.exercises_data?.soulPlanResult;
-      if (soulPlanResult) {
-        return <SoulPlanResults result={soulPlanResult} participantName={participantName} />;
-      }
-      return <p className="text-muted-foreground">Dados do Mapa da Alma não disponíveis.</p>;
+      // SoulPlanResults accepts `soulPlanResult` (not `result`) or `existingResult`.
+      // Passing existingResult lets it reconstruct from exercises_data internally.
+      const soulPlanData = result.exercises_data?.soulPlanResult;
+      return (
+        <SoulPlanResults
+          participantName={participantName}
+          soulPlanResult={soulPlanData}
+          existingResult={result}
+        />
+      );
     }
     case 'mapa_astral': {
       const chartResult = result.exercises_data?.fullResult;
