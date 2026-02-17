@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/backend/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, LogOut, Award, Building2, User, ClipboardList, Download } from "lucide-react";
+import { Loader2, LogOut, Award, Building2, User, ClipboardList, Download, FileText } from "lucide-react";
 import { ScheduleFeedbackCard } from "@/components/diagnostic/ScheduleFeedbackCard";
 import { TestResultCard, type TestData } from "@/components/participante/TestResultCard";
 import { ResultsRadarChart } from "@/components/diagnostic/ResultsRadarChart";
@@ -15,6 +15,8 @@ import { RecommendationList } from "@/components/diagnostic/RecommendationList";
 import { getWeakestDimensions, getStrongestDimensions } from "@/lib/diagnostic-scoring";
 import { getRecommendationsForWeakDimensions } from "@/lib/recommendations";
 import { generateDiagnosticPDF } from "@/lib/pdf-generator";
+import { UnifiedReport } from "@/components/reports/UnifiedReport";
+import { generateUnifiedPDF } from "@/lib/reports/unified-pdf-generator";
 
 interface PortalData {
   participant: {
@@ -214,6 +216,31 @@ export default function PortalParticipante() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Unified Report Section - shows when participant has completed tests */}
+        {completedTests.length >= 1 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">
+                Relatório Unificado
+              </h2>
+            </div>
+            <UnifiedReport
+              participantId={participant.id}
+              participantName={participant.name}
+              onGeneratePDF={async (data, crossAnalysis) => {
+                try {
+                  await generateUnifiedPDF(data, crossAnalysis);
+                  toast.success("PDF do Relatório Unificado gerado com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao gerar PDF unificado:", error);
+                  toast.error("Erro ao gerar PDF. Tente novamente.");
+                }
+              }}
+            />
+          </div>
         )}
 
         {/* Schedule Feedback */}

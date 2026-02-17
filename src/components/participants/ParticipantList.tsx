@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye, Link2 } from "lucide-react";
+import { Users, Pencil, Trash2, Mail, Loader2, Bell, ClipboardList, Eye, Link2, FileText } from "lucide-react";
 
 import {
   Table,
@@ -15,6 +15,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "./StatusBadge";
 import { toast } from "sonner";
 
@@ -48,6 +49,8 @@ interface ParticipantListProps {
   sendingInviteId?: string | null;
   sendingReminderId?: string | null;
   testCounts?: Record<string, { total: number; completed: number }>;
+  selectedForComparison?: Set<string>;
+  onToggleComparison?: (participantId: string) => void;
 }
 
 export function ParticipantList({ 
@@ -62,6 +65,8 @@ export function ParticipantList({
   sendingInviteId,
   sendingReminderId,
   testCounts,
+  selectedForComparison,
+  onToggleComparison,
 }: ParticipantListProps) {
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
 
@@ -89,11 +94,18 @@ export function ParticipantList({
     );
   }
 
+  const showCheckbox = !!onToggleComparison;
+
   return (
     <div className="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
+            {showCheckbox && (
+              <TableHead className="w-[40px]">
+                <span className="sr-only">Selecionar</span>
+              </TableHead>
+            )}
             <TableHead>Participante</TableHead>
             <TableHead>Departamento</TableHead>
             <TableHead>Cargo</TableHead>
@@ -104,6 +116,7 @@ export function ParticipantList({
         <TableBody>
           {participants.map((participant) => {
             const counts = testCounts?.[participant.id];
+            const isSelected = selectedForComparison?.has(participant.id) ?? false;
             return (
               <Popover 
                 key={participant.id} 
@@ -112,8 +125,17 @@ export function ParticipantList({
               >
                 <PopoverTrigger asChild>
                   <TableRow 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${isSelected ? "bg-primary/5" : ""}`}
                   >
+                    {showCheckbox && (
+                      <TableCell className="w-[40px]" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => onToggleComparison?.(participant.id)}
+                          aria-label={`Selecionar ${participant.name} para comparação`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div>
                         <p className="font-medium text-foreground">{participant.name}</p>

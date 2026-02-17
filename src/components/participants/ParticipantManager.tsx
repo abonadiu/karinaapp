@@ -1,13 +1,18 @@
 import { useState, useMemo } from "react";
-import { Search, Loader2, Download } from "lucide-react";
+import { Search, Loader2, Download, FileText, Users } from "lucide-react";
 
 import { ParticipantList } from "./ParticipantList";
 import { ParticipantForm } from "./ParticipantForm";
 import { AssignTestDialog } from "./AssignTestDialog";
 import { ParticipantTestsList, useParticipantTestCounts } from "./ParticipantTestsList";
 import { ParticipantResultModal } from "./ParticipantResultModal";
+import { UnifiedReport } from "@/components/reports/UnifiedReport";
+import { ComparativeReport } from "@/components/reports/ComparativeReport";
+import { generateUnifiedPDF } from "@/lib/reports/unified-pdf-generator";
+import { generateComparativePDF } from "@/lib/reports/comparative-pdf-generator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -32,6 +37,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 import { useParticipantActions, Participant } from "@/hooks/useParticipantActions";
 import { DimensionScore } from "@/lib/diagnostic-scoring";
@@ -40,6 +52,8 @@ import { SoulPlanResults } from "@/components/soul-plan/SoulPlanResults";
 import { AstralChartResults } from "@/components/astral-chart/AstralChartResults";
 import { generateAstralChartPDF } from "@/lib/astral-chart-pdf-generator";
 import { AstralChartResult } from "@/lib/astral-chart-calculator";
+import { getAllAdapters } from "@/lib/reports/test-adapter-registry";
+import { toast } from "sonner";
 
 interface ParticipantManagerProps {
   participants: Participant[];
@@ -60,6 +74,12 @@ export function ParticipantManager({
 }: ParticipantManagerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sheetTab, setSheetTab] = useState<"testes" | "unificado">("testes");
+
+  // Comparative report state
+  const [selectedForComparison, setSelectedForComparison] = useState<Set<string>>(new Set());
+  const [showComparativeDialog, setShowComparativeDialog] = useState(false);
+  const [comparativeTestSlug, setComparativeTestSlug] = useState<string>("");
 
   const actions = useParticipantActions(onRefresh);
 
@@ -86,6 +106,39 @@ export function ParticipantManager({
   const pendingCount = participants.filter(p => p.status === "pending").length;
   const inProgressCount = participants.filter(p => p.status === "in_progress").length;
   const completedCount = participants.filter(p => p.status === "completed").length;
+
+  // Toggle participant selection for comparison
+  const toggleComparison = (participantId: string) => {
+    setSelectedForComparison(prev => {
+      const next = new Set(prev);
+      if (next.has(participantId)) next.delete(participantId);
+      else next.add(participantId);
+      return next;
+    });
+  };
+
+  const clearComparison = () => {
+    setSelectedForComparison(new Set());
+  };
+
+  const openComparativeReport = () => {
+    if (selectedForComparison.size < 2) {
+      toast.error("Selecione pelo menos 2 participantes para comparar.");
+      return;
+    }
+    // Default to first available adapter
+    const adapters = getAllAdapters();
+    if (adapters.length > 0) {
+      setComparativeTestSlug(adapters[0].slug);
+    }
+    setShowComparativeDialog(true);
+  };
+
+  // Reset sheet tab when opening a new participant
+  const handleRowClickWithReset = (participant: Participant) => {
+    setSheetTab("testes");
+    actions.handleRowClick(participant);
+  };
 
   return (
     <div className="space-y-4">
@@ -116,6 +169,28 @@ export function ParticipantManager({
                 <SelectItem value="completed">Concluído</SelectItem>
               </SelectContent>
             </Select>
+          )}
+
+          {/* Comparative report button */}
+          {selectedForComparison.size >= 2 && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={openComparativeReport}
+              className="gap-2"
+            >
+              <Users className="h-4 w-4" />
+              Comparar ({selectedForComparison.size})
+            </Button>
+          )}
+          {selectedForComparison.size > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearComparison}
+            >
+              Limpar seleção
+            </Button>
           )}
         </div>
       )}
@@ -163,12 +238,14 @@ export function ParticipantManager({
         onDelete={(p) => actions.setDeletingParticipant(p)}
         onInvite={actions.handleInviteParticipant}
         onReminder={actions.handleReminderParticipant}
-        onRowClick={actions.handleRowClick}
+        onRowClick={handleRowClickWithReset}
         onAssignTest={actions.handleAssignTest}
         isLoading={isLoading}
         sendingInviteId={actions.sendingInviteId}
         sendingReminderId={actions.sendingReminderId}
         testCounts={testCounts}
+        selectedForComparison={selectedForComparison}
+        onToggleComparison={toggleComparison}
       />
 
       {/* Edit participant form */}
@@ -226,7 +303,7 @@ export function ParticipantManager({
         />
       )}
 
-      {/* Result sheet */}
+      {/* Result sheet with tabs (Testes / Relatório Unificado) */}
       <Sheet
         open={!!actions.selectedParticipant}
         onOpenChange={(open) => !open && actions.setSelectedParticipant(null)}
@@ -245,163 +322,244 @@ export function ParticipantManager({
                 <p className="text-sm text-muted-foreground">{actions.selectedParticipant.email}</p>
               </div>
 
-              {/* Tests list */}
-              <ParticipantTestsList
-                participantId={actions.selectedParticipant.id}
-                participantName={actions.selectedParticipant.name}
-                onViewResult={actions.handleViewTestResult}
-              />
+              {/* Tabs: Testes | Relatório Unificado */}
+              <Tabs value={sheetTab} onValueChange={(v) => setSheetTab(v as "testes" | "unificado")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="testes" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Testes
+                  </TabsTrigger>
+                  <TabsTrigger value="unificado" className="gap-2">
+                    <FileText className="h-4 w-4" />
+                    Relatório Unificado
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Test result view */}
-              {actions.isLoadingTestResult && (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              )}
-              {actions.selectedTestResult && !actions.isLoadingTestResult && (
-                <div className="mt-4">
-                  {actions.selectedTestTypeSlug === "mapa_da_alma" ? (
-                    <SoulPlanResults
-                      participantName={actions.selectedParticipant.name}
-                      existingResult={actions.selectedTestResult}
-                    />
-                  ) : actions.selectedTestTypeSlug === "disc" ? (
-                    <>
-                      <div className="flex justify-end mb-4">
-                        <Button
-                          onClick={() =>
-                            actions.handleGenerateDiscPDF(
-                              actions.selectedParticipant!.name,
-                              actions.selectedTestResult
-                            )
-                          }
-                          disabled={actions.isGeneratingDiscPDF}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          {actions.isGeneratingDiscPDF ? "Gerando..." : "Exportar PDF"}
-                        </Button>
-                      </div>
-                      <DiscResults
-                        participantName={actions.selectedParticipant.name}
-                        existingResult={actions.selectedTestResult}
-                      />
-                    </>
-                  ) : actions.selectedTestTypeSlug === "mapa_astral" ? (
-                    (() => {
-                      const chartResult = actions.selectedTestResult?.exercises_data?.fullResult as AstralChartResult | undefined;
-                      if (!chartResult || !chartResult.planets) {
-                        return (
-                          <p className="text-center text-muted-foreground py-8">
-                            Dados do mapa astral não encontrados.
-                          </p>
-                        );
-                      }
-                      const handleAstralPDF = async () => {
-                        try {
-                          await generateAstralChartPDF({
-                            participantName: actions.selectedParticipant!.name,
-                            result: chartResult,
-                          });
-                        } catch (error) {
-                          console.error("Erro ao gerar PDF:", error);
-                        }
-                      };
-                      return (
-                        <AstralChartResults
-                          participantName={actions.selectedParticipant.name}
-                          result={chartResult}
-                          onDownloadPDF={handleAstralPDF}
-                        />
-                      );
-                    })()
-                  ) : (
-                    <ParticipantResultModal
-                      participantName={actions.selectedParticipant.name}
-                      completedAt={actions.selectedTestResult.completed_at}
-                      totalScore={Number(actions.selectedTestResult.total_score)}
-                      dimensionScores={
-                        Object.entries(actions.selectedTestResult.dimension_scores as Record<string, any>).map(
-                          ([dimension, data]) => ({
-                            dimension,
-                            dimensionOrder: typeof data === 'object' ? ((data as any).dimensionOrder ?? 0) : 0,
-                            score: typeof data === 'number' ? data : ((data as any).score ?? 0),
-                            maxScore: typeof data === 'object' ? ((data as any).maxScore ?? 5) : 5,
-                            percentage: typeof data === 'object' ? ((data as any).percentage ?? 0) : 0,
-                          })
-                        ) as DimensionScore[]
-                      }
-                      testTypeSlug={actions.selectedTestTypeSlug || undefined}
-                    />
+                {/* Tab: Individual Tests */}
+                <TabsContent value="testes" className="space-y-6 mt-4">
+                  {/* Tests list */}
+                  <ParticipantTestsList
+                    participantId={actions.selectedParticipant.id}
+                    participantName={actions.selectedParticipant.name}
+                    onViewResult={actions.handleViewTestResult}
+                  />
+
+                  {/* Test result view */}
+                  {actions.isLoadingTestResult && (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
                   )}
-                </div>
-              )}
+                  {actions.selectedTestResult && !actions.isLoadingTestResult && (
+                    <div className="mt-4">
+                      {actions.selectedTestTypeSlug === "mapa_da_alma" ? (
+                        <SoulPlanResults
+                          participantName={actions.selectedParticipant.name}
+                          existingResult={actions.selectedTestResult}
+                        />
+                      ) : actions.selectedTestTypeSlug === "disc" ? (
+                        <>
+                          <div className="flex justify-end mb-4">
+                            <Button
+                              onClick={() =>
+                                actions.handleGenerateDiscPDF(
+                                  actions.selectedParticipant!.name,
+                                  actions.selectedTestResult
+                                )
+                              }
+                              disabled={actions.isGeneratingDiscPDF}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              {actions.isGeneratingDiscPDF ? "Gerando..." : "Exportar PDF"}
+                            </Button>
+                          </div>
+                          <DiscResults
+                            participantName={actions.selectedParticipant.name}
+                            existingResult={actions.selectedTestResult}
+                          />
+                        </>
+                      ) : actions.selectedTestTypeSlug === "mapa_astral" ? (
+                        (() => {
+                          const chartResult = actions.selectedTestResult?.exercises_data?.fullResult as AstralChartResult | undefined;
+                          if (!chartResult || !chartResult.planets) {
+                            return (
+                              <p className="text-center text-muted-foreground py-8">
+                                Dados do mapa astral não encontrados.
+                              </p>
+                            );
+                          }
+                          const handleAstralPDF = async () => {
+                            try {
+                              await generateAstralChartPDF({
+                                participantName: actions.selectedParticipant!.name,
+                                result: chartResult,
+                              });
+                            } catch (error) {
+                              console.error("Erro ao gerar PDF:", error);
+                            }
+                          };
+                          return (
+                            <AstralChartResults
+                              participantName={actions.selectedParticipant.name}
+                              result={chartResult}
+                              onDownloadPDF={handleAstralPDF}
+                            />
+                          );
+                        })()
+                      ) : (
+                        <ParticipantResultModal
+                          participantName={actions.selectedParticipant.name}
+                          completedAt={actions.selectedTestResult.completed_at}
+                          totalScore={Number(actions.selectedTestResult.total_score)}
+                          dimensionScores={
+                            Object.entries(actions.selectedTestResult.dimension_scores as Record<string, any>).map(
+                              ([dimension, data]) => ({
+                                dimension,
+                                dimensionOrder: typeof data === 'object' ? ((data as any).dimensionOrder ?? 0) : 0,
+                                score: typeof data === 'number' ? data : ((data as any).score ?? 0),
+                                maxScore: typeof data === 'object' ? ((data as any).maxScore ?? 5) : 5,
+                                percentage: typeof data === 'object' ? ((data as any).percentage ?? 0) : 0,
+                              })
+                            ) as DimensionScore[]
+                          }
+                          testTypeSlug={actions.selectedTestTypeSlug || undefined}
+                        />
+                      )}
+                    </div>
+                  )}
 
-              {/* Legacy result view */}
-              {actions.selectedParticipant.status === "completed" && (
-                actions.isLoadingResult ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : actions.selectedResult ? (
-                  <>
-                    {actions.allResults.length > 1 && (
-                      <div className="mb-4">
-                        <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                          Selecionar diagnóstico ({actions.allResults.length} realizados)
-                        </label>
-                        <Select
-                          value={actions.selectedResult.id}
-                          onValueChange={(id) => {
-                            const found = actions.allResults.find((r: any) => r.id === id);
-                            if (found) actions.setSelectedResult(found);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {actions.allResults.map((r: any, idx: number) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {new Date(r.completed_at).toLocaleDateString("pt-BR", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                })}{" "}
-                                — Score: {Number(r.total_score).toFixed(1)}
-                                {idx === 0 ? " (mais recente)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  {/* Legacy result view */}
+                  {actions.selectedParticipant.status === "completed" && (
+                    actions.isLoadingResult ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       </div>
-                    )}
-                    <ParticipantResultModal
-                      participantName={actions.selectedParticipant.name}
-                      completedAt={actions.selectedResult.completed_at}
-                      totalScore={Number(actions.selectedResult.total_score)}
-                      dimensionScores={
-                        Object.entries(actions.selectedResult.dimension_scores as Record<string, any>).map(
-                          ([dimension, data]) => ({
-                            dimension,
-                            dimensionOrder: (data as any).dimensionOrder ?? 0,
-                            score: (data as any).score ?? 0,
-                            maxScore: (data as any).maxScore ?? 5,
-                            percentage: (data as any).percentage ?? 0,
-                          })
-                        ) as DimensionScore[]
+                    ) : actions.selectedResult ? (
+                      <>
+                        {actions.allResults.length > 1 && (
+                          <div className="mb-4">
+                            <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                              Selecionar diagnóstico ({actions.allResults.length} realizados)
+                            </label>
+                            <Select
+                              value={actions.selectedResult.id}
+                              onValueChange={(id) => {
+                                const found = actions.allResults.find((r: any) => r.id === id);
+                                if (found) actions.setSelectedResult(found);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {actions.allResults.map((r: any, idx: number) => (
+                                  <SelectItem key={r.id} value={r.id}>
+                                    {new Date(r.completed_at).toLocaleDateString("pt-BR", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}{" "}
+                                    — Score: {Number(r.total_score).toFixed(1)}
+                                    {idx === 0 ? " (mais recente)" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <ParticipantResultModal
+                          participantName={actions.selectedParticipant.name}
+                          completedAt={actions.selectedResult.completed_at}
+                          totalScore={Number(actions.selectedResult.total_score)}
+                          dimensionScores={
+                            Object.entries(actions.selectedResult.dimension_scores as Record<string, any>).map(
+                              ([dimension, data]) => ({
+                                dimension,
+                                dimensionOrder: (data as any).dimensionOrder ?? 0,
+                                score: (data as any).score ?? 0,
+                                maxScore: (data as any).maxScore ?? 5,
+                                percentage: (data as any).percentage ?? 0,
+                              })
+                            ) as DimensionScore[]
+                          }
+                        />
+                      </>
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        Resultado não encontrado.
+                      </p>
+                    )
+                  )}
+                </TabsContent>
+
+                {/* Tab: Unified Report */}
+                <TabsContent value="unificado" className="mt-4">
+                  <UnifiedReport
+                    participantId={actions.selectedParticipant.id}
+                    participantName={actions.selectedParticipant.name}
+                    onGeneratePDF={async (data, crossAnalysis) => {
+                      try {
+                        await generateUnifiedPDF(data, crossAnalysis);
+                        toast.success("PDF do Relatório Unificado gerado com sucesso!");
+                      } catch (error) {
+                        console.error("Erro ao gerar PDF unificado:", error);
+                        toast.error("Erro ao gerar PDF. Tente novamente.");
                       }
-                    />
-                  </>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    Resultado não encontrado.
-                  </p>
-                )
-              )}
+                    }}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Comparative Report Dialog */}
+      <Dialog open={showComparativeDialog} onOpenChange={setShowComparativeDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Relatório Comparativo</DialogTitle>
+            <DialogDescription>
+              Comparação entre {selectedForComparison.size} participantes selecionados
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Test type selector */}
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              Comparar por teste:
+            </label>
+            <Select value={comparativeTestSlug} onValueChange={setComparativeTestSlug}>
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Selecione o teste" />
+              </SelectTrigger>
+              <SelectContent>
+                {getAllAdapters().map(adapter => (
+                  <SelectItem key={adapter.slug} value={adapter.slug}>
+                    {adapter.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {comparativeTestSlug && (
+            <ComparativeReport
+              participantIds={Array.from(selectedForComparison)}
+              testSlug={comparativeTestSlug}
+              onGeneratePDF={async (data) => {
+                try {
+                  await generateComparativePDF(data);
+                  toast.success("PDF do Relatório Comparativo gerado com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao gerar PDF comparativo:", error);
+                  toast.error("Erro ao gerar PDF. Tente novamente.");
+                }
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
