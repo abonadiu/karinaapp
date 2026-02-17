@@ -171,21 +171,21 @@ export function AdminUsers() {
 
     setIsDeleting(true);
     try {
-      const { data, error } = await supabase.rpc('admin_delete_user', {
-        p_user_id: selectedUser.user_id
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        toast.success("Usuário excluído com sucesso");
-        fetchUsers();
-      } else {
-        toast.error("Erro ao excluir usuário");
+      // Remove roles from the user
+      const roles = selectedUser.roles || [];
+      for (const role of roles) {
+        await supabase.rpc('admin_remove_user_role', {
+          p_user_id: selectedUser.user_id,
+          p_role: role as any,
+        });
       }
+
+      toast.success("Roles do usuário removidas com sucesso");
+      toast.info("Para excluir completamente o usuário do sistema, acesse o painel de administração.");
+      fetchUsers();
     } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error(error.message || "Erro ao excluir usuário");
+      console.error("Error removing user roles:", error);
+      toast.error(error.message || "Erro ao remover roles do usuário");
     } finally {
       setIsDeleting(false);
       setDeleteDialogOpen(false);

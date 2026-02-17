@@ -108,7 +108,7 @@ export function BulkInviteDialog({
         }
 
         // 2. Build diagnostic URL
-        const diagnosticUrl = `${window.location.origin}/diagnostico/${accessToken}`;
+        const diagnosticUrl = `https://karinabonadiu.lovable.app/diagnostico/${accessToken}`;
 
         // 3. Call edge function with facilitator branding
         const { error: invokeError } = await supabase.functions.invoke("send-invite", {

@@ -84,7 +84,7 @@ export function useParticipantActions(onRefresh: () => void) {
         accessToken = participantData.access_token;
       }
 
-      const diagnosticUrl = `${window.location.origin}/diagnostico/${accessToken}`;
+      const diagnosticUrl = `https://karinabonadiu.lovable.app/diagnostico/${accessToken}`;
 
       const { error: invokeError } = await supabase.functions.invoke("send-invite", {
         body: {
