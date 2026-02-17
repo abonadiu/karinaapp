@@ -3,8 +3,12 @@
  * 
  * Uses AI (GPT) to generate personalized cross-analysis insights
  * by combining results from multiple tests.
+ * 
+ * The OpenAI API call is made securely via a Supabase Edge Function
+ * ("cross-analysis"), keeping the API key on the server side.
  */
 
+import { supabase } from '@/integrations/backend/client';
 import { ParticipantTestData } from './test-adapter';
 
 const CROSS_ANALYSIS_SYSTEM_PROMPT = `Você é uma especialista em desenvolvimento humano e autoconhecimento chamada Karina Bonadiu. 
@@ -68,30 +72,26 @@ export async function generateCrossAnalysis(data: ParticipantTestData): Promise<
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || ''}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1-mini',
-        messages: [
-          { role: 'system', content: CROSS_ANALYSIS_SYSTEM_PROMPT },
-          { role: 'user', content: buildCrossAnalysisPrompt(data) },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+    const systemPrompt = CROSS_ANALYSIS_SYSTEM_PROMPT;
+    const userPrompt = buildCrossAnalysisPrompt(data);
+
+    // Call the Edge Function securely (API key stays on server)
+    const { data: responseData, error } = await supabase.functions.invoke('cross-analysis', {
+      body: { systemPrompt, userPrompt },
     });
 
-    if (!response.ok) {
-      console.error('OpenAI API error:', response.status);
+    if (error) {
+      console.error('Edge Function error:', error);
       return generateFallbackAnalysis(data);
     }
 
-    const result = await response.json();
-    return result.choices?.[0]?.message?.content || generateFallbackAnalysis(data);
+    const analysis = responseData?.analysis;
+    if (!analysis) {
+      console.error('No analysis returned from Edge Function');
+      return generateFallbackAnalysis(data);
+    }
+
+    return analysis;
   } catch (error) {
     console.error('Error generating cross-analysis:', error);
     return generateFallbackAnalysis(data);
