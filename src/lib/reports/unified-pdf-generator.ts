@@ -1,38 +1,59 @@
 /**
  * Unified Report PDF Generator
- * 
- * Generates a comprehensive PDF consolidating all test results
- * for a single participant, including detailed scores, cross-analysis,
- * and correlations.
+ *
+ * Elegant, professional PDF consolidating all test results for a participant.
+ * Visual style inspired by the Astral Chart PDF: warm cream tones, clean
+ * typography, generous whitespace, consistent headers/footers.
  */
 
 import jsPDF from 'jspdf';
 import { ParticipantTestData } from './test-adapter';
 
-// ==================== CONSTANTS ====================
+// ============================================================
+// COLOR PALETTE
+// ============================================================
 
-const COLORS = {
-  primary: '#335072',
-  accent: '#B38F8F',
-  cream: '#F2E9E4',
-  dark: '#1a1a2e',
-  white: '#FFFFFF',
-  lightGray: '#F8F9FA',
-  mediumGray: '#6B7280',
-  border: '#E5E7EB',
-  success: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
+type RGB = [number, number, number];
+
+const C = {
+  primary:      [45, 27, 105]   as RGB,  // deep purple
+  accent:       [99, 102, 241]  as RGB,  // indigo-500
+  text:         [51, 51, 51]    as RGB,
+  muted:        [120, 120, 140] as RGB,
+  cream:        [250, 247, 242] as RGB,  // warm cream
+  white:        [255, 255, 255] as RGB,
+  lightBg:      [247, 244, 240] as RGB,  // warm light
+  divider:      [220, 215, 210] as RGB,
+  coverAccent:  [140, 100, 160] as RGB,
+  success:      [22, 163, 74]   as RGB,
+  warning:      [217, 119, 6]   as RGB,
+  danger:       [220, 38, 38]   as RGB,
 };
 
-const ADAPTER_COLORS: Record<string, string> = {
-  'iq-is': '#8B5CF6',
-  disc: '#E74C3C',
-  mapa_da_alma: '#EC4899',
-  mapa_astral: '#6366F1',
+const TEST_COLORS: Record<string, RGB> = {
+  'iq-is':       [139, 92, 246],  // violet
+  disc:          [231, 76, 60],   // red
+  mapa_da_alma:  [236, 72, 153],  // pink
+  mapa_astral:   [99, 102, 241],  // indigo
 };
 
-const DIMENSION_LABELS_CI: Record<string, string> = {
+const DISC_COLORS: Record<string, RGB> = {
+  D: [200, 40, 40], I: [220, 145, 20], S: [30, 145, 70], C: [40, 90, 210],
+};
+
+const ELEMENT_COLORS: Record<string, RGB> = {
+  fire: [231, 76, 60], earth: [39, 174, 96], air: [241, 196, 15], water: [52, 152, 219],
+};
+
+const ENERGY_CAT_COLORS: Record<string, RGB> = {
+  worldly: [217, 119, 6], spiritual: [139, 92, 246], soul: [236, 72, 153],
+};
+
+// ============================================================
+// LABEL MAPS
+// ============================================================
+
+const DIM_LABELS_CI: Record<string, string> = {
   consciencia: 'Consciência Interior',
   coerencia: 'Coerência Emocional',
   proposito: 'Propósito de Vida',
@@ -44,26 +65,18 @@ const DISC_LABELS: Record<string, string> = {
   D: 'Dominância', I: 'Influência', S: 'Estabilidade', C: 'Conformidade',
 };
 
-const DISC_DESCRIPTIONS: Record<string, string> = {
-  D: 'Orientado a resultados, direto, decisivo e competitivo',
-  I: 'Comunicativo, entusiasta, otimista e persuasivo',
-  S: 'Paciente, confiável, cooperativo e bom ouvinte',
-  C: 'Analítico, preciso, sistemático e orientado a qualidade',
-};
-
-const DISC_COLORS: Record<string, string> = {
-  D: '#E74C3C', I: '#F1C40F', S: '#2ECC71', C: '#3498DB',
+const DISC_DESC: Record<string, string> = {
+  D: 'Orientado a resultados, direto, decisivo e competitivo.',
+  I: 'Comunicativo, entusiasta, otimista e persuasivo.',
+  S: 'Paciente, confiável, cooperativo e bom ouvinte.',
+  C: 'Analítico, preciso, sistemático e orientado a qualidade.',
 };
 
 const ELEMENT_LABELS: Record<string, string> = {
   fire: 'Fogo', earth: 'Terra', air: 'Ar', water: 'Água',
 };
 
-const ELEMENT_COLORS: Record<string, string> = {
-  fire: '#E74C3C', earth: '#8B6914', air: '#3498DB', water: '#1ABC9C',
-};
-
-const SIGN_LABELS_PT: Record<string, string> = {
+const SIGN_LABELS: Record<string, string> = {
   aries: 'Áries', taurus: 'Touro', gemini: 'Gêmeos', cancer: 'Câncer',
   leo: 'Leão', virgo: 'Virgem', libra: 'Libra', scorpio: 'Escorpião',
   sagittarius: 'Sagitário', capricorn: 'Capricórnio', aquarius: 'Aquário', pisces: 'Peixes',
@@ -75,28 +88,29 @@ const SIGN_ELEMENTS: Record<string, string> = {
   sagittarius: 'fire', capricorn: 'earth', aquarius: 'air', pisces: 'water',
 };
 
-const ENERGY_CATEGORIES: Record<string, string> = {
+const ENERGY_CATS: Record<string, string> = {
   worldly: 'Mundano', spiritual: 'Espiritual', soul: 'Alma',
 };
 
-const ENERGY_CATEGORY_COLORS: Record<string, string> = {
-  worldly: '#F59E0B', spiritual: '#8B5CF6', soul: '#EC4899',
-};
-
-const POSITION_LABELS: Record<string, string> = {
+const POS_LABELS: Record<string, string> = {
   goal: 'Objetivo', talent: 'Talento', challenge: 'Desafio',
 };
 
-// ==================== HELPERS ====================
+// ============================================================
+// LAYOUT CONSTANTS
+// ============================================================
 
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : [0, 0, 0];
-}
+const PW = 210;
+const PH = 297;
+const ML = 22;
+const MR = 22;
+const CW = PW - ML - MR;
 
-function normalizeDimKey(key: string): string {
+// ============================================================
+// UTILITY HELPERS
+// ============================================================
+
+function normDiscKey(key: string): string {
   const map: Record<string, string> = {
     dominance: 'D', dominância: 'D', dominancia: 'D', d: 'D',
     influence: 'I', influência: 'I', influencia: 'I', i: 'I',
@@ -106,323 +120,841 @@ function normalizeDimKey(key: string): string {
   return map[key.toLowerCase()] || key.toUpperCase();
 }
 
-function getScoreColor(percentage: number): string {
-  if (percentage >= 80) return COLORS.success;
-  if (percentage >= 60) return COLORS.primary;
-  if (percentage >= 40) return COLORS.warning;
-  return COLORS.danger;
+function scoreColor(pct: number): RGB {
+  if (pct >= 80) return C.success;
+  if (pct >= 60) return C.accent;
+  if (pct >= 40) return C.warning;
+  return C.danger;
 }
 
-function getScoreLevel(percentage: number): string {
-  if (percentage >= 80) return 'Elevado';
-  if (percentage >= 60) return 'Bom';
-  if (percentage >= 40) return 'Moderado';
+function scoreLevel(pct: number): string {
+  if (pct >= 80) return 'Elevado';
+  if (pct >= 60) return 'Bom';
+  if (pct >= 40) return 'Moderado';
   return 'Em Desenvolvimento';
 }
 
-// ==================== PAGE HELPERS ====================
-
-const PAGE_WIDTH = 210;
-const PAGE_HEIGHT = 297;
-const MARGIN = 20;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-
-function checkPageBreak(doc: jsPDF, currentY: number, needed: number): number {
-  if (currentY + needed > PAGE_HEIGHT - 25) {
-    doc.addPage();
-    return MARGIN;
-  }
-  return currentY;
+function wrap(doc: jsPDF, text: string, maxW: number): string[] {
+  if (!text) return [];
+  return doc.splitTextToSize(text, maxW);
 }
 
-function addSectionHeader(doc: jsPDF, title: string, y: number): number {
-  y = checkPageBreak(doc, y, 20);
-  doc.setFillColor(...hexToRgb(COLORS.primary));
-  doc.rect(MARGIN, y, CONTENT_WIDTH, 12, 'F');
-  doc.setTextColor(...hexToRgb(COLORS.white));
+function tc(doc: jsPDF, c: RGB) { doc.setTextColor(c[0], c[1], c[2]); }
+function fc(doc: jsPDF, c: RGB) { doc.setFillColor(c[0], c[1], c[2]); }
+function dc(doc: jsPDF, c: RGB) { doc.setDrawColor(c[0], c[1], c[2]); }
+
+// ============================================================
+// PAGE CHROME: HEADER + FOOTER
+// ============================================================
+
+function addHeader(doc: jsPDF, section: string) {
+  fc(doc, C.cream);
+  doc.rect(0, 0, PW, 18, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.primary);
+  doc.text('RELATÓRIO UNIFICADO', ML, 11);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text(section, PW - MR, 11, { align: 'right' });
+  dc(doc, C.accent);
+  doc.setLineWidth(0.5);
+  doc.line(ML, 18, PW - MR, 18);
+}
+
+function addFooter(doc: jsPDF, name: string, page: number, total: number) {
+  const y = PH - 12;
+  dc(doc, C.divider);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y - 4, PW - MR, y - 4);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text('Gerado via Karina Bonadiu', ML, y);
+  doc.text(name, PW / 2, y, { align: 'center' });
+  doc.text(`${page} / ${total}`, PW - MR, y, { align: 'right' });
+}
+
+// ============================================================
+// PAGE BREAK HELPER
+// ============================================================
+
+interface PageCtx {
+  section: string;
+  name: string;
+  pageNum: { value: number };
+  totalPages: number;
+}
+
+function pb(doc: jsPDF, y: number, need: number, ctx: PageCtx): number {
+  if (y + need > PH - 25) {
+    addFooter(doc, ctx.name, ctx.pageNum.value, ctx.totalPages);
+    doc.addPage();
+    ctx.pageNum.value++;
+    addHeader(doc, ctx.section);
+    return 28;
+  }
+  return y;
+}
+
+// ============================================================
+// DRAWING PRIMITIVES
+// ============================================================
+
+function sectionTitle(doc: jsPDF, title: string, y: number): number {
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.primary);
+  doc.text(title, ML, y);
+  return y + 12;
+}
+
+function subTitle(doc: jsPDF, title: string, y: number, color?: RGB): number {
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(title, MARGIN + 5, y + 8.5);
-  return y + 16;
+  tc(doc, color || C.accent);
+  doc.text(title, ML, y);
+  return y + 8;
 }
 
-function addSubHeader(doc: jsPDF, title: string, y: number, color?: string): number {
-  y = checkPageBreak(doc, y, 14);
-  const c = color || COLORS.primary;
-  doc.setFillColor(...hexToRgb(c));
-  doc.rect(MARGIN, y, 3, 9, 'F');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text(title, MARGIN + 7, y + 7);
-  return y + 13;
-}
-
-function addParagraph(doc: jsPDF, text: string, y: number, fontSize?: number): number {
-  doc.setFontSize(fontSize || 9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  const lines = doc.splitTextToSize(text, CONTENT_WIDTH);
+function bodyText(doc: jsPDF, text: string, y: number, ctx: PageCtx, opts?: { italic?: boolean; fontSize?: number }): number {
+  const fs = opts?.fontSize || 10.5;
+  doc.setFontSize(fs);
+  doc.setFont('helvetica', opts?.italic ? 'italic' : 'normal');
+  tc(doc, C.text);
+  const lines = wrap(doc, text, CW);
   for (const line of lines) {
-    y = checkPageBreak(doc, y, 5);
-    doc.text(line, MARGIN, y);
-    y += 4.5;
+    y = pb(doc, y, 5, ctx);
+    doc.text(line, ML, y);
+    y += fs * 0.45;
   }
   return y + 2;
 }
 
-function addScoreBar(
-  doc: jsPDF, label: string, value: number, maxValue: number,
-  y: number, barColor: string, showPercentage?: boolean
-): number {
-  y = checkPageBreak(doc, y, 12);
-  const percentage = (value / maxValue) * 100;
-  const barWidth = CONTENT_WIDTH - 70;
-  const barX = MARGIN + 55;
+function drawBar(doc: jsPDF, label: string, value: number, max: number, y: number, color: RGB, ctx: PageCtx): number {
+  y = pb(doc, y, 10, ctx);
+  const pct = Math.min((value / max) * 100, 100);
+  const barX = ML + 58;
+  const barW = CW - 75;
 
-  // Label
-  doc.setFontSize(8);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.text(label, MARGIN, y + 4.5);
+  tc(doc, C.text);
+  doc.text(label, ML, y + 4);
 
-  // Background bar
-  doc.setFillColor(...hexToRgb(COLORS.border));
-  doc.roundedRect(barX, y, barWidth, 7, 1.5, 1.5, 'F');
+  // Background
+  fc(doc, [230, 228, 225]);
+  doc.rect(barX, y, barW, 5, 'F');
 
-  // Filled bar
-  const filledWidth = Math.max(2, (percentage / 100) * barWidth);
-  doc.setFillColor(...hexToRgb(barColor));
-  doc.roundedRect(barX, y, filledWidth, 7, 1.5, 1.5, 'F');
+  // Fill
+  const fillW = Math.max(1, (pct / 100) * barW);
+  fc(doc, color);
+  doc.rect(barX, y, fillW, 5, 'F');
 
-  // Value text
-  doc.setFontSize(8);
+  // Value
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(barColor));
-  const valueText = showPercentage ? `${percentage.toFixed(0)}%` : `${value.toFixed(1)}/${maxValue}`;
-  doc.text(valueText, barX + barWidth + 3, y + 5);
+  tc(doc, color);
+  doc.text(`${value.toFixed(1)}/${max}`, barX + barW + 3, y + 4);
 
-  return y + 10;
+  return y + 9;
 }
 
-// ==================== MAIN GENERATOR ====================
+function drawBarPct(doc: jsPDF, label: string, pct: number, y: number, color: RGB, ctx: PageCtx): number {
+  y = pb(doc, y, 10, ctx);
+  const barX = ML + 58;
+  const barW = CW - 75;
+
+  doc.setFontSize(9.5);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.text);
+  doc.text(label, ML, y + 4);
+
+  fc(doc, [230, 228, 225]);
+  doc.rect(barX, y, barW, 5, 'F');
+
+  const fillW = Math.max(1, (Math.min(pct, 100) / 100) * barW);
+  fc(doc, color);
+  doc.rect(barX, y, fillW, 5, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, color);
+  doc.text(`${pct.toFixed(0)}%`, barX + barW + 3, y + 4);
+
+  return y + 9;
+}
+
+// ============================================================
+// MARKDOWN RENDERER (for AI analysis text)
+// ============================================================
+
+function renderMarkdown(doc: jsPDF, text: string, y: number, ctx: PageCtx): number {
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const t = line.trim();
+    if (t === '') { y += 3; continue; }
+
+    // Bold header line
+    if (t.startsWith('**') && t.endsWith('**')) {
+      y = pb(doc, y, 10, ctx);
+      y += 3;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      tc(doc, C.primary);
+      doc.text(t.replace(/\*\*/g, ''), ML, y);
+      y += 8;
+      continue;
+    }
+
+    // Regular text
+    const clean = t.replace(/\*\*/g, '');
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.text);
+    const wrapped = wrap(doc, clean, CW);
+    for (const wl of wrapped) {
+      y = pb(doc, y, 5, ctx);
+      doc.text(wl, ML, y);
+      y += 4.8;
+    }
+    y += 2;
+  }
+  return y;
+}
+
+// ============================================================
+// COVER PAGE
+// ============================================================
+
+function addCover(doc: jsPDF, data: ParticipantTestData) {
+  const cx = PW / 2;
+
+  // Warm cream background
+  fc(doc, C.cream);
+  doc.rect(0, 0, PW, PH, 'F');
+
+  // Top decorative line
+  dc(doc, C.coverAccent);
+  doc.setLineWidth(0.8);
+  doc.line(50, 30, PW - 50, 30);
+
+  // Title
+  doc.setFontSize(32);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.primary);
+  doc.text('RELATÓRIO', cx, 50, { align: 'center' });
+  doc.setFontSize(26);
+  doc.text('UNIFICADO', cx, 63, { align: 'center' });
+
+  // Subtitle
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text('Consolidação de Diagnósticos', cx, 76, { align: 'center' });
+
+  // Accent line
+  dc(doc, C.coverAccent);
+  doc.setLineWidth(0.4);
+  doc.line(60, 82, PW - 60, 82);
+
+  // Participant name
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.primary);
+  doc.text(data.participantName.toUpperCase(), cx, 105, { align: 'center' });
+
+  // Company
+  if (data.company) {
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.muted);
+    doc.text(data.company, cx, 116, { align: 'center' });
+  }
+
+  // Accent line
+  dc(doc, C.coverAccent);
+  doc.setLineWidth(0.4);
+  doc.line(60, 125, PW - 60, 125);
+
+  // Test list
+  let ty = 140;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text(`${data.tests.length} diagnósticos realizados`, cx, ty, { align: 'center' });
+  ty += 12;
+
+  data.tests.forEach((test) => {
+    const color = TEST_COLORS[test.slug] || C.coverAccent;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, color);
+    doc.text(test.displayName, cx, ty, { align: 'center' });
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.muted);
+    doc.text(`Concluído em ${new Date(test.completedAt).toLocaleDateString('pt-BR')}`, cx, ty + 5, { align: 'center' });
+    ty += 14;
+  });
+
+  // Date
+  ty = PH - 55;
+  dc(doc, C.coverAccent);
+  doc.setLineWidth(0.4);
+  doc.line(60, ty, PW - 60, ty);
+
+  const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text(`Gerado em ${today}`, cx, ty + 12, { align: 'center' });
+
+  // Branding
+  doc.setFontSize(9);
+  tc(doc, C.coverAccent);
+  doc.text('Karina Bonadiu', PW - MR, PH - 18, { align: 'right' });
+}
+
+// ============================================================
+// DETAILED TEST RENDERERS
+// ============================================================
+
+function renderIQIS(doc: jsPDF, result: any, y: number, ctx: PageCtx): number {
+  const scores = result.dimension_scores || {};
+  const total = Number(result.total_score || 0);
+  const pct = (total / 5) * 100;
+
+  // Score highlight
+  y = pb(doc, y, 22, ctx);
+  fc(doc, C.cream);
+  doc.rect(ML, y, CW, 18, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.text);
+  doc.text('Score Geral de Consciência Integral', ML + 5, y + 7);
+  doc.setFontSize(18);
+  tc(doc, scoreColor(pct));
+  doc.text(`${total.toFixed(2)} / 5.00`, ML + 5, y + 15);
+  doc.setFontSize(10);
+  doc.text(`${pct.toFixed(0)}% — ${scoreLevel(pct)}`, ML + 52, y + 15);
+  y += 24;
+
+  // Dimensions
+  y = subTitle(doc, 'Scores por Dimensão', y);
+  const sorted = Object.entries(scores)
+    .map(([dim, val]) => ({ dim, score: Number(val) }))
+    .sort((a, b) => b.score - a.score);
+
+  for (const { dim, score } of sorted) {
+    const label = DIM_LABELS_CI[dim] || dim;
+    y = drawBar(doc, label, score, 5, y, scoreColor((score / 5) * 100), ctx);
+  }
+  y += 4;
+
+  // Strengths & development
+  if (sorted.length >= 2) {
+    const top2 = sorted.slice(0, 2);
+    const bot2 = sorted.slice(-2).reverse();
+
+    y = subTitle(doc, 'Pontos Fortes', y, C.success);
+    for (const s of top2) {
+      y = pb(doc, y, 6, ctx);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      tc(doc, C.text);
+      doc.text(`${DIM_LABELS_CI[s.dim] || s.dim}: ${s.score.toFixed(2)}/5 (${((s.score / 5) * 100).toFixed(0)}%)`, ML + 3, y);
+      y += 6;
+    }
+    y += 4;
+
+    y = subTitle(doc, 'Áreas de Desenvolvimento', y, C.warning);
+    for (const w of bot2) {
+      y = pb(doc, y, 6, ctx);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      tc(doc, C.text);
+      doc.text(`${DIM_LABELS_CI[w.dim] || w.dim}: ${w.score.toFixed(2)}/5 (${((w.score / 5) * 100).toFixed(0)}%)`, ML + 3, y);
+      y += 6;
+    }
+  }
+
+  return y + 6;
+}
+
+function renderDISC(doc: jsPDF, result: any, y: number, ctx: PageCtx): number {
+  const scores = result.dimension_scores || {};
+  const norm = Object.entries(scores)
+    .map(([dim, val]) => ({ dim: normDiscKey(dim), score: Number(val) }))
+    .sort((a, b) => b.score - a.score);
+
+  const pri = norm[0];
+  const sec = norm[1];
+
+  // Profile highlight
+  y = pb(doc, y, 22, ctx);
+  fc(doc, C.cream);
+  doc.rect(ML, y, CW, 18, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.text);
+  doc.text('Perfil Comportamental DISC', ML + 5, y + 7);
+  doc.setFontSize(18);
+  tc(doc, DISC_COLORS[pri?.dim] || C.accent);
+  doc.text(`${pri?.dim || ''}${sec?.dim || ''}`, ML + 5, y + 15);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  tc(doc, C.muted);
+  doc.text(`${DISC_LABELS[pri?.dim] || ''} — ${DISC_LABELS[sec?.dim] || ''}`, ML + 25, y + 15);
+  y += 24;
+
+  // Dimension bars
+  y = subTitle(doc, 'Scores por Dimensão', y);
+  for (const { dim, score } of norm) {
+    y = drawBar(doc, `${dim} — ${DISC_LABELS[dim] || dim}`, score, 5, y, DISC_COLORS[dim] || C.accent, ctx);
+  }
+  y += 4;
+
+  // Descriptions
+  y = subTitle(doc, 'Descrição do Perfil', y);
+  for (const { dim, score } of norm) {
+    y = pb(doc, y, 16, ctx);
+    const strong = score >= 3.5;
+    const intensity = strong ? 'Traço forte' : score >= 2.5 ? 'Traço moderado' : 'Traço menos expressivo';
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, DISC_COLORS[dim] || C.accent);
+    doc.text(`${DISC_LABELS[dim] || dim} (${dim}) — ${score.toFixed(1)}/5`, ML, y);
+    y += 6;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.text);
+    const desc = `${intensity}: ${DISC_DESC[dim] || ''}`;
+    const lines = wrap(doc, desc, CW - 5);
+    lines.forEach(line => { doc.text(line, ML + 3, y); y += 4.8; });
+    y += 4;
+  }
+
+  return y + 4;
+}
+
+function renderSoulPlan(doc: jsPDF, result: any, y: number, ctx: PageCtx): number {
+  const sp = result.exercises_data?.soulPlanResult;
+  if (!sp) {
+    y = bodyText(doc, 'Dados detalhados do Mapa da Alma não disponíveis.', y, ctx);
+    return y;
+  }
+
+  // Destiny highlight
+  y = pb(doc, y, 22, ctx);
+  fc(doc, C.cream);
+  doc.rect(ML, y, CW, 18, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.text);
+  doc.text('Destino da Alma', ML + 5, y + 7);
+  doc.setFontSize(22);
+  tc(doc, ENERGY_CAT_COLORS.soul);
+  doc.text(String(sp.soulDestinyNumber || 'N/A'), ML + 5, y + 16);
+  if (sp.fullName) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.muted);
+    doc.text(`Nome: ${sp.fullName}`, ML + 25, y + 16);
+  }
+  y += 24;
+
+  // Energy grid
+  y = subTitle(doc, 'Mapa de Energias', y);
+
+  // Table header
+  y = pb(doc, y, 10, ctx);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.primary);
+  const colW = CW / 4;
+  doc.text('Categoria', ML, y);
+  doc.text('Objetivo', ML + colW, y);
+  doc.text('Talento', ML + colW * 2, y);
+  doc.text('Desafio', ML + colW * 3, y);
+  y += 2;
+  dc(doc, C.accent);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, PW - MR, y);
+  y += 5;
+
+  const cats = ['worldly', 'spiritual', 'soul'] as const;
+  const positions = ['Goal', 'Talent', 'Challenge'] as const;
+
+  for (const cat of cats) {
+    y = pb(doc, y, 8, ctx);
+    const catColor = ENERGY_CAT_COLORS[cat] || C.accent;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, catColor);
+    doc.text(ENERGY_CATS[cat] || cat, ML, y);
+
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.text);
+    positions.forEach((pos, j) => {
+      const key = `${cat}${pos}`;
+      const energy = sp[key];
+      if (energy !== undefined && energy !== null) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        tc(doc, catColor);
+        doc.text(String(energy), ML + colW * (j + 1) + 10, y);
+      }
+    });
+    y += 8;
+  }
+
+  y += 6;
+
+  // Energy interpretations
+  y = subTitle(doc, 'Interpretação das Energias', y);
+  for (const cat of cats) {
+    for (const pos of positions) {
+      const key = `${cat}${pos}`;
+      const energy = sp[key];
+      if (energy !== undefined && energy !== null) {
+        y = pb(doc, y, 8, ctx);
+        const catColor = ENERGY_CAT_COLORS[cat] || C.accent;
+        const posLabel = POS_LABELS[pos.toLowerCase()] || pos;
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        tc(doc, catColor);
+        doc.text(`${ENERGY_CATS[cat]} — ${posLabel}: Energia ${energy}`, ML + 3, y);
+        y += 6;
+      }
+    }
+  }
+
+  return y + 4;
+}
+
+function renderAstralChart(doc: jsPDF, result: any, y: number, ctx: PageCtx): number {
+  const fr = result.exercises_data?.fullResult;
+  if (!fr) {
+    y = bodyText(doc, 'Dados detalhados do Mapa Astral não disponíveis.', y, ctx);
+    return y;
+  }
+
+  const sunLabel = fr.sunSignLabel || SIGN_LABELS[fr.sunSign] || fr.sunSign || 'N/A';
+  const moonLabel = fr.moonSignLabel || SIGN_LABELS[fr.moonSign] || fr.moonSign || 'N/A';
+  const ascLabel = fr.ascendantSignLabel || SIGN_LABELS[fr.ascendantSign] || fr.ascendantSign || 'N/A';
+
+  // Big Three highlight
+  y = pb(doc, y, 30, ctx);
+  fc(doc, C.cream);
+  doc.rect(ML, y, CW, 26, 'F');
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  tc(doc, C.text);
+  doc.text('Os Três Grandes', ML + 5, y + 7);
+
+  const thirdW = CW / 3;
+  const items = [
+    { label: 'Sol (Essência)', value: sunLabel, color: [245, 158, 11] as RGB },
+    { label: 'Lua (Emoções)', value: moonLabel, color: [139, 92, 246] as RGB },
+    { label: 'Ascendente', value: ascLabel, color: [236, 72, 153] as RGB },
+  ];
+
+  items.forEach((item, i) => {
+    const x = ML + thirdW * i + 5;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    tc(doc, C.muted);
+    doc.text(item.label, x, y + 14);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, item.color);
+    doc.text(item.value, x, y + 22);
+  });
+  y += 32;
+
+  // Midheaven
+  if (fr.midheavenSign) {
+    const mcLabel = fr.midheavenSignLabel || SIGN_LABELS[fr.midheavenSign] || fr.midheavenSign;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, C.accent);
+    doc.text(`Meio do Céu (Vocação): ${mcLabel}`, ML, y);
+    y += 10;
+  }
+
+  // Element balance
+  if (fr.planets && Array.isArray(fr.planets)) {
+    y = subTitle(doc, 'Equilíbrio dos Elementos', y);
+
+    const elCount: Record<string, number> = { fire: 0, earth: 0, air: 0, water: 0 };
+    fr.planets.forEach((p: any) => {
+      const el = SIGN_ELEMENTS[p.sign];
+      if (el) elCount[el]++;
+    });
+    const total = fr.planets.length || 1;
+
+    for (const [el, count] of Object.entries(elCount).sort((a, b) => b[1] - a[1])) {
+      const elColor = ELEMENT_COLORS[el] || C.accent;
+      const label = `${ELEMENT_LABELS[el] || el} (${count})`;
+      y = drawBarPct(doc, label, (count / total) * 100, y, elColor, ctx);
+    }
+    y += 6;
+
+    // Planets table
+    y = subTitle(doc, 'Posições Planetárias', y);
+    y = pb(doc, y, 10, ctx);
+
+    // Table header
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    tc(doc, C.primary);
+    doc.text('Planeta', ML, y);
+    doc.text('Signo', ML + 40, y);
+    doc.text('Elemento', ML + 82, y);
+    doc.text('Casa', ML + 118, y);
+    doc.text('Grau', ML + 142, y);
+    y += 2;
+    dc(doc, C.accent);
+    doc.setLineWidth(0.3);
+    doc.line(ML, y, PW - MR, y);
+    y += 5;
+
+    const mainPlanets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+    const filtered = fr.planets.filter((p: any) => mainPlanets.includes(p.key));
+
+    doc.setFontSize(9.5);
+    filtered.forEach((planet: any) => {
+      y = pb(doc, y, 6, ctx);
+      const signLabel = SIGN_LABELS[planet.sign] || planet.signLabel || planet.sign || '';
+      const element = SIGN_ELEMENTS[planet.sign] || '';
+      const elLabel = ELEMENT_LABELS[element] || element;
+      const elColor = ELEMENT_COLORS[element] || C.muted;
+
+      doc.setFont('helvetica', 'bold');
+      tc(doc, C.text);
+      doc.text(planet.label || planet.key || '', ML, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(signLabel, ML + 40, y);
+      tc(doc, elColor);
+      doc.text(elLabel, ML + 82, y);
+      tc(doc, C.muted);
+      doc.text(planet.house ? `Casa ${planet.house}` : '', ML + 118, y);
+      doc.text(planet.degree ? `${planet.degree}°` : (planet.formattedDegree || ''), ML + 142, y);
+      y += 6;
+    });
+  }
+
+  return y + 4;
+}
+
+function renderGeneric(doc: jsPDF, test: any, y: number, ctx: PageCtx): number {
+  y = subTitle(doc, 'Métricas', y);
+  for (const metric of test.comparisonMetrics) {
+    y = drawBarPct(doc, metric.label, metric.value, y, TEST_COLORS[test.slug] || C.accent, ctx);
+  }
+  y += 4;
+
+  if (test.keyTraits.length > 0) {
+    y = subTitle(doc, 'Traços-Chave', y);
+    for (const trait of test.keyTraits) {
+      y = pb(doc, y, 10, ctx);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      tc(doc, C.text);
+      doc.text(`${trait.label}`, ML + 3, y);
+      y += 5;
+      if (trait.description) {
+        doc.setFont('helvetica', 'normal');
+        tc(doc, C.muted);
+        const lines = wrap(doc, trait.description, CW - 5);
+        lines.slice(0, 2).forEach((line: string) => { doc.text(line, ML + 5, y); y += 4.5; });
+      }
+      y += 2;
+    }
+  }
+
+  return y + 4;
+}
+
+// ============================================================
+// MAIN GENERATOR
+// ============================================================
 
 export async function generateUnifiedPDF(
   data: ParticipantTestData,
   crossAnalysis: string
 ): Promise<void> {
-  const doc = new jsPDF('p', 'mm', 'a4');
-  let currentY = MARGIN;
-
-  // Track section pages for TOC
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const tocEntries: { title: string; page: number }[] = [];
 
-  // ==================== PAGE 1: COVER ====================
-  doc.setFillColor(...hexToRgb(COLORS.primary));
-  doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
+  // Placeholder for two-pass page numbering
+  let totalPages = 0;
+  const pageNum = { value: 1 };
 
-  // Decorative accent line
-  doc.setFillColor(...hexToRgb(COLORS.accent));
-  doc.rect(0, 70, PAGE_WIDTH, 2, 'F');
-  doc.rect(0, 160, PAGE_WIDTH, 1, 'F');
+  // ---- COVER ----
+  addCover(doc, data);
 
-  // Title
-  doc.setTextColor(...hexToRgb(COLORS.white));
-  doc.setFontSize(36);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RELATÓRIO', PAGE_WIDTH / 2, 90, { align: 'center' });
-  doc.setFontSize(28);
-  doc.text('UNIFICADO', PAGE_WIDTH / 2, 105, { align: 'center' });
-
-  // Participant name
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'normal');
-  doc.text(data.participantName.toUpperCase(), PAGE_WIDTH / 2, 130, { align: 'center' });
-
-  // Company
-  if (data.company) {
-    doc.setFontSize(12);
-    doc.setTextColor(...hexToRgb(COLORS.accent));
-    doc.text(data.company, PAGE_WIDTH / 2, 142, { align: 'center' });
-  }
-
-  // Test badges
-  let badgeY = 170;
-  doc.setTextColor(...hexToRgb(COLORS.white));
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${data.tests.length} testes realizados`, PAGE_WIDTH / 2, badgeY, { align: 'center' });
-  badgeY += 10;
-
-  data.tests.forEach((test, i) => {
-    const color = ADAPTER_COLORS[test.slug] || COLORS.accent;
-    doc.setFillColor(...hexToRgb(color));
-    doc.roundedRect(MARGIN + 15, badgeY + i * 12, CONTENT_WIDTH - 30, 10, 2, 2, 'F');
-    doc.setTextColor(...hexToRgb(COLORS.white));
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(test.displayName, PAGE_WIDTH / 2, badgeY + i * 12 + 6.5, { align: 'center' });
-  });
-
-  // Date
-  doc.setTextColor(...hexToRgb(COLORS.accent));
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-  doc.text(`Gerado em ${today}`, PAGE_WIDTH / 2, PAGE_HEIGHT - 40, { align: 'center' });
-
-  // Branding
-  doc.setTextColor(...hexToRgb(COLORS.white));
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('KARINA BONADIU', PAGE_WIDTH / 2, PAGE_HEIGHT - 25, { align: 'center' });
-
-  // ==================== PAGE 2: TABLE OF CONTENTS ====================
+  // ---- TABLE OF CONTENTS ----
   doc.addPage();
-  currentY = MARGIN;
+  pageNum.value = 2;
+  addHeader(doc, 'Sumário');
+  let y = 28;
+
   const tocPageNum = doc.getNumberOfPages();
+  y = sectionTitle(doc, 'Sumário', y);
+  dc(doc, C.accent);
+  doc.setLineWidth(0.4);
+  doc.line(ML, y - 4, PW - MR, y - 4);
+  y += 4;
+  const tocStartY = y;
 
-  doc.setTextColor(...hexToRgb(COLORS.primary));
-  doc.setFontSize(22);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Sumário', MARGIN, currentY + 10);
-  currentY += 20;
-
-  doc.setDrawColor(...hexToRgb(COLORS.primary));
-  doc.setLineWidth(0.5);
-  doc.line(MARGIN, currentY, MARGIN + CONTENT_WIDTH, currentY);
-  currentY += 10;
-
-  // Placeholder - we'll fill in page numbers later
-  const tocStartY = currentY;
-
-  // ==================== PAGE 3: EXECUTIVE SUMMARY ====================
+  // ---- OVERVIEW PAGE ----
   doc.addPage();
-  currentY = MARGIN;
+  pageNum.value++;
+  addHeader(doc, 'Visão Geral');
+  y = 28;
   tocEntries.push({ title: 'Visão Geral dos Resultados', page: doc.getNumberOfPages() });
 
-  currentY = addSectionHeader(doc, 'Visão Geral dos Resultados', currentY);
-  currentY += 2;
+  y = sectionTitle(doc, 'Visão Geral dos Resultados', y);
+
+  const ctx: PageCtx = { section: 'Visão Geral', name: data.participantName, pageNum, totalPages };
 
   for (const test of data.tests) {
-    currentY = checkPageBreak(doc, currentY, 45);
-    const color = ADAPTER_COLORS[test.slug] || COLORS.accent;
-
-    // Card background
-    doc.setFillColor(...hexToRgb(COLORS.lightGray));
-    doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 38, 3, 3, 'F');
-
-    // Color bar left
-    doc.setFillColor(...hexToRgb(color));
-    doc.rect(MARGIN, currentY, 4, 38, 'F');
+    y = pb(doc, y, 40, ctx);
+    const color = TEST_COLORS[test.slug] || C.coverAccent;
 
     // Test name
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(test.displayName, MARGIN + 10, currentY + 8);
+    tc(doc, color);
+    doc.text(test.displayName, ML, y);
+    y += 6;
 
     // Date
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    doc.text(`Concluído em ${new Date(test.completedAt).toLocaleDateString('pt-BR')}`, MARGIN + 10, currentY + 14);
+    tc(doc, C.muted);
+    doc.text(`Concluído em ${new Date(test.completedAt).toLocaleDateString('pt-BR')}`, ML, y);
+    y += 6;
 
     // Headline
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(color));
-    doc.text(test.summary.headline, MARGIN + 10, currentY + 21);
+    tc(doc, C.text);
+    doc.text(test.summary.headline, ML, y);
+    y += 6;
 
-    // Summary text (full, not truncated)
-    doc.setFontSize(8);
+    // Summary
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    const summaryLines = doc.splitTextToSize(test.summary.summary, CONTENT_WIDTH - 45);
-    doc.text(summaryLines.slice(0, 4), MARGIN + 10, currentY + 27);
+    tc(doc, C.text);
+    const summaryLines = wrap(doc, test.summary.summary, CW);
+    summaryLines.slice(0, 4).forEach((line: string) => { doc.text(line, ML, y); y += 4.8; });
 
-    // Score badge
+    // Score
     if (test.summary.mainScore !== undefined) {
-      doc.setFillColor(...hexToRgb(color));
-      doc.roundedRect(MARGIN + CONTENT_WIDTH - 30, currentY + 3, 25, 14, 3, 3, 'F');
-      doc.setTextColor(...hexToRgb(COLORS.white));
-      doc.setFontSize(11);
+      y += 2;
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${test.summary.mainScore.toFixed(0)}%`, MARGIN + CONTENT_WIDTH - 17.5, currentY + 12, { align: 'center' });
+      tc(doc, color);
+      doc.text(`${test.summary.mainScoreLabel || 'Score'}: ${test.summary.mainScore.toFixed(0)}%`, ML, y);
+      y += 4;
     }
 
-    currentY += 44;
+    // Separator
+    y += 4;
+    dc(doc, C.divider);
+    doc.setLineWidth(0.2);
+    doc.line(ML, y, PW - MR, y);
+    y += 8;
   }
 
-  // ==================== DETAILED TEST RESULTS ====================
+  // ---- DETAILED TEST PAGES ----
   for (const test of data.tests) {
     doc.addPage();
-    currentY = MARGIN;
-    tocEntries.push({ title: test.displayName, page: doc.getNumberOfPages() });
+    pageNum.value++;
+    const section = test.displayName;
+    addHeader(doc, section);
+    y = 28;
+    tocEntries.push({ title: section, page: doc.getNumberOfPages() });
 
-    const color = ADAPTER_COLORS[test.slug] || COLORS.accent;
-    currentY = addSectionHeader(doc, test.displayName, currentY);
+    ctx.section = section;
 
-    // Headline + summary
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(color));
-    doc.text(test.summary.headline, MARGIN, currentY);
-    currentY += 6;
+    y = sectionTitle(doc, section, y);
 
-    currentY = addParagraph(doc, test.summary.summary, currentY);
-    currentY += 4;
+    // Intro synthesis
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'italic');
+    tc(doc, C.muted);
+    const introLines = wrap(doc, test.summary.summary, CW);
+    introLines.forEach((line: string) => { doc.text(line, ML, y); y += 4.8; });
+    y += 6;
 
-    // Render detailed content based on test type
+    // Detailed rendering
     switch (test.slug) {
       case 'iq-is':
-        currentY = renderIQISDetailed(doc, test.result, currentY, color);
+        y = renderIQIS(doc, test.result, y, ctx);
         break;
       case 'disc':
-        currentY = renderDISCDetailed(doc, test.result, currentY, color);
+        y = renderDISC(doc, test.result, y, ctx);
         break;
       case 'mapa_da_alma':
-        currentY = renderSoulPlanDetailed(doc, test.result, currentY, color);
+        y = renderSoulPlan(doc, test.result, y, ctx);
         break;
       case 'mapa_astral':
-        currentY = renderAstralChartDetailed(doc, test.result, currentY, color);
+        y = renderAstralChart(doc, test.result, y, ctx);
         break;
       default:
-        currentY = renderGenericDetailed(doc, test, currentY, color);
+        y = renderGeneric(doc, test, y, ctx);
         break;
     }
+
+    addFooter(doc, data.participantName, pageNum.value, totalPages);
   }
 
-  // ==================== CROSS ANALYSIS ====================
+  // ---- CROSS ANALYSIS ----
   if (crossAnalysis && data.tests.length >= 2) {
     doc.addPage();
-    currentY = MARGIN;
+    pageNum.value++;
+    addHeader(doc, 'Análise Cruzada');
+    y = 28;
     tocEntries.push({ title: 'Análise Cruzada Integrada (IA)', page: doc.getNumberOfPages() });
 
-    currentY = addSectionHeader(doc, 'Análise Cruzada Integrada', currentY);
+    ctx.section = 'Análise Cruzada';
 
-    // Subtitle
-    doc.setFontSize(8);
+    y = sectionTitle(doc, 'Análise Cruzada Integrada', y);
+
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    doc.text('Análise gerada por inteligência artificial combinando os resultados de todos os testes.', MARGIN, currentY);
-    currentY += 8;
+    tc(doc, C.muted);
+    doc.text('Análise gerada por inteligência artificial combinando os resultados de todos os diagnósticos.', ML, y);
+    y += 10;
 
-    // Render cross analysis text
-    currentY = renderMarkdownText(doc, crossAnalysis, currentY);
+    y = renderMarkdown(doc, crossAnalysis, y, ctx);
+
+    addFooter(doc, data.participantName, pageNum.value, totalPages);
   }
 
-  // ==================== CORRELATIONS ====================
+  // ---- CORRELATIONS ----
   if (data.tests.length >= 2) {
     doc.addPage();
-    currentY = MARGIN;
-    tocEntries.push({ title: 'Correlações entre Testes', page: doc.getNumberOfPages() });
+    pageNum.value++;
+    addHeader(doc, 'Correlações');
+    y = 28;
+    tocEntries.push({ title: 'Correlações entre Diagnósticos', page: doc.getNumberOfPages() });
 
-    currentY = addSectionHeader(doc, 'Correlações entre Testes', currentY);
-    currentY += 2;
+    ctx.section = 'Correlações';
 
-    currentY = addParagraph(doc, 'A tabela abaixo mostra os temas que aparecem em múltiplos testes, indicando padrões consistentes no perfil do participante.', currentY);
-    currentY += 4;
+    y = sectionTitle(doc, 'Correlações entre Diagnósticos', y);
+    y = bodyText(doc, 'A tabela abaixo mostra os temas que aparecem em múltiplos diagnósticos, indicando padrões consistentes no perfil do participante.', y, ctx, { italic: true });
+    y += 4;
 
     // Find common tags
     const tagsByTest: Record<string, Set<string>> = {};
@@ -438,180 +970,190 @@ export async function generateUnifiedPDF(
 
     const correlations: { tag: string; tests: string[] }[] = [];
     allTags.forEach(tag => {
-      const matchingTests = data.tests.filter(t => tagsByTest[t.slug].has(tag));
-      if (matchingTests.length >= 2) {
-        correlations.push({ tag, tests: matchingTests.map(t => t.displayName) });
+      const matching = data.tests.filter(t => tagsByTest[t.slug].has(tag));
+      if (matching.length >= 2) {
+        correlations.push({ tag, tests: matching.map(t => t.displayName) });
       }
     });
-
     correlations.sort((a, b) => b.tests.length - a.tests.length);
 
     if (correlations.length > 0) {
       // Table header
-      currentY = checkPageBreak(doc, currentY, 10);
-      doc.setFillColor(...hexToRgb(COLORS.primary));
-      doc.rect(MARGIN, currentY, CONTENT_WIDTH, 8, 'F');
-      doc.setTextColor(...hexToRgb(COLORS.white));
-      doc.setFontSize(8);
+      doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
-      doc.text('Tema', MARGIN + 3, currentY + 5.5);
-      doc.text('Presente em', MARGIN + 40, currentY + 5.5);
-      doc.text('Testes', MARGIN + 65, currentY + 5.5);
-      currentY += 8;
+      tc(doc, C.primary);
+      doc.text('Tema', ML, y);
+      doc.text('Presente em', ML + 45, y);
+      doc.text('Diagnósticos', ML + 72, y);
+      y += 2;
+      dc(doc, C.accent);
+      doc.setLineWidth(0.3);
+      doc.line(ML, y, PW - MR, y);
+      y += 5;
 
-      correlations.slice(0, 25).forEach((corr, i) => {
-        currentY = checkPageBreak(doc, currentY, 8);
-        const bgColor = i % 2 === 0 ? COLORS.lightGray : COLORS.white;
-        doc.setFillColor(...hexToRgb(bgColor));
-        doc.rect(MARGIN, currentY, CONTENT_WIDTH, 7, 'F');
-
-        doc.setTextColor(...hexToRgb(COLORS.dark));
-        doc.setFontSize(8);
+      doc.setFontSize(9.5);
+      correlations.slice(0, 25).forEach((corr) => {
+        y = pb(doc, y, 7, ctx);
         doc.setFont('helvetica', 'bold');
-        doc.text(corr.tag.charAt(0).toUpperCase() + corr.tag.slice(1), MARGIN + 3, currentY + 5);
-
+        tc(doc, C.text);
+        doc.text(corr.tag.charAt(0).toUpperCase() + corr.tag.slice(1), ML, y);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...hexToRgb(COLORS.primary));
-        doc.text(`${corr.tests.length} testes`, MARGIN + 40, currentY + 5);
-
-        doc.setTextColor(...hexToRgb(COLORS.mediumGray));
+        tc(doc, C.accent);
+        doc.text(`${corr.tests.length} testes`, ML + 45, y);
+        tc(doc, C.muted);
         const testsText = corr.tests.join(', ');
-        const truncated = testsText.length > 60 ? testsText.substring(0, 57) + '...' : testsText;
-        doc.text(truncated, MARGIN + 65, currentY + 5);
-
-        currentY += 7;
+        const truncated = testsText.length > 55 ? testsText.substring(0, 52) + '...' : testsText;
+        doc.text(truncated, ML + 72, y);
+        y += 6;
       });
     } else {
-      currentY = addParagraph(doc, 'Não foram encontradas correlações significativas entre os testes realizados.', currentY);
+      y = bodyText(doc, 'Não foram encontradas correlações significativas entre os diagnósticos realizados.', y, ctx);
     }
+
+    addFooter(doc, data.participantName, pageNum.value, totalPages);
   }
 
-  // ==================== KEY TRAITS SUMMARY ====================
+  // ---- KEY TRAITS ----
   doc.addPage();
-  currentY = MARGIN;
+  pageNum.value++;
+  addHeader(doc, 'Traços-Chave');
+  y = 28;
   tocEntries.push({ title: 'Traços-Chave do Participante', page: doc.getNumberOfPages() });
 
-  currentY = addSectionHeader(doc, 'Traços-Chave do Participante', currentY);
-  currentY += 2;
+  ctx.section = 'Traços-Chave';
 
-  currentY = addParagraph(doc, 'Resumo dos principais traços identificados em cada teste, organizados por categoria.', currentY);
-  currentY += 4;
+  y = sectionTitle(doc, 'Traços-Chave do Participante', y);
+  y = bodyText(doc, 'Resumo dos principais traços identificados em cada diagnóstico, organizados por categoria.', y, ctx, { italic: true });
+  y += 4;
 
   for (const test of data.tests) {
     if (test.keyTraits.length === 0) continue;
 
-    currentY = checkPageBreak(doc, currentY, 20);
-    const color = ADAPTER_COLORS[test.slug] || COLORS.accent;
+    y = pb(doc, y, 16, ctx);
+    const color = TEST_COLORS[test.slug] || C.coverAccent;
 
-    currentY = addSubHeader(doc, test.displayName, currentY, color);
+    y = subTitle(doc, test.displayName, y, color);
 
     for (const trait of test.keyTraits) {
-      currentY = checkPageBreak(doc, currentY, 12);
+      y = pb(doc, y, 12, ctx);
 
-      // Category badge
-      doc.setFillColor(...hexToRgb(color));
-      const catWidth = doc.getTextWidth(trait.category) * 0.35 + 6;
-      doc.roundedRect(MARGIN, currentY, Math.max(catWidth, 18), 5, 1, 1, 'F');
-      doc.setTextColor(...hexToRgb(COLORS.white));
-      doc.setFontSize(6);
+      // Category + label
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(trait.category, MARGIN + 2, currentY + 3.5);
-
-      // Label
-      doc.setTextColor(...hexToRgb(COLORS.dark));
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text(trait.label, MARGIN + Math.max(catWidth, 18) + 3, currentY + 3.5);
-      currentY += 6;
+      tc(doc, color);
+      doc.text(`${trait.category}:`, ML, y);
+      tc(doc, C.text);
+      const catWidth = doc.getTextWidth(`${trait.category}: `);
+      doc.text(trait.label, ML + catWidth, y);
+      y += 5;
 
       // Description
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-      const descLines = doc.splitTextToSize(trait.description, CONTENT_WIDTH - 5);
-      doc.text(descLines.slice(0, 2), MARGIN + 3, currentY + 1);
-      currentY += descLines.slice(0, 2).length * 3.5 + 3;
+      if (trait.description) {
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica', 'normal');
+        tc(doc, C.muted);
+        const lines = wrap(doc, trait.description, CW - 5);
+        lines.slice(0, 2).forEach((line: string) => { doc.text(line, ML + 3, y); y += 4.5; });
+      }
+      y += 2;
     }
-
-    currentY += 4;
+    y += 6;
   }
 
-  // ==================== ABOUT PAGE ====================
+  addFooter(doc, data.participantName, pageNum.value, totalPages);
+
+  // ---- ABOUT ----
   doc.addPage();
-  currentY = MARGIN;
+  pageNum.value++;
+  addHeader(doc, 'Sobre');
+  y = 28;
   tocEntries.push({ title: 'Sobre este Relatório', page: doc.getNumberOfPages() });
 
-  currentY = addSectionHeader(doc, 'Sobre este Relatório', currentY);
-  currentY += 4;
+  ctx.section = 'Sobre';
 
-  currentY = addParagraph(doc, 'Este Relatório Unificado consolida os resultados de múltiplos testes de autoconhecimento e desenvolvimento pessoal realizados pelo participante na plataforma Karina Bonadiu.', currentY);
-  currentY += 2;
-  currentY = addParagraph(doc, 'A Análise Cruzada Integrada é gerada por inteligência artificial, combinando os insights de todos os testes para identificar padrões, pontos fortes convergentes e áreas de desenvolvimento. Esta análise é uma ferramenta complementar e deve ser interpretada em conjunto com a devolutiva do facilitador.', currentY);
-  currentY += 4;
+  y = sectionTitle(doc, 'Sobre este Relatório', y);
 
-  currentY = addSubHeader(doc, 'Testes incluídos neste relatório', currentY);
+  const aboutTexts = [
+    'Este Relatório Unificado consolida os resultados de múltiplos diagnósticos de autoconhecimento e desenvolvimento pessoal realizados pelo participante na plataforma Karina Bonadiu.',
+    'A Análise Cruzada Integrada é gerada por inteligência artificial, combinando os insights de todos os diagnósticos para identificar padrões, pontos fortes convergentes e áreas de desenvolvimento. Esta análise é uma ferramenta complementar e deve ser interpretada em conjunto com a devolutiva do facilitador.',
+    'Cada diagnóstico utiliza metodologias distintas e complementares, oferecendo diferentes perspectivas sobre o perfil do participante. A combinação dessas visões proporciona uma compreensão mais rica e integrada.',
+  ];
+
+  for (const text of aboutTexts) {
+    y = bodyText(doc, text, y, ctx);
+    y += 3;
+  }
+
+  y += 6;
+  y = subTitle(doc, 'Diagnósticos incluídos', y);
 
   data.tests.forEach(test => {
-    currentY = checkPageBreak(doc, currentY, 8);
-    const color = ADAPTER_COLORS[test.slug] || COLORS.accent;
-    doc.setFillColor(...hexToRgb(color));
-    doc.circle(MARGIN + 3, currentY + 2, 1.5, 'F');
+    y = pb(doc, y, 8, ctx);
+    const color = TEST_COLORS[test.slug] || C.coverAccent;
 
-    doc.setFontSize(9);
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    doc.text(test.displayName, MARGIN + 8, currentY + 3.5);
+    tc(doc, color);
+    doc.text(test.displayName, ML, y);
 
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    doc.text(`— Concluído em ${new Date(test.completedAt).toLocaleDateString('pt-BR')}`, MARGIN + 8 + doc.getTextWidth(test.displayName) + 2, currentY + 3.5);
-    currentY += 8;
+    tc(doc, C.muted);
+    doc.text(` — Concluído em ${new Date(test.completedAt).toLocaleDateString('pt-BR')}`, ML + doc.getTextWidth(test.displayName), y);
+    y += 7;
   });
 
-  currentY += 10;
+  y += 12;
   doc.setFontSize(8);
-  doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-  doc.text('© 2026 Karina Bonadiu. Todos os direitos reservados.', PAGE_WIDTH / 2, currentY, { align: 'center' });
+  tc(doc, C.muted);
+  doc.text('© 2026 Karina Bonadiu. Todos os direitos reservados.', PW / 2, y, { align: 'center' });
 
-  // ==================== FILL IN TABLE OF CONTENTS ====================
+  addFooter(doc, data.participantName, pageNum.value, totalPages);
+
+  // ============================================================
+  // TWO-PASS: Fill TOC + correct page numbers
+  // ============================================================
+
+  totalPages = doc.getNumberOfPages();
+
+  // Fill table of contents
   doc.setPage(tocPageNum);
   let tocY = tocStartY;
 
-  tocEntries.forEach((entry, i) => {
-    doc.setFontSize(10);
+  tocEntries.forEach((entry) => {
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    doc.text(entry.title, MARGIN + 5, tocY);
+    tc(doc, C.text);
+    doc.text(entry.title, ML + 5, tocY);
 
-    // Page number
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(COLORS.primary));
-    doc.text(String(entry.page), PAGE_WIDTH - MARGIN, tocY, { align: 'right' });
+    tc(doc, C.primary);
+    doc.text(String(entry.page), PW - MR, tocY, { align: 'right' });
 
-    // Dotted line
-    doc.setDrawColor(...hexToRgb(COLORS.border));
-    doc.setLineDashPattern([1, 1], 0);
-    const textWidth = doc.getTextWidth(entry.title);
-    const pageNumWidth = doc.getTextWidth(String(entry.page));
-    doc.line(MARGIN + 5 + textWidth + 3, tocY - 1, PAGE_WIDTH - MARGIN - pageNumWidth - 3, tocY - 1);
-    doc.setLineDashPattern([], 0);
+    // Dotted separator
+    dc(doc, C.divider);
+    doc.setLineWidth(0.2);
+    const titleW = doc.getTextWidth(entry.title);
+    const pageW = doc.getTextWidth(String(entry.page));
+    const dotStart = ML + 5 + titleW + 4;
+    const dotEnd = PW - MR - pageW - 4;
+    // Draw dots manually
+    for (let x = dotStart; x < dotEnd; x += 2.5) {
+      doc.circle(x, tocY - 1.5, 0.3, 'F');
+    }
 
-    tocY += 8;
+    tocY += 9;
   });
 
-  // ==================== ADD PAGE NUMBERS ====================
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 2; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    doc.text(`${i} / ${totalPages}`, PAGE_WIDTH / 2, PAGE_HEIGHT - 10, { align: 'center' });
-    doc.text('Karina Bonadiu — Relatório Unificado', MARGIN, PAGE_HEIGHT - 10);
-    doc.text(data.participantName, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 10, { align: 'right' });
+  // Re-draw all footers with correct total
+  for (let p = 2; p <= totalPages; p++) {
+    doc.setPage(p);
+    // Clear footer area
+    fc(doc, C.white);
+    doc.rect(0, PH - 18, PW, 18, 'F');
+    addFooter(doc, data.participantName, p - 1, totalPages - 1);
   }
 
-  // ==================== SAVE ====================
+  // ---- SAVE ----
   const safeName = data.participantName
     .toLowerCase()
     .normalize('NFD')
@@ -619,468 +1161,4 @@ export async function generateUnifiedPDF(
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-');
   doc.save(`relatorio-unificado-${safeName}.pdf`);
-}
-
-// ==================== DETAILED RENDERERS ====================
-
-function renderIQISDetailed(doc: jsPDF, result: any, y: number, color: string): number {
-  const scores = result.dimension_scores || {};
-  const totalScore = Number(result.total_score || 0);
-  const totalPercentage = (totalScore / 5) * 100;
-
-  // Overall score card
-  y = checkPageBreak(doc, y, 25);
-  doc.setFillColor(...hexToRgb(COLORS.cream));
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 3, 3, 'F');
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.text('Score Geral de Consciência Integral', MARGIN + 5, y + 8);
-  doc.setFontSize(16);
-  doc.setTextColor(...hexToRgb(getScoreColor(totalPercentage)));
-  doc.text(`${totalScore.toFixed(2)} / 5.00`, MARGIN + 5, y + 16);
-  doc.setFontSize(10);
-  doc.text(`(${totalPercentage.toFixed(0)}%)`, MARGIN + 50, y + 16);
-
-  // Level badge
-  const level = getScoreLevel(totalPercentage);
-  doc.setFillColor(...hexToRgb(getScoreColor(totalPercentage)));
-  doc.roundedRect(MARGIN + CONTENT_WIDTH - 35, y + 5, 30, 10, 2, 2, 'F');
-  doc.setTextColor(...hexToRgb(COLORS.white));
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.text(level, MARGIN + CONTENT_WIDTH - 20, y + 11.5, { align: 'center' });
-  y += 26;
-
-  // Dimension scores header
-  y = addSubHeader(doc, 'Scores por Dimensão', y, color);
-
-  // Sort dimensions by score (highest first)
-  const sorted = Object.entries(scores)
-    .map(([dim, val]) => ({ dim, score: Number(val) }))
-    .sort((a, b) => b.score - a.score);
-
-  for (const { dim, score } of sorted) {
-    const label = DIMENSION_LABELS_CI[dim] || dim;
-    const percentage = (score / 5) * 100;
-    y = addScoreBar(doc, label, score, 5, y, getScoreColor(percentage));
-  }
-
-  y += 4;
-
-  // Strengths and weaknesses
-  if (sorted.length >= 2) {
-    y = checkPageBreak(doc, y, 30);
-
-    const strongest = sorted.slice(0, 2);
-    const weakest = sorted.slice(-2).reverse();
-
-    // Strengths
-    y = addSubHeader(doc, 'Pontos Fortes', y, COLORS.success);
-    for (const s of strongest) {
-      y = checkPageBreak(doc, y, 8);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...hexToRgb(COLORS.dark));
-      doc.text(`✓ ${DIMENSION_LABELS_CI[s.dim] || s.dim}: ${s.score.toFixed(2)}/5 (${((s.score / 5) * 100).toFixed(0)}%)`, MARGIN + 3, y + 3);
-      y += 6;
-    }
-
-    y += 2;
-
-    // Areas for development
-    y = addSubHeader(doc, 'Áreas de Desenvolvimento', y, COLORS.warning);
-    for (const w of weakest) {
-      y = checkPageBreak(doc, y, 8);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...hexToRgb(COLORS.dark));
-      doc.text(`→ ${DIMENSION_LABELS_CI[w.dim] || w.dim}: ${w.score.toFixed(2)}/5 (${((w.score / 5) * 100).toFixed(0)}%)`, MARGIN + 3, y + 3);
-      y += 6;
-    }
-  }
-
-  return y + 4;
-}
-
-function renderDISCDetailed(doc: jsPDF, result: any, y: number, color: string): number {
-  const scores = result.dimension_scores || {};
-  const normalized = Object.entries(scores)
-    .map(([dim, val]) => ({ dim: normalizeDimKey(dim), score: Number(val) }))
-    .sort((a, b) => b.score - a.score);
-
-  const primary = normalized[0];
-  const secondary = normalized[1];
-
-  // Profile card
-  y = checkPageBreak(doc, y, 25);
-  doc.setFillColor(...hexToRgb(COLORS.cream));
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 3, 3, 'F');
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.text('Perfil Comportamental DISC', MARGIN + 5, y + 8);
-  doc.setFontSize(16);
-  doc.setTextColor(...hexToRgb(DISC_COLORS[primary?.dim] || color));
-  doc.text(`${primary?.dim || ''}${secondary?.dim || ''}`, MARGIN + 5, y + 16);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${DISC_LABELS[primary?.dim] || ''} - ${DISC_LABELS[secondary?.dim] || ''}`, MARGIN + 25, y + 16);
-  y += 26;
-
-  // Dimension scores
-  y = addSubHeader(doc, 'Scores por Dimensão', y, color);
-
-  for (const { dim, score } of normalized) {
-    const dimColor = DISC_COLORS[dim] || color;
-    y = addScoreBar(doc, `${dim} - ${DISC_LABELS[dim] || dim}`, score, 5, y, dimColor);
-  }
-
-  y += 4;
-
-  // Profile descriptions
-  y = addSubHeader(doc, 'Descrição do Perfil', y, color);
-
-  for (const { dim, score } of normalized) {
-    y = checkPageBreak(doc, y, 14);
-    const isStrong = score >= 3.5;
-    const dimColor = DISC_COLORS[dim] || color;
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(dimColor));
-    doc.text(`${DISC_LABELS[dim] || dim} (${dim}) — ${score.toFixed(1)}/5`, MARGIN + 3, y + 3);
-    y += 5;
-
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    const desc = DISC_DESCRIPTIONS[dim] || '';
-    const intensity = isStrong ? 'Traço forte' : score >= 2.5 ? 'Traço moderado' : 'Traço menos expressivo';
-    const fullDesc = `${intensity}: ${desc}.`;
-    const lines = doc.splitTextToSize(fullDesc, CONTENT_WIDTH - 10);
-    doc.text(lines, MARGIN + 3, y + 2);
-    y += lines.length * 4 + 4;
-  }
-
-  return y + 4;
-}
-
-function renderSoulPlanDetailed(doc: jsPDF, result: any, y: number, color: string): number {
-  const soulPlanResult = result.exercises_data?.soulPlanResult;
-  if (!soulPlanResult) {
-    return addParagraph(doc, 'Dados detalhados do Mapa da Alma não disponíveis.', y);
-  }
-
-  // Soul Destiny card
-  y = checkPageBreak(doc, y, 25);
-  doc.setFillColor(...hexToRgb(COLORS.cream));
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 20, 3, 3, 'F');
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.text('Destino da Alma', MARGIN + 5, y + 8);
-  doc.setFontSize(20);
-  doc.setTextColor(...hexToRgb(color));
-  doc.text(String(soulPlanResult.soulDestinyNumber || 'N/A'), MARGIN + 5, y + 17);
-  if (soulPlanResult.fullName) {
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-    doc.text(`Nome: ${soulPlanResult.fullName}`, MARGIN + 25, y + 17);
-  }
-  y += 26;
-
-  // Energies Grid
-  y = addSubHeader(doc, 'Mapa de Energias', y, color);
-
-  // Table header
-  y = checkPageBreak(doc, y, 12);
-  doc.setFillColor(...hexToRgb(COLORS.primary));
-  doc.rect(MARGIN, y, CONTENT_WIDTH, 8, 'F');
-  doc.setTextColor(...hexToRgb(COLORS.white));
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-
-  const colWidth = CONTENT_WIDTH / 4;
-  doc.text('', MARGIN + 3, y + 5.5);
-  doc.text('Objetivo', MARGIN + colWidth + 3, y + 5.5);
-  doc.text('Talento', MARGIN + colWidth * 2 + 3, y + 5.5);
-  doc.text('Desafio', MARGIN + colWidth * 3 + 3, y + 5.5);
-  y += 8;
-
-  const categories = ['worldly', 'spiritual', 'soul'] as const;
-  const positions = ['Goal', 'Talent', 'Challenge'] as const;
-
-  categories.forEach((cat, i) => {
-    y = checkPageBreak(doc, y, 10);
-    const bgColor = i % 2 === 0 ? COLORS.lightGray : COLORS.white;
-    doc.setFillColor(...hexToRgb(bgColor));
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 9, 'F');
-
-    // Category color bar
-    const catColor = ENERGY_CATEGORY_COLORS[cat] || color;
-    doc.setFillColor(...hexToRgb(catColor));
-    doc.rect(MARGIN, y, 3, 9, 'F');
-
-    // Category label
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text(ENERGY_CATEGORIES[cat] || cat, MARGIN + 6, y + 6);
-
-    // Values
-    doc.setFont('helvetica', 'normal');
-    positions.forEach((pos, j) => {
-      const key = `${cat}${pos}`;
-      const energy = soulPlanResult[key];
-      if (energy !== undefined && energy !== null) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...hexToRgb(catColor));
-        doc.text(String(energy), MARGIN + colWidth * (j + 1) + 10, y + 6.5);
-      }
-    });
-
-    y += 9;
-  });
-
-  y += 6;
-
-  // Interpretation of energies
-  y = addSubHeader(doc, 'Interpretação das Energias', y, color);
-
-  for (const cat of categories) {
-    for (const pos of positions) {
-      const key = `${cat}${pos}`;
-      const energy = soulPlanResult[key];
-      if (energy !== undefined && energy !== null) {
-        y = checkPageBreak(doc, y, 10);
-        const catColor = ENERGY_CATEGORY_COLORS[cat] || color;
-        const posLabel = POSITION_LABELS[pos.toLowerCase()] || pos;
-
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...hexToRgb(catColor));
-        doc.text(`${ENERGY_CATEGORIES[cat]} — ${posLabel}: Energia ${energy}`, MARGIN + 3, y + 3);
-        y += 6;
-      }
-    }
-  }
-
-  return y + 4;
-}
-
-function renderAstralChartDetailed(doc: jsPDF, result: any, y: number, color: string): number {
-  const fullResult = result.exercises_data?.fullResult;
-  if (!fullResult) {
-    return addParagraph(doc, 'Dados detalhados do Mapa Astral não disponíveis.', y);
-  }
-
-  // Big Three card
-  y = checkPageBreak(doc, y, 30);
-  doc.setFillColor(...hexToRgb(COLORS.cream));
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 28, 3, 3, 'F');
-
-  const sunLabel = fullResult.sunSignLabel || SIGN_LABELS_PT[fullResult.sunSign] || fullResult.sunSign || 'N/A';
-  const moonLabel = fullResult.moonSignLabel || SIGN_LABELS_PT[fullResult.moonSign] || fullResult.moonSign || 'N/A';
-  const ascLabel = fullResult.ascendantSignLabel || SIGN_LABELS_PT[fullResult.ascendantSign] || fullResult.ascendantSign || 'N/A';
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb(COLORS.dark));
-  doc.text('Os Três Grandes', MARGIN + 5, y + 7);
-
-  const thirdWidth = CONTENT_WIDTH / 3;
-
-  // Sun
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-  doc.text('Sol (Essência)', MARGIN + 5, y + 14);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb('#F59E0B'));
-  doc.text(sunLabel, MARGIN + 5, y + 22);
-
-  // Moon
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-  doc.text('Lua (Emoções)', MARGIN + thirdWidth + 5, y + 14);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb('#8B5CF6'));
-  doc.text(moonLabel, MARGIN + thirdWidth + 5, y + 22);
-
-  // Ascendant
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-  doc.text('Ascendente (Projeção)', MARGIN + thirdWidth * 2 + 5, y + 14);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...hexToRgb('#EC4899'));
-  doc.text(ascLabel, MARGIN + thirdWidth * 2 + 5, y + 22);
-
-  y += 34;
-
-  // Midheaven
-  if (fullResult.midheavenSign) {
-    const mcLabel = fullResult.midheavenSignLabel || SIGN_LABELS_PT[fullResult.midheavenSign] || fullResult.midheavenSign;
-    y = checkPageBreak(doc, y, 10);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    doc.text(`Meio do Céu (Vocação): ${mcLabel}`, MARGIN, y + 3);
-    y += 8;
-  }
-
-  // Element Balance
-  if (fullResult.planets && Array.isArray(fullResult.planets)) {
-    y = addSubHeader(doc, 'Equilíbrio dos Elementos', y, color);
-
-    const elementCount: Record<string, number> = { fire: 0, earth: 0, air: 0, water: 0 };
-    fullResult.planets.forEach((p: any) => {
-      const el = SIGN_ELEMENTS[p.sign];
-      if (el) elementCount[el]++;
-    });
-
-    const total = fullResult.planets.length || 1;
-
-    for (const [el, count] of Object.entries(elementCount).sort((a, b) => b[1] - a[1])) {
-      const elColor = ELEMENT_COLORS[el] || color;
-      const label = `${ELEMENT_LABELS[el] || el} (${count} planetas)`;
-      y = addScoreBar(doc, label, count, total, y, elColor, true);
-    }
-
-    y += 4;
-
-    // Planets table
-    y = addSubHeader(doc, 'Posições Planetárias', y, color);
-
-    // Table header
-    y = checkPageBreak(doc, y, 10);
-    doc.setFillColor(...hexToRgb(COLORS.primary));
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 8, 'F');
-    doc.setTextColor(...hexToRgb(COLORS.white));
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Planeta', MARGIN + 3, y + 5.5);
-    doc.text('Signo', MARGIN + 40, y + 5.5);
-    doc.text('Elemento', MARGIN + 80, y + 5.5);
-    doc.text('Casa', MARGIN + 115, y + 5.5);
-    doc.text('Grau', MARGIN + 140, y + 5.5);
-    y += 8;
-
-    const mainPlanets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
-    const filteredPlanets = fullResult.planets.filter((p: any) => mainPlanets.includes(p.key));
-
-    filteredPlanets.forEach((planet: any, i: number) => {
-      y = checkPageBreak(doc, y, 8);
-      const bgColor = i % 2 === 0 ? COLORS.lightGray : COLORS.white;
-      doc.setFillColor(...hexToRgb(bgColor));
-      doc.rect(MARGIN, y, CONTENT_WIDTH, 7, 'F');
-
-      const signLabel = SIGN_LABELS_PT[planet.sign] || planet.signLabel || planet.sign || '';
-      const element = SIGN_ELEMENTS[planet.sign] || '';
-      const elLabel = ELEMENT_LABELS[element] || element;
-      const elColor = ELEMENT_COLORS[element] || COLORS.mediumGray;
-
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...hexToRgb(COLORS.dark));
-      doc.text(planet.label || planet.key || '', MARGIN + 3, y + 5);
-
-      doc.setFont('helvetica', 'normal');
-      doc.text(signLabel, MARGIN + 40, y + 5);
-
-      doc.setTextColor(...hexToRgb(elColor));
-      doc.text(elLabel, MARGIN + 80, y + 5);
-
-      doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-      doc.text(planet.house ? `Casa ${planet.house}` : '', MARGIN + 115, y + 5);
-      doc.text(planet.degree ? `${planet.degree}°` : '', MARGIN + 140, y + 5);
-
-      y += 7;
-    });
-  }
-
-  return y + 4;
-}
-
-function renderGenericDetailed(doc: jsPDF, test: any, y: number, color: string): number {
-  // Fallback for unknown test types - show comparison metrics
-  y = addSubHeader(doc, 'Métricas', y, color);
-
-  for (const metric of test.comparisonMetrics) {
-    y = addScoreBar(doc, metric.label, metric.value, metric.maxValue || 100, y, metric.color || color, true);
-  }
-
-  y += 4;
-
-  // Key traits
-  if (test.keyTraits.length > 0) {
-    y = addSubHeader(doc, 'Traços-Chave', y, color);
-    for (const trait of test.keyTraits) {
-      y = checkPageBreak(doc, y, 8);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...hexToRgb(COLORS.dark));
-      doc.text(`• ${trait.label}`, MARGIN + 3, y + 3);
-      y += 5;
-      if (trait.description) {
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...hexToRgb(COLORS.mediumGray));
-        const lines = doc.splitTextToSize(trait.description, CONTENT_WIDTH - 10);
-        doc.text(lines.slice(0, 2), MARGIN + 6, y + 1);
-        y += lines.slice(0, 2).length * 3.5 + 2;
-      }
-    }
-  }
-
-  return y + 4;
-}
-
-// ==================== MARKDOWN TEXT RENDERER ====================
-
-function renderMarkdownText(doc: jsPDF, text: string, y: number): number {
-  const lines = text.split('\n');
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (trimmed === '') {
-      y += 3;
-      continue;
-    }
-
-    // Bold headers (full line)
-    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-      y = checkPageBreak(doc, y, 10);
-      const headerText = trimmed.replace(/\*\*/g, '');
-      y += 3;
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...hexToRgb(COLORS.primary));
-      doc.text(headerText, MARGIN, y);
-      y += 7;
-      continue;
-    }
-
-    // Regular text (strip markdown bold markers for PDF)
-    const cleanText = trimmed.replace(/\*\*/g, '');
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...hexToRgb(COLORS.dark));
-    const wrappedLines = doc.splitTextToSize(cleanText, CONTENT_WIDTH);
-    for (const wl of wrappedLines) {
-      y = checkPageBreak(doc, y, 5);
-      doc.text(wl, MARGIN, y);
-      y += 4.5;
-    }
-    y += 2;
-  }
-
-  return y;
 }
